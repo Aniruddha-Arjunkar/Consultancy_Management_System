@@ -180,7 +180,28 @@ public class UserService {
             return "ALL";
         }
 
-        return branch.trim();
+        String normalized = branch.trim();
+
+        if (normalized.equalsIgnoreCase("ALL")) {
+            return "ALL";
+        }
+
+        if (normalized.equalsIgnoreCase("Bramhapuri")) {
+            return "Bramhapuri";
+        }
+
+        if (normalized.equalsIgnoreCase("Chandrapur")) {
+            return "Chandrapur";
+        }
+
+        if (normalized.equalsIgnoreCase("Nagpur")) {
+            return "Nagpur";
+        }
+
+        throw new IllegalArgumentException(
+                "Invalid branch. Allowed branches: " +
+                        "Bramhapuri, Chandrapur, Nagpur, ALL"
+        );
     }
 
     private String normalizeAccessModules(String modules) {

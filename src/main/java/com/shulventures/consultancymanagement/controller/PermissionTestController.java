@@ -3,7 +3,10 @@ package com.shulventures.consultancymanagement.controller;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/test/permissions")
@@ -32,4 +35,14 @@ public class PermissionTestController {
     public String consultancyPermission() {
         return "CONSULTANCY module access granted";
     }
+
+    @GetMapping("/branch")
+    @PreAuthorize("@branchPermissionService.hasBranchAccess(authentication, #branch)")
+    public String branchPermission(
+            @RequestParam String branch
+    ) {
+        return "Branch access granted for: " + branch;
+    }
+
+
 }
