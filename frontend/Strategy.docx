@@ -1361,4 +1361,79 @@ for GET "http://localhost:8080/api/auth/me" in body tab got json"{
     "id": 1,
     "name": "Admin",
     "role": "SUPER_ADMIN"
-}" that means every is working perfectly so now we move forword . what are we going to implement?
+}" that means every is working perfectly so now we move forword . what are we going to 
+implement?
+
+okey lets start phase 2 : User Management + Permissions . we already have user entity and 
+UserRepository "package com.shulventures.consultancymanagement.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "Id")
+    private Long id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Column(name = "role", nullable = false)
+    private String role;
+
+    @Column(name = "branch")
+    private String branch;
+
+    @Column(name = "access_modules", columnDefinition = "TEXT")
+    private String accessModules;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "last_active")
+    private LocalDateTime lastActive;
+}
+" "package com.shulventures.consultancymanagement.repository;
+
+import com.shulventures.consultancymanagement.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
+    boolean existsByEmail(String email);
+}"
+
+Add @EnableMethodSecurity.
+Create the three DTOs.
+Create UserService.
+Create UserController.
+Check CustomUserDetails.getAuthorities() for the ROLE_ prefix.
+Start Spring Boot.
+Test POST /api/auth/login.
+Test GET /api/users.
+Create Rahul.
+Login as Rahul and confirm GET /api/users returns 403.
+created files and test all postman api and it working perfectly . now we can move ahead
+

@@ -37,8 +37,7 @@ public class AuthController {
                         )
                 );
 
-        SecurityContext context =
-                SecurityContextHolder.createEmptyContext();
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
 
         context.setAuthentication(authentication);
 
@@ -50,8 +49,7 @@ public class AuthController {
                 httpResponse
         );
 
-        CustomUserDetails userDetails =
-                (CustomUserDetails) authentication.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
         var user = userDetails.getUser();
 
@@ -68,8 +66,7 @@ public class AuthController {
     @GetMapping("/me")
     public LoginResponse currentUser(Authentication authentication) {
 
-        CustomUserDetails userDetails =
-                (CustomUserDetails) authentication.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
         var user = userDetails.getUser();
 
@@ -84,9 +81,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public void logout(
-            HttpServletRequest request
-    ) {
+    public void logout(HttpServletRequest request) {
 
         SecurityContextHolder.clearContext();
 

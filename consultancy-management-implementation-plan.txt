@@ -1,0 +1,23 @@
+PHASE 1 — Authentication foundation        ✅ Mostly complete
+        ↓
+PHASE 2 — User Management + Permissions     ← NEXT
+        ↓
+PHASE 3 — Authorization + Branch Security
+        ↓
+PHASE 4 — React Login + Session Handling
+        ↓
+PHASE 5 — Layout / Sidebar / Protected Routes
+        ↓
+PHASE 6 — Dashboard
+        ↓
+PHASE 7 — Employee Management
+        ↓
+PHASE 8 — Attendance
+        ↓
+PHASE 9 — Consultancy Management
+        ↓
+PHASE 10 — Accounts Management
+        ↓
+PHASE 11 — Chat
+        ↓
+PHASE 12 — Final testing / deployment
