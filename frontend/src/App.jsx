@@ -1,24 +1,61 @@
-import { useEffect, useState } from 'react'
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Login from "./Views/Auth/Login/Login";
 
-function App() {
-  const [message, setMessage] = useState('Loading...')
 
-  useEffect(() => {
-    fetch('/api/test')
-      .then(response => response.text())
-      .then(data => setMessage(data))
-      .catch(error => {
-        console.error('Backend connection failed:', error)
-        setMessage('Backend connection failed')
-      })
-  }, [])
-  return (
-    <div>
-      <h1>Consultancy Management System</h1>
-      <h3>This is a proxy Api</h3>
-      <p>Backend response:</p>
-      <strong>{message}</strong>
-    </div>
-  )
+function AppContent() {
+
+    const {
+        user,
+        loading
+    } = useAuth();
+
+
+    if (loading) {
+        return null;
+    }
+
+
+    if (!user) {
+        return <Login />;
+    }
+
+
+    /*
+     * Temporary authenticated screen.
+     *
+     * We will replace this with the real application
+     * layout/dashboard after authentication is completely
+     * integrated.
+     */
+
+    return (
+        <div>
+            <h1>Authentication Successful</h1>
+
+            <p>
+                Welcome, {user.name}
+            </p>
+
+            <p>
+                Role: {user.role}
+            </p>
+
+            <p>
+                Branch: {user.branch}
+            </p>
+
+            <p>
+                Modules: {user.accessModules}
+            </p>
+        </div>
+    );
 }
-export default App
+function App() {
+
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
+    );
+}
+export default App;
