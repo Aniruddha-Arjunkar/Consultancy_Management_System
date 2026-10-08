@@ -1,0 +1,52 @@
+.shul-app-layout {
+    min-height: 100vh;
+    background: #f3f5f9;
+}
+
+
+/* =========================
+   MAIN CONTENT
+========================= */
+
+.shul-main-content {
+    margin-left: 260px;
+    padding-top: 62px;
+    min-height: 100vh;
+    transition:
+        margin-left .25s ease;
+}
+
+
+/* =========================
+   COLLAPSED SIDEBAR
+========================= */
+
+.sidebar-collapsed-state
+.shul-main-content {
+    margin-left: 74px;
+}
+
+.sidebar-collapsed-state
+.shul-header {
+    position: fixed;
+    top: 0;
+    left: 74px;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+    .shul-main-content {
+        margin-left: 0;
+    }
+
+    .sidebar-collapsed-state
+    .shul-main-content {
+        margin-left: 0;
+    }
+    
+}
