@@ -14,20 +14,20 @@ function SideBar({
 
 
     const [openMenus, setOpenMenus] = useState({
-        accounts: true,
+        accounts: false,
         payments: false,
         gstBills: false,
         expenses: false,
         advance: false,
         tds: false,
 
-        employee: true,
+        employee: false,
         employeePages: false,
         salary: false,
 
-        attendance: true,
+        attendance: false,
 
-        consultancy: true,
+        consultancy:false,
         associate: false,
         requirement: false,
         registration: false,

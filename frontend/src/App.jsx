@@ -1,29 +1,43 @@
-import { AuthProvider, useAuth } from "./context/AuthContext";
+// import { AuthProvider, useAuth } from "./context/AuthContext";
+// import Login from "./Views/Auth/Login/Login";
+// import DashboardLayout from "./Layout/DashboardLayout/DashboardLayout.jsx";
 
-import Login from "./Views/Auth/Login/Login";
-import DashboardLayout from "./Layout/DashboardLayout/DashboardLayout.jsx";
 
+// function AppContent() {
+//     const { user, loading} = useAuth();
 
-function AppContent() {
+//     if (loading) {
+//         return null;
+//     }
 
-    const { user, loading} = useAuth();
+//     if (!user) {
+//         return <Login />;
+//     }
+//     return <DashboardLayout />;
+// }
 
-    if (loading) {
-        return null;
-    }
+// function App() {
+//     return (
+//           <AuthProvider>
+//             <AppContent />
+//           </AuthProvider>
+//     );
+// }
+// export default App;
+import { BrowserRouter } from "react-router";
 
-    if (!user) {
-        return <Login />;
-    }
-    return <DashboardLayout />;
-}
+import { AuthProvider } from "./context/AuthContext";
 
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
     return (
-        <AuthProvider>
-            <AppContent />
-        </AuthProvider>
+        <BrowserRouter>
+            <AuthProvider>
+                <AppRoutes />
+            </AuthProvider>
+        </BrowserRouter>
     );
 }
+
 export default App;
