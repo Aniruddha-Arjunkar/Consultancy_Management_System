@@ -5,9 +5,7 @@ function Dashboard() {
     return (
         <main className="shul-dashboard">
 
-            {/* =========================
-                PAGE HEADER
-            ========================== */}
+            {/* ======= PAGE HEADER ===== */}
 
             <div className="shul-dashboard-header-row">
                 <div>
@@ -33,9 +31,7 @@ function Dashboard() {
             </div>
 
 
-            {/* =========================
-                STAT CARDS
-            ========================== */}
+            {/* ============ STAT CARDS =========== */}
 
             <div className="shul-kpi-grid">
 
@@ -107,9 +103,7 @@ function Dashboard() {
             </div>
 
 
-            {/* =========================
-                PENDING ALERTS
-            ========================== */}
+            {/* =========== PENDING ALERTS ======= */}
 
             <section className="shul-alert-section">
 
@@ -163,9 +157,7 @@ function Dashboard() {
             </section>
 
 
-            {/* =========================
-                MONTHLY SERVICES
-            ========================== */}
+            {/* ===== MONTHLY SERVICES ========== */}
 
             <section className="shul-chart-card">
 

@@ -76,8 +76,9 @@ function SideBar({
     };
 
 
-    const showDashboard =
-        user?.role === "SUPER_ADMIN";
+    // const showDashboard =
+    //     user?.role === "SUPER_ADMIN";
+    const showDashboard = !!user;
 
     const showAccounts =
         hasModule("ACCOUNTS");
