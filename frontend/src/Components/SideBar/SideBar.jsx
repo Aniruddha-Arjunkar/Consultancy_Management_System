@@ -27,7 +27,7 @@ function SideBar({
 
         attendance: false,
 
-        consultancy:false,
+        consultancy: false,
         associate: false,
         requirement: false,
         registration: false,
@@ -241,8 +241,8 @@ function SideBar({
 
                         <li
                             className={`sub-menu ${openMenus.accounts
-                                    ? "open"
-                                    : ""
+                                ? "open"
+                                : ""
                                 }`}>
 
                             <a href="#"
@@ -278,8 +278,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.payments
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
                                             <a href="#"
                                                 onClick={(event) => {
@@ -340,8 +340,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.gstBills
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}
                                         >
 
@@ -397,8 +397,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.expenses
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}
                                         >
 
@@ -456,8 +456,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.advance
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}
                                         >
 
@@ -512,8 +512,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.tds
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}
                                         >
 
@@ -576,8 +576,8 @@ function SideBar({
 
                         <li
                             className={`sub-menu ${openMenus.employee
-                                    ? "open"
-                                    : ""
+                                ? "open"
+                                : ""
                                 }`}>
 
                             <a href="#"
@@ -613,8 +613,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.employeePages
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a
@@ -680,8 +680,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.salary
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -735,8 +735,8 @@ function SideBar({
 
                         <li
                             className={`sub-menu ${openMenus.attendance
-                                    ? "open"
-                                    : ""
+                                ? "open"
+                                : ""
                                 }`}
                         >
 
@@ -809,8 +809,8 @@ function SideBar({
 
                         <li
                             className={`sub-menu ${openMenus.consultancy
-                                    ? "open"
-                                    : ""
+                                ? "open"
+                                : ""
                                 }`}>
 
                             <a href="#"
@@ -845,8 +845,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.associate
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -901,8 +901,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.requirement
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -966,8 +966,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.registration
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -1036,8 +1036,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.interview
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -1080,8 +1080,8 @@ function SideBar({
 
                                         <li
                                             className={`sub-menu ${openMenus.studentStatus
-                                                    ? "open"
-                                                    : ""
+                                                ? "open"
+                                                : ""
                                                 }`}>
 
                                             <a href="#"
@@ -1192,3 +1192,5 @@ function SideBar({
     );
 }
 export default SideBar;
+
+

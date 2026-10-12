@@ -6,4 +6,6 @@ const AddEmployee = () => {
         <h2>Add Employee</h2>
         <p>This is the Add Employee page.</p>         
     </div>
-    );}
+    );
+  }
+  export default AddEmployee;

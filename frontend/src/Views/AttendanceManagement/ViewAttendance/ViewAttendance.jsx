@@ -8,3 +8,4 @@ const ViewAttendance = () => {
         </div>
     );
 }
+export default ViewAttendance;

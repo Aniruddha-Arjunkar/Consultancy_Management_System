@@ -9,3 +9,4 @@ const AddAttendance = () => {
         </div>
     );
 }
+export default AddAttendance;

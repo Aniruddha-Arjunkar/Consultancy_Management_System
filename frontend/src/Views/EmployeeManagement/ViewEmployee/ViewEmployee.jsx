@@ -8,3 +8,4 @@ const ViewEmployee = () => {
     </div>
   );
 }
+export default ViewEmployee;

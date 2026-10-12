@@ -8,3 +8,4 @@ const Salary = () => {
         </div>
     );
 }       
+export default Salary;
