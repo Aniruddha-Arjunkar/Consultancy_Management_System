@@ -128,13 +128,13 @@ function AppRoutes() {
                         }
                     />
 
-                    <Route path="dashboard" element={<DashboardHome />}/>
+                    <Route path="dashboard" element={<DashboardHome />} />
 
                     {/* Chat: available to all authenticated users */}
-                    <Route path="chat" element={<Chat />}/>
+                    <Route path="chat" element={<Chat />} />
 
                     {/* Accounts */}
-                    <Route element={<PermissionRoute module="ACCOUNTS" />}>
+                    {/* <Route element={<PermissionRoute module="ACCOUNTS" />}>
                         <Route path="accounts/due-payment" element={<DuePayments />}/>
                         <Route path="accounts/view-payment" element={<ViewPayments />}/>
                         <Route path="accounts/payment-defaulter" element={<DefaulterPayments />}/>
@@ -146,35 +146,150 @@ function AppRoutes() {
                         <Route path="accounts/view-advance" element={<ViewAdvance />}/>
                         <Route path="accounts/due-tds" element={<DueTDS />}/>
                         <Route path="accounts/paid-tds" element={<PaidTDS />}/>
+                    </Route> */}
+                    {/* Accounts */}
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_DUE" />}>
+                        <Route path="accounts/due-payment" element={<DuePayments />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_VIEW" />}>
+                        <Route path="accounts/view-payment" element={<ViewPayments />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_DEFAULTER" />}>
+                        <Route path="accounts/payment-defaulter" element={<DefaulterPayments />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="GST_GENERATE" />}>
+                        <Route path="accounts/generate-invoice" element={<GenerateInvoice />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="GST_VIEW" />}>
+                        <Route path="accounts/gst-Invoice" element={<GSTInvoices />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="EXPENSES_ADD" />}>
+                        <Route path="accounts/add-expenses" element={<AddExpenses />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="EXPENSES_VIEW" />}>
+                        <Route path="accounts/view-expenses" element={<ViewExpenses />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="ADVANCE_ADD" />}>
+                        <Route path="accounts/add-advance" element={<AddAdvance />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="ADVANCE_VIEW" />}>
+                        <Route path="accounts/view-advance" element={<ViewAdvance />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="TDS_DUE" />}>
+                        <Route path="accounts/due-tds" element={<DueTDS />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ACCOUNTS" page="TDS_PAID" />}>
+                        <Route path="accounts/paid-tds" element={<PaidTDS />} />
                     </Route>
 
                     {/* Employee */}
-                    <Route element={<PermissionRoute module="EMPLOYEE" />}>
+                    {/* <Route element={<PermissionRoute module="EMPLOYEE" />}>
                         <Route path="employee/add-employee" element={<AddEmployee />} />
                         <Route path="employee/view-employee" element={<ViewEmployee />} />
-                        <Route path="employee/generate-letter" element={<GenerateLetter />}/>
+                        <Route path="employee/generate-letter" element={<GenerateLetter />} />
+                        <Route path="employee/salary" element={<Salary />} />
+                    </Route> */}
+
+                    {/* Attendance */}
+                    {/* <Route element={<PermissionRoute module="ATTENDANCE" />}>
+                        <Route path="attendance/add-attendance" element={<AddAttendance />} />
+                        <Route path="attendance/view-attendance" element={<ViewAttendance />} />
+                    </Route> */}
+
+                    {/* Consultancy */}
+                    {/* <Route element={<PermissionRoute module="CONSULTANCY" />}>
+                        <Route path="consultancy/add-associate-company" element={<AddAssociateCompany />} />
+                        <Route path="consultancy/view-associate-company" element={<ViewAssociateCompany />} />
+                        <Route path="consultancy/add-current-requirement" element={<AddCurrentRequirement />} />
+                        <Route path="consultancy/view-requirement" element={<ViewRequirement />} />
+                        <Route path="consultancy/closed-requirement" element={<ClosedRequirements />} />
+                        <Route path="consultancy/add-students" element={<AddStudent />} />
+                        <Route path="consultancy/viewStudents" element={<ViewStudent />} />
+                        <Route path="consultancy/all-candidates" element={<AllCandidates />} />
+                        <Route path="consultancy/interview-schedule" element={<InterviewScheduled />} />
+                        <Route path="consultancy/placed-candidates" element={<PlacedCandidates />} />
+                        <Route path="consultancy/rejected-candidates" element={<RejectedCandidates />} />
+                    </Route> */}
+
+                    {/* Employee */}
+                    <Route element={<PermissionRoute module="EMPLOYEE" page="ADD" />}>
+                        <Route path="employee/add-employee" element={<AddEmployee />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="EMPLOYEE" page="VIEW" />}>
+                        <Route path="employee/view-employee" element={<ViewEmployee />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="EMPLOYEE" page="GENERATE_LETTER" />}>
+                        <Route path="employee/generate-letter" element={<GenerateLetter />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="EMPLOYEE" page="ADD_SALARY" />}>
                         <Route path="employee/salary" element={<Salary />} />
                     </Route>
 
                     {/* Attendance */}
-                    <Route element={<PermissionRoute module="ATTENDANCE" />}>
-                        <Route path="attendance/add-attendance" element={<AddAttendance />}/>
-                        <Route path="attendance/view-attendance" element={<ViewAttendance />}/>
+                    <Route element={<PermissionRoute module="ATTENDANCE" page="ADD" />}>
+                        <Route path="attendance/add-attendance" element={<AddAttendance />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="ATTENDANCE" page="VIEW" />}>
+                        <Route path="attendance/view-attendance" element={<ViewAttendance />} />
                     </Route>
 
                     {/* Consultancy */}
-                    <Route element={<PermissionRoute module="CONSULTANCY" />}>
-                        <Route path="consultancy/add-associate-company" element={<AddAssociateCompany/>}/>
-                        <Route path="consultancy/view-associate-company" element={<ViewAssociateCompany/>}/>
-                        <Route path="consultancy/add-current-requirement" element={<AddCurrentRequirement/>}/>
-                        <Route path="consultancy/view-requirement" element={<ViewRequirement/>}/>
-                        <Route path="consultancy/closed-requirement" element={<ClosedRequirements/>}/>
-                        <Route path="consultancy/add-students" element={<AddStudent/>}/>
-                        <Route path="consultancy/viewStudents" element={<ViewStudent/>}/>
-                        <Route path="consultancy/all-candidates" element={<AllCandidates/>}/>
-                        <Route path="consultancy/interview-schedule" element={<InterviewScheduled/>}/>
-                        <Route path="consultancy/placed-candidates" element={<PlacedCandidates/>}/>
-                        <Route path="consultancy/rejected-candidates" element={<RejectedCandidates/>}/>
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="ASSOCIATE_COMPANY_ADD" />}>
+                        <Route path="consultancy/add-associate-company" element={<AddAssociateCompany />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="ASSOCIATE_COMPANY_VIEW" />}>
+                        <Route path="consultancy/view-associate-company" element={<ViewAssociateCompany />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_ADD" />}>
+                        <Route path="consultancy/add-current-requirement" element={<AddCurrentRequirement />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_VIEW" />}>
+                        <Route path="consultancy/view-requirement" element={<ViewRequirement />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_CLOSED" />}>
+                        <Route path="consultancy/closed-requirement" element={<ClosedRequirements />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="STUDENT_ADD" />}>
+                        <Route path="consultancy/add-students" element={<AddStudent />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="STUDENT_VIEW" />}>
+                        <Route path="consultancy/viewStudents" element={<ViewStudent />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="CANDIDATES_VIEW" />}>
+                        <Route path="consultancy/all-candidates" element={<AllCandidates />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="INTERVIEW_SCHEDULE" />}>
+                        <Route path="consultancy/interview-schedule" element={<InterviewScheduled />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="PLACED_CANDIDATES" />}>
+                        <Route path="consultancy/placed-candidates" element={<PlacedCandidates />} />
+                    </Route>
+
+                    <Route element={<PermissionRoute module="CONSULTANCY" page="REJECTED_CANDIDATES" />}>
+                        <Route path="consultancy/rejected-candidates" element={<RejectedCandidates />} />
                     </Route>
 
                     {/* Users: Super Admin only */}
@@ -183,11 +298,11 @@ function AppRoutes() {
                     </Route>
 
                     {/* Unknown authenticated routes */}
-                    <Route path="*" element={<NotFoundPage />}/>
+                    <Route path="*" element={<NotFoundPage />} />
                 </Route>
             </Route>
             {/* Unknown routes */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />}/>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     );
 }

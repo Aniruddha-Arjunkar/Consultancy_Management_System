@@ -11,37 +11,86 @@ const INITIAL_FORM = {
     branch: "",
 };
 
+// const MODULE_GROUPS = [
+//     {
+//         id: "accountsBox",
+//         title: "Accounts",
+//         parent: "ACCOUNTS",
+//         options: [
+//             { label: "All Account", value: "ACCOUNTS" },
+//             { label: "Payments View", value: "ACCOUNTS:PAYMENTS_VIEW" },
+//             // { label: "Payments Due (All)", value: "ACCOUNTS:PAYMENTS_DUE" },
+//             {
+//                 label: "Payments Due",
+//                 value: "CONSULTANCY:PAYMENTS_DUE",
+//             },
+//             {
+//                 label: "Defaulter",
+//                 value: "ACCOUNTS:PAYMENTS_DEFAULTER",
+//             },
+//             { label: "GST Generate", value: "ACCOUNTS:GST_GENERATE" },
+//             { label: "GST View", value: "ACCOUNTS:GST_VIEW" },
+//             {
+//                 label: "Expenses Add/View",
+//                 value: "ACCOUNTS:EXPENSES",
+//             },
+//             {
+//                 label: "Advance View/Add",
+//                 value: "ACCOUNTS:ADVANCE",
+//             },
+//             {
+//                 label: "TDS Due/paid",
+//                 value: "ACCOUNTS:TDS",
+//             }
+//         ],
+//     },
+//     {
+//         id: "employeeBox",
+//         title: "Employee Management",
+//         parent: "EMPLOYEE",
+//         options: [
+//             { label: "ALL Employee", value: "EMPLOYEE" },
+//             { label: "Add Employee", value: "EMPLOYEE:ADD" },
+//             { label: "View Employee", value: "EMPLOYEE:VIEW" },
+//             { label: "Add Salary", value: "EMPLOYEE:ADD_SALARY" },
+//         ],
+//     },
+//     {
+//         id: "attendanceBox",
+//         title: "Attendance Management",
+//         parent: "ATTENDANCE",
+//         options: [
+//             { label: "Attendance", value: "ATTENDANCE" },
+//         ],
+//     },
+//     {
+//         id: "consultantBox",
+//         title: "Consultancy Modules",
+//         parent: "CONSULTANCY",
+//         options: [
+//             { label: "Consultancy", value: "CONSULTANCY" },
+//         ],
+//     },
+// ];
+
 const MODULE_GROUPS = [
     {
         id: "accountsBox",
         title: "Accounts",
         parent: "ACCOUNTS",
         options: [
-            { label: "All Account", value: "ACCOUNTS" },
+            { label: "All Accounts", value: "ACCOUNTS" },
             { label: "Payments View", value: "ACCOUNTS:PAYMENTS_VIEW" },
-            // { label: "Payments Due (All)", value: "ACCOUNTS:PAYMENTS_DUE" },
-            {
-                label: "Payments Due",
-                value: "CONSULTANCY:PAYMENTS_DUE",
-            },
-            {
-                label: "Defaulter",
-                value: "ACCOUNTS:PAYMENTS_DEFAULTER",
-            },
-            { label: "GST Generate", value: "ACCOUNTS:GST_GENERATE" },
-            { label: "GST View", value: "ACCOUNTS:GST_VIEW" },
-            {
-                label: "Expenses Add/View",
-                value: "ACCOUNTS:EXPENSES",
-            },
-            {
-                label: "Advance View/Add",
-                value: "ACCOUNTS:ADVANCE",
-            },
-            {
-                label: "TDS Due/paid",
-                value: "ACCOUNTS:TDS",
-            }
+            { label: "Payments Due", value: "ACCOUNTS:PAYMENTS_DUE" },
+            { label: "Payment Defaulters", value: "ACCOUNTS:PAYMENTS_DEFAULTER" },
+            { label: "Generate GST Invoice", value: "ACCOUNTS:GST_GENERATE" },
+            { label: "View GST Invoices", value: "ACCOUNTS:GST_VIEW" },
+            { label: "Add Expenses", value: "ACCOUNTS:EXPENSES_ADD" },
+            { label: "View Expenses", value: "ACCOUNTS:EXPENSES_VIEW" },
+            { label: "Add Advance", value: "ACCOUNTS:ADVANCE_ADD" },
+            { label: "View Advance", value: "ACCOUNTS:ADVANCE_VIEW" },
+            { label: "Due TDS", value: "ACCOUNTS:TDS_DUE" },
+            { label: "Paid TDS", value: "ACCOUNTS:TDS_PAID" },
         ],
     },
     {
@@ -49,9 +98,10 @@ const MODULE_GROUPS = [
         title: "Employee Management",
         parent: "EMPLOYEE",
         options: [
-            { label: "ALL Employee", value: "EMPLOYEE" },
+            { label: "All Employee Pages", value: "EMPLOYEE" },
             { label: "Add Employee", value: "EMPLOYEE:ADD" },
             { label: "View Employee", value: "EMPLOYEE:VIEW" },
+            { label: "Generate Letter", value: "EMPLOYEE:GENERATE_LETTER" },
             { label: "Add Salary", value: "EMPLOYEE:ADD_SALARY" },
         ],
     },
@@ -60,7 +110,9 @@ const MODULE_GROUPS = [
         title: "Attendance Management",
         parent: "ATTENDANCE",
         options: [
-            { label: "Attendance", value: "ATTENDANCE" },
+            { label: "All Attendance Pages", value: "ATTENDANCE" },
+            { label: "Add Attendance", value: "ATTENDANCE:ADD" },
+            { label: "View Attendance", value: "ATTENDANCE:VIEW" },
         ],
     },
     {
@@ -68,7 +120,19 @@ const MODULE_GROUPS = [
         title: "Consultancy Modules",
         parent: "CONSULTANCY",
         options: [
-            { label: "Consultancy", value: "CONSULTANCY" },
+            { label: "All Consultancy Pages", value: "CONSULTANCY" },
+            { label: "Consultancy Payments Due", value: "CONSULTANCY:PAYMENTS_DUE" },
+            { label: "Add Associate Company", value: "CONSULTANCY:ASSOCIATE_COMPANY_ADD" },
+            { label: "View Associate Companies", value: "CONSULTANCY:ASSOCIATE_COMPANY_VIEW" },
+            { label: "Add Current Requirement", value: "CONSULTANCY:REQUIREMENT_ADD" },
+            { label: "View Requirements", value: "CONSULTANCY:REQUIREMENT_VIEW" },
+            { label: "Closed Requirements", value: "CONSULTANCY:REQUIREMENT_CLOSED" },
+            { label: "Add Student", value: "CONSULTANCY:STUDENT_ADD" },
+            { label: "View Students", value: "CONSULTANCY:STUDENT_VIEW" },
+            { label: "All Candidates", value: "CONSULTANCY:CANDIDATES_VIEW" },
+            { label: "Interview Schedule", value: "CONSULTANCY:INTERVIEW_SCHEDULE" },
+            { label: "Placed Candidates", value: "CONSULTANCY:PLACED_CANDIDATES" },
+            { label: "Rejected Candidates", value: "CONSULTANCY:REJECTED_CANDIDATES" },
         ],
     },
 ];
@@ -231,17 +295,17 @@ function User() {
              * the parent module permission required by the current
              * frontend routes.
              */
-            const parentOption = group.options.find(
-                (option) => option.value === group.parent
-            );
+            // const parentOption = group.options.find(
+            //     (option) => option.value === group.parent
+            // );
 
-            if (
-                value !== group.parent &&
-                selected.has(value) &&
-                parentOption
-            ) {
-                selected.add(group.parent);
-            }
+            // if (
+            //     value !== group.parent &&
+            //     selected.has(value) &&
+            //     parentOption
+            // ) {
+            //     selected.add(group.parent);
+            // }
 
             /*
              * If the parent module is deselected, remove its

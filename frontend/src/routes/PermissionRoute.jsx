@@ -1,8 +1,63 @@
-import { Navigate, Outlet } from "react-router";
+// import { Navigate, Outlet } from "react-router";
 
+// import { useAuth } from "../context/AuthContext";
+
+// function PermissionRoute({ module }) {
+//     const { user, loading } = useAuth();
+
+//     if (loading) {
+//         return null;
+//     }
+
+//     if (!user) {
+//         return <Navigate to="/login" replace />;
+//     }
+
+//     const role = user.role?.toUpperCase();
+
+//     // Super Admin can access every module.
+//     if (role === "SUPER_ADMIN") {
+//         return <Outlet />;
+//     }
+
+//     const accessModules = user.accessModules;
+
+//     if (!accessModules) {
+//         return <AccessDenied />;
+//     }
+
+//     const modules = accessModules
+//         .split(",")
+//         .map((item) => item.trim().toUpperCase())
+//         .filter(Boolean);
+
+//     if (
+//         modules.includes("ALL") ||
+//         modules.includes(module.toUpperCase())
+//     ) {
+//         return <Outlet />;
+//     }
+
+//     return <AccessDenied />;
+// }
+
+// function AccessDenied() {
+//     return (
+//         <div style={{ padding: "32px" }}>
+//             <h2>Access Denied</h2>
+//             <p>
+//                 You do not have permission to access this module.
+//                 Please contact your administrator.
+//             </p>
+//         </div>
+//     );
+// }
+// export default PermissionRoute;
+
+import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../context/AuthContext";
 
-function PermissionRoute({ module }) {
+function PermissionRoute({ module, page }) {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -13,28 +68,26 @@ function PermissionRoute({ module }) {
         return <Navigate to="/login" replace />;
     }
 
-    const role = user.role?.toUpperCase();
+    const role = user.role?.trim().toUpperCase();
 
-    // Super Admin can access every module.
     if (role === "SUPER_ADMIN") {
         return <Outlet />;
     }
 
-    const accessModules = user.accessModules;
-
-    if (!accessModules) {
-        return <AccessDenied />;
-    }
-
-    const modules = accessModules
+    const grants = (user.accessModules || "")
         .split(",")
         .map((item) => item.trim().toUpperCase())
         .filter(Boolean);
 
-    if (
-        modules.includes("ALL") ||
-        modules.includes(module.toUpperCase())
-    ) {
+    const moduleKey = module?.trim().toUpperCase();
+    const pageKey = page?.trim().toUpperCase();
+
+    const hasAccess =
+        grants.includes("ALL") ||
+        grants.includes(moduleKey) ||
+        (pageKey && grants.includes(`${moduleKey}:${pageKey}`));
+
+    if (hasAccess) {
         return <Outlet />;
     }
 
@@ -46,7 +99,7 @@ function AccessDenied() {
         <div style={{ padding: "32px" }}>
             <h2>Access Denied</h2>
             <p>
-                You do not have permission to access this module.
+                You do not have permission to access this page.
                 Please contact your administrator.
             </p>
         </div>

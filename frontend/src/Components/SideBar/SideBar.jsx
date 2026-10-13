@@ -50,47 +50,114 @@ function SideBar({
      *
      * Backend remains the real security layer.
      */
-    const hasModule = (module) => {
+    // const hasModule = (module) => {
 
+    //     if (!user) {
+    //         return false;
+    //     }
+
+    //     if (user.role === "SUPER_ADMIN") {
+    //         return true;
+    //     }
+
+    //     if (!user.accessModules) {
+    //         return false;
+    //     }
+
+    //     if (user.accessModules === "ALL") {
+    //         return true;
+    //     }
+
+    //     const modules = user.accessModules
+    //         .split(",")
+    //         .map((item) => item.trim().toUpperCase());
+
+    //     return modules.includes(module);
+    // };
+
+
+    // // const showDashboard =
+    // //     user?.role === "SUPER_ADMIN";
+    // const showDashboard = !!user;
+
+    // const showAccounts =
+    //     hasModule("ACCOUNTS");
+
+    // const showEmployee =
+    //     hasModule("EMPLOYEE");
+
+    // const showAttendance =
+    //     hasModule("ATTENDANCE");
+
+    // const showConsultancy =
+    //     hasModule("CONSULTANCY");
+
+    const hasPage = (module, page) => {
         if (!user) {
             return false;
         }
 
-        if (user.role === "SUPER_ADMIN") {
+        if (user.role?.trim().toUpperCase() === "SUPER_ADMIN") {
             return true;
         }
 
-        if (!user.accessModules) {
-            return false;
-        }
-
-        if (user.accessModules === "ALL") {
-            return true;
-        }
-
-        const modules = user.accessModules
+        const grants = (user.accessModules || "")
             .split(",")
-            .map((item) => item.trim().toUpperCase());
+            .map((item) => item.trim().toUpperCase())
+            .filter(Boolean);
 
-        return modules.includes(module);
+        const moduleKey = module.toUpperCase();
+        const pageKey = page.toUpperCase();
+
+        return (
+            grants.includes("ALL") ||
+            grants.includes(moduleKey) ||
+            grants.includes(`${moduleKey}:${pageKey}`)
+        );
     };
 
+    const hasAnyPage = (module, pages) =>
+        pages.some((page) => hasPage(module, page));
 
-    // const showDashboard =
-    //     user?.role === "SUPER_ADMIN";
-    const showDashboard = !!user;
+    const showAccounts = hasAnyPage("ACCOUNTS", [
+        "PAYMENTS_DUE",
+        "PAYMENTS_VIEW",
+        "PAYMENTS_DEFAULTER",
+        "GST_GENERATE",
+        "GST_VIEW",
+        "EXPENSES_ADD",
+        "EXPENSES_VIEW",
+        "ADVANCE_ADD",
+        "ADVANCE_VIEW",
+        "TDS_DUE",
+        "TDS_PAID",
+    ]);
 
-    const showAccounts =
-        hasModule("ACCOUNTS");
+    const showEmployee = hasAnyPage("EMPLOYEE", [
+        "ADD",
+        "VIEW",
+        "GENERATE_LETTER",
+        "ADD_SALARY",
+    ]);
 
-    const showEmployee =
-        hasModule("EMPLOYEE");
+    const showAttendance = hasAnyPage("ATTENDANCE", [
+        "ADD",
+        "VIEW",
+    ]);
 
-    const showAttendance =
-        hasModule("ATTENDANCE");
-
-    const showConsultancy =
-        hasModule("CONSULTANCY");
+    const showConsultancy = hasAnyPage("CONSULTANCY", [
+        "ASSOCIATE_COMPANY_ADD",
+        "ASSOCIATE_COMPANY_VIEW",
+        "REQUIREMENT_ADD",
+        "REQUIREMENT_VIEW",
+        "REQUIREMENT_CLOSED",
+        "STUDENT_ADD",
+        "STUDENT_VIEW",
+        "CANDIDATES_VIEW",
+        "INTERVIEW_SCHEDULE",
+        "PLACED_CANDIDATES",
+        "REJECTED_CANDIDATES",
+    ]);
 
     const showUsers =
         user?.role === "SUPER_ADMIN";
@@ -165,33 +232,31 @@ function SideBar({
                         DASHBOARD
                     ================================================== */}
 
-                    {showDashboard && (
+                    <li>
 
-                        <li>
+                        <a href="#"
+                            className={
+                                currentPage === "dashboard"
+                                    ? "active"
+                                    : ""
+                            }
+                            onClick={(event) => {
+                                event.preventDefault();
+                                navigate("dashboard");
+                            }}>
 
-                            <a href="#"
-                                className={
-                                    currentPage === "dashboard"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    navigate("dashboard");
-                                }}>
+                            <span className="menu-icon">
+                                🏠
+                            </span>
 
-                                <span className="menu-icon">
-                                    🏠
+                            {!collapsed && (
+                                <span>
+                                    Dashboard
                                 </span>
+                            )}
+                        </a>
+                    </li>
 
-                                {!collapsed && (
-                                    <span>
-                                        Dashboard
-                                    </span>
-                                )}
-                            </a>
-                        </li>
-                    )}
 
                     {/* =================================================
                         CHAT
@@ -275,293 +340,322 @@ function SideBar({
 
 
                                         {/* PAYMENTS */}
+                                        {hasAnyPage("ACCOUNTS", [
+                                            "PAYMENTS_DUE",
+                                            "PAYMENTS_VIEW",
+                                            "PAYMENTS_DEFAULTER"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.payments
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("payments");
+                                                        }}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.payments
-                                                ? "open"
-                                                : ""
-                                                }`}>
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("payments");
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            💰
+                                                        </span>
+                                                        <span>
+                                                            Payments
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                                <span className="menu-icon">
-                                                    💰
-                                                </span>
-                                                <span>
-                                                    Payments
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.payments && (
 
-                                            {openMenus.payments && (
-
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("due-payment");
-                                                            }}>
-                                                            › Due Payment
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-payments");
-                                                            }}>
-                                                            › View Payments
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("defaulter-payment");
-                                                            }}>
-                                                            › Defaulter Payment
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("ACCOUNTS", "PAYMENTS_DUE") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("due-payment");
+                                                                        }}>
+                                                                        › Due Payment
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "PAYMENTS_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-payments");
+                                                                        }}>
+                                                                        › View Payments
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "PAYMENTS_DEFAULTER") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("defaulter-payment");
+                                                                        }}>
+                                                                        › Defaulter Payment
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* GST BILLS */}
+                                        {hasAnyPage("ACCOUNTS", [
+                                            "GST_GENERATE",
+                                            "GST_VIEW"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.gstBills
+                                                        ? "open"
+                                                        : ""
+                                                        }`}
+                                                >
 
-                                        <li
-                                            className={`sub-menu ${openMenus.gstBills
-                                                ? "open"
-                                                : ""
-                                                }`}
-                                        >
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("gstBills");
+                                                        }}>
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("gstBills");
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            🧾
+                                                        </span>
 
-                                                <span className="menu-icon">
-                                                    🧾
-                                                </span>
+                                                        <span>
+                                                            GST Bills
+                                                        </span>
 
-                                                <span>
-                                                    GST Bills
-                                                </span>
-
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
 
-                                            {openMenus.gstBills && (
+                                                    {openMenus.gstBills && (
 
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("generate-invoice");
-                                                            }}>
-                                                            › Generate Invoice
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("gst-invoice");
-                                                            }}>
-                                                            › GST Invoice
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("ACCOUNTS", "GST_GENERATE") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("generate-invoice");
+                                                                        }}>
+                                                                        › Generate Invoice
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "GST_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("gst-invoice");
+                                                                        }}>
+                                                                        › GST Invoice
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* EXPENSES */}
+                                        {hasAnyPage("ACCOUNTS", [
+                                            "EXPENSES_ADD",
+                                            "EXPENSES_VIEW"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.expenses
+                                                        ? "open"
+                                                        : ""
+                                                        }`}
+                                                >
 
-                                        <li
-                                            className={`sub-menu ${openMenus.expenses
-                                                ? "open"
-                                                : ""
-                                                }`}
-                                        >
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("expenses");
+                                                        }}>
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("expenses");
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            💸
+                                                        </span>
 
-                                                <span className="menu-icon">
-                                                    💸
-                                                </span>
+                                                        <span>
+                                                            Expenses
+                                                        </span>
 
-                                                <span>
-                                                    Expenses
-                                                </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
 
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-
-                                            </a>
+                                                    </a>
 
 
-                                            {openMenus.expenses && (
+                                                    {openMenus.expenses && (
 
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a
-                                                            href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-expenses");
-                                                            }}>
-                                                            › Add Expenses
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-expenses");
-                                                            }}
-                                                        >
-                                                            › View Expenses
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("ACCOUNTS", "EXPENSES_ADD") && (
+                                                                <li>
+                                                                    <a
+                                                                        href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("add-expenses");
+                                                                        }}>
+                                                                        › Add Expenses
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "EXPENSES_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-expenses");
+                                                                        }}
+                                                                    >
+                                                                        › View Expenses
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* ADVANCE */}
+                                        {hasAnyPage("ACCOUNTS", [
+                                            "ADVANCE_ADD",
+                                            "ADVANCE_VIEW"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.advance
+                                                        ? "open"
+                                                        : ""
+                                                        }`}
+                                                >
 
-                                        <li
-                                            className={`sub-menu ${openMenus.advance
-                                                ? "open"
-                                                : ""
-                                                }`}
-                                        >
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("advance");
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("advance");
+                                                        }}>
 
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            💵
+                                                        </span>
 
-                                                <span className="menu-icon">
-                                                    💵
-                                                </span>
+                                                        <span>
+                                                            Advance
+                                                        </span>
 
-                                                <span>
-                                                    Advance
-                                                </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
+                                                    {openMenus.advance && (
 
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
-                                            {openMenus.advance && (
-
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-advance");
-                                                            }}>
-                                                            › Add Advance
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-advance");
-                                                            }}>
-                                                            › View Advance
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("ACCOUNTS", "ADVANCE_ADD") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("add-advance");
+                                                                        }}>
+                                                                        › Add Advance
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "ADVANCE_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-advance");
+                                                                        }}>
+                                                                        › View Advance
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* TDS */}
+                                        {hasAnyPage("ACCOUNTS", [
+                                            "TDS_DUE",
+                                            "TDS_PAID"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.tds
+                                                        ? "open"
+                                                        : ""
+                                                        }`}
+                                                >
 
-                                        <li
-                                            className={`sub-menu ${openMenus.tds
-                                                ? "open"
-                                                : ""
-                                                }`}
-                                        >
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("tds");
+                                                        }}>
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("tds");
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            🧮
+                                                        </span>
+                                                        <span>
+                                                            TDS
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                                <span className="menu-icon">
-                                                    🧮
-                                                </span>
-                                                <span>
-                                                    TDS
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.tds && (
 
-                                            {openMenus.tds && (
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("ACCOUNTS", "TDS_DUE") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("due-tds");
 
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("due-tds");
-
-                                                            }}
-                                                        >
-                                                            › Due TDS
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("paid-tds");
-                                                            }}>
-                                                            › Paid TDS
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                                        }}
+                                                                    >
+                                                                        › Due TDS
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                            {hasPage("ACCOUNTS", "TDS_PAID") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("paid-tds");
+                                                                        }}>
+                                                                        › Paid TDS
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
                                     </ul>
                                 )}
                         </li>
@@ -610,117 +704,123 @@ function SideBar({
 
 
                                         {/* EMPLOYEE */}
+                                        {hasAnyPage("EMPLOYEE", ["ADD", "VIEW", "GENERATE_LETTER"]) && (
+                                            <li
+                                                className={`sub-menu ${openMenus.employeePages
+                                                    ? "open"
+                                                    : ""
+                                                    }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.employeePages
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                <a
+                                                    href="#"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        toggleMenu("employeePages");
 
-                                            <a
-                                                href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("employeePages");
+                                                    }}>
 
-                                                }}>
+                                                    <span className="menu-icon">
+                                                        👤
+                                                    </span>
 
-                                                <span className="menu-icon">
-                                                    👤
-                                                </span>
+                                                    <span>
+                                                        Employee
+                                                    </span>
 
-                                                <span>
-                                                    Employee
-                                                </span>
+                                                    <span className="menu-arrow">
+                                                        ⌄
+                                                    </span>
+                                                </a>
 
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                {openMenus.employeePages && (
 
-                                            {openMenus.employeePages && (
-
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-employee");
-                                                            }}>
-                                                            › Add Employee
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-employee");
-                                                            }}>
-                                                            › View Employee
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("generate-letter");
-                                                            }}>
-                                                            › Generate Letter
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            )}
-                                        </li>
+                                                    <ul className="sub nested-sub">
+                                                        {hasPage("EMPLOYEE", "ADD") && (
+                                                            <li>
+                                                                <a href="#"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        navigate("add-employee");
+                                                                    }}>
+                                                                    › Add Employee
+                                                                </a>
+                                                            </li>
+                                                        )}
+                                                        {hasPage("EMPLOYEE", "VIEW") && (
+                                                            <li>
+                                                                <a href="#"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        navigate("view-employee");
+                                                                    }}>
+                                                                    › View Employee
+                                                                </a>
+                                                            </li>
+                                                        )}
+                                                        {hasPage("EMPLOYEE", "GENERATE_LETTER") && (
+                                                            <li>
+                                                                <a href="#"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        navigate("generate-letter");
+                                                                    }}>
+                                                                    › Generate Letter
+                                                                </a>
+                                                            </li>
+                                                        )}
+                                                    </ul>
+                                                )}
+                                            </li>
+                                        )}
 
 
                                         {/* SALARY */}
+                                        {hasAnyPage("EMPLOYEE", ["ADD_SALARY"]) && (
+                                            <li
+                                                className={`sub-menu ${openMenus.salary
+                                                    ? "open"
+                                                    : ""
+                                                    }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.salary
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                <a href="#"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        toggleMenu("salary");
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("salary");
+                                                    }}>
 
-                                                }}>
+                                                    <span className="menu-icon">
+                                                        💰
+                                                    </span>
 
-                                                <span className="menu-icon">
-                                                    💰
-                                                </span>
+                                                    <span>
+                                                        Salary
+                                                    </span>
 
-                                                <span>
-                                                    Salary
-                                                </span>
-
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    <span className="menu-arrow">
+                                                        ⌄
+                                                    </span>
+                                                </a>
 
 
-                                            {openMenus.salary && (
+                                                {openMenus.salary && (
 
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-salary");
-                                                            }}>
-                                                            › Add Salary
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            )}
-                                        </li>
+                                                    <ul className="sub nested-sub">
+                                                        {hasPage("EMPLOYEE", "ADD_SALARY") && (
+                                                            <li>
+                                                                <a href="#"
+                                                                    onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        navigate("add-salary");
+                                                                    }}>
+                                                                    › Add Salary
+                                                                </a>
+                                                            </li>
+                                                        )}
+                                                    </ul>
+                                                )}
+                                            </li>
+                                        )}
                                     </ul>
                                 )}
                         </li>
@@ -768,33 +868,36 @@ function SideBar({
                                 openMenus.attendance && (
 
                                     <ul className="sub">
+                                        {hasPage("ATTENDANCE", "ADD") && (
+                                            <li>
+                                                <a href="#"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        navigate("add-attendance");
+                                                    }}>
+                                                    <span className="menu-icon">
+                                                        ➕
+                                                    </span>
+                                                    Add Attendance
+                                                </a>
+                                            </li>
+                                        )}
 
-                                        <li>
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    navigate("add-attendance");
-                                                }}>
-                                                <span className="menu-icon">
-                                                    ➕
-                                                </span>
-                                                Add Attendance
-                                            </a>
-                                        </li>
+                                        {hasPage("ATTENDANCE", "VIEW") && (
+                                            <li>
+                                                <a href="#"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        navigate("view-attendance");
 
-                                        <li>
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    navigate("view-attendance");
-
-                                                }}>
-                                                <span className="menu-icon">
-                                                    📋
-                                                </span>
-                                                View Attendance
-                                            </a>
-                                        </li>
+                                                    }}>
+                                                    <span className="menu-icon">
+                                                        📋
+                                                    </span>
+                                                    View Attendance
+                                                </a>
+                                            </li>
+                                        )}
                                     </ul>
                                 )}
                         </li>
@@ -842,292 +945,324 @@ function SideBar({
                                     <ul className="sub">
 
                                         {/* ASSOCIATE COMPANIES */}
+                                        {hasAnyPage("CONSULTANCY", [
+                                            "ASSOCIATE_COMPANY_ADD",
+                                            "ASSOCIATE_COMPANY_VIEW",
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.associate
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.associate
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("associate");
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("associate");
+                                                        }}>
 
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            🏢
+                                                        </span>
 
-                                                <span className="menu-icon">
-                                                    🏢
-                                                </span>
+                                                        <span>
+                                                            Associate Companies
+                                                        </span>
 
-                                                <span>
-                                                    Associate Companies
-                                                </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.associate && (
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "ASSOCIATE_COMPANY_ADD") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("add-associate");
+                                                                        }}>
+                                                                        › Add Associate
+                                                                    </a>
+                                                                </li>
+                                                            )}
 
-                                            {openMenus.associate && (
-                                                <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "ASSOCIATE_COMPANY_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-associate");
 
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-associate");
-                                                            }}>
-                                                            › Add Associate
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-associate");
-
-                                                            }}>
-                                                            › View Associate
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                                        }}>
+                                                                        › View Associate
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* CURRENT REQUIREMENT */}
+                                        {hasAnyPage("CONSULTANCY", [
+                                            "REQUIREMENT_ADD",
+                                            "REQUIREMENT_VIEW",
+                                            "REQUIREMENT_CLOSED"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.requirement
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.requirement
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("requirement");
+                                                        }}>
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("requirement");
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            📋
+                                                        </span>
+                                                        <span>
+                                                            Current Requirement
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                                <span className="menu-icon">
-                                                    📋
-                                                </span>
-                                                <span>
-                                                    Current Requirement
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.requirement && (
 
-                                            {openMenus.requirement && (
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "REQUIREMENT_ADD") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("add-requirement");
 
-                                                <ul className="sub nested-sub">
+                                                                        }}>
+                                                                        › Add Current Requirement
+                                                                    </a>
+                                                                </li>
+                                                            )}
 
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-requirement");
+                                                            {hasPage("CONSULTANCY", "REQUIREMENT_VIEW") && (
+                                                                <li>
+                                                                    <a
+                                                                        href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-requirement");
+                                                                        }}>
+                                                                        › View Requirement
+                                                                    </a>
+                                                                </li>
+                                                            )}
 
-                                                            }}>
-                                                            › Add Current Requirement
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a
-                                                            href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-requirement");
-                                                            }}>
-                                                            › View Requirement
-                                                        </a>
-                                                    </li>
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("closed-requirement");
-                                                            }}>
-                                                            › Closed
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                            {hasPage("CONSULTANCY", "REQUIREMENT_CLOSED") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("closed-requirement");
+                                                                        }}>
+                                                                        › Closed
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* REGISTRATION */}
+                                        {hasAnyPage("CONSULTANCY", [
+                                            "STUDENT_ADD",
+                                            "STUDENT_VIEW",
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.registration
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.registration
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("registration");
+                                                        }}>
+                                                        <span className="menu-icon">
+                                                            📝
+                                                        </span>
+                                                        <span>
+                                                            Registration
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("registration");
-                                                }}>
-                                                <span className="menu-icon">
-                                                    📝
-                                                </span>
-                                                <span>
-                                                    Registration
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.registration && (
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "STUDENT_ADD") && (
+                                                                <li>
+                                                                    <a
+                                                                        href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("add-student");
 
-                                            {openMenus.registration && (
-                                                <ul className="sub nested-sub">
-                                                    <li>
-                                                        <a
-                                                            href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("add-student");
+                                                                        }}>
+                                                                        › Add Student
+                                                                    </a>
+                                                                </li>
+                                                            )}
 
-                                                            }}>
-                                                            › Add Student
-                                                        </a>
-                                                    </li>
+                                                            {hasPage("CONSULTANCY", "STUDENT_VIEW") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("view-student");
 
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("view-student");
-
-                                                            }}>
-                                                            › View Student
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                                        }}>
+                                                                        › View Student
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* ALL CANDIDATES */}
-
-                                        <li>
-
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    navigate("all-candidates");
-                                                }}>
-                                                <span className="menu-icon">
-                                                    👨‍💼
-                                                </span>
-                                                All Candidates
-                                            </a>
-                                        </li>
-
+                                        {hasPage("CONSULTANCY", "CANDIDATES_VIEW") && (
+                                            <li>
+                                                <a href="#"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        navigate("all-candidates");
+                                                    }}>
+                                                    <span className="menu-icon">
+                                                        👨‍💼
+                                                    </span>
+                                                    All Candidates
+                                                </a>
+                                            </li>
+                                        )}
 
                                         {/* INTERVIEW STATUS */}
+                                        {hasAnyPage("CONSULTANCY", [
+                                            "INTERVIEW_SCHEDULE"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.interview
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.interview
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("interview");
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("interview");
+                                                        }}>
 
-                                                }}>
+                                                        <span className="menu-icon">
+                                                            📅
+                                                        </span>
+                                                        <span>
+                                                            Interview Status
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
-                                                <span className="menu-icon">
-                                                    📅
-                                                </span>
-                                                <span>
-                                                    Interview Status
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                    {openMenus.interview && (
 
-                                            {openMenus.interview && (
-
-                                                <ul className="sub nested-sub">
-
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("interview-scheduled");
-                                                            }}>
-                                                            › Interview Scheduled
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "INTERVIEW_SCHEDULE") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("interview-scheduled");
+                                                                        }}>
+                                                                        › Interview Scheduled
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
-
 
                                         {/* STUDENT STATUS */}
+                                        {hasAnyPage("CONSULTANCY", [
+                                            "PLACED_CANDIDATES",
+                                            "REJECTED_CANDIDATES"
+                                        ]) && (
+                                                <li
+                                                    className={`sub-menu ${openMenus.studentStatus
+                                                        ? "open"
+                                                        : ""
+                                                        }`}>
 
-                                        <li
-                                            className={`sub-menu ${openMenus.studentStatus
-                                                ? "open"
-                                                : ""
-                                                }`}>
+                                                    <a href="#"
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            toggleMenu("studentStatus");
 
-                                            <a href="#"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    toggleMenu("studentStatus");
-
-                                                }}>
-                                                <span className="menu-icon">
-                                                    🎓
-                                                </span>
-                                                <span>
-                                                    Student Status
-                                                </span>
-                                                <span className="menu-arrow">
-                                                    ⌄
-                                                </span>
-                                            </a>
+                                                        }}>
+                                                        <span className="menu-icon">
+                                                            🎓
+                                                        </span>
+                                                        <span>
+                                                            Student Status
+                                                        </span>
+                                                        <span className="menu-arrow">
+                                                            ⌄
+                                                        </span>
+                                                    </a>
 
 
-                                            {openMenus.studentStatus && (
-                                                <ul className="sub nested-sub">
-                                                    <li>
-                                                        <a
-                                                            href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("placed-candidates");
-                                                            }}
-                                                        >
-                                                            › Placed Candidates
-                                                        </a>
-                                                    </li>
+                                                    {openMenus.studentStatus && (
+                                                        <ul className="sub nested-sub">
+                                                            {hasPage("CONSULTANCY", "PLACED_CANDIDATES") && (
+                                                                <li>
+                                                                    <a
+                                                                        href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("placed-candidates");
+                                                                        }}
+                                                                    >
+                                                                        › Placed Candidates
+                                                                    </a>
+                                                                </li>
+                                                            )}
 
-                                                    <li>
-                                                        <a href="#"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                navigate("rejected-candidates");
-                                                            }}>
-                                                            › Rejected Candidates
-                                                        </a>
-                                                    </li>
-                                                </ul>
+                                                            {hasPage("CONSULTANCY", "REJECTED_CANDIDATES") && (
+                                                                <li>
+                                                                    <a href="#"
+                                                                        onClick={(event) => {
+                                                                            event.preventDefault();
+                                                                            navigate("rejected-candidates");
+                                                                        }}>
+                                                                        › Rejected Candidates
+                                                                    </a>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    )}
+                                                </li>
                                             )}
-                                        </li>
                                     </ul>
                                 )}
                         </li>
