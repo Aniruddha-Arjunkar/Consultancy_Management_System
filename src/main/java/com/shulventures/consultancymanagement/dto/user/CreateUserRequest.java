@@ -25,10 +25,7 @@ public class CreateUserRequest {
 
     @NotBlank(message = "Role is required")
     private String role;
-
     private String branch;
-
     private String accessModules;
-
     private String status;
 }

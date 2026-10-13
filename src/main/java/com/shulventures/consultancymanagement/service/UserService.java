@@ -30,7 +30,6 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setEmail(request.getEmail());
 
-        // Never store plain-text passwords
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         user.setRole(normalizeRole(request.getRole()));
@@ -97,8 +96,8 @@ public class UserService {
 
         if (request.getPassword() != null &&
                 !request.getPassword().isBlank()) {
-
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+
         }
 
         if (request.getRole() != null &&

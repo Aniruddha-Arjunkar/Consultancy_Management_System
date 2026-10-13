@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 @Service("permissionService")
 public class PermissionService {
 
+
     public boolean hasModule(Authentication authentication, String module) {
 
         if (authentication == null ||
@@ -56,5 +57,44 @@ public class PermissionService {
         }
 
         return modules.contains(module.trim().toUpperCase());
+    }
+
+    public boolean hasPage(
+            Authentication authentication,
+            String module,
+            String page
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            return false;
+        }
+
+        String role = userDetails.getUser().getRole();
+
+        if ("SUPER_ADMIN".equalsIgnoreCase(role)) {
+            return true;
+        }
+
+        String accessModules = userDetails.getUser().getAccessModules();
+
+        if (accessModules == null || accessModules.isBlank()) {
+            return false;
+        }
+
+        Set<String> permissions = Arrays.stream(accessModules.split(","))
+                .map(String::trim)
+                .filter(permission -> !permission.isBlank())
+                .map(String::toUpperCase)
+                .collect(Collectors.toSet());
+
+        String moduleKey = module.trim().toUpperCase();
+        String pageKey = page.trim().toUpperCase();
+
+        return permissions.contains("ALL")
+                || permissions.contains(moduleKey)
+                || permissions.contains(moduleKey + ":" + pageKey);
     }
 }

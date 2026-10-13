@@ -8,9 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateUserRequest {
-
     private String name;
-
     private String phone;
 
     @Email(message = "Invalid email format")
@@ -18,12 +16,8 @@ public class UpdateUserRequest {
 
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
-
     private String role;
-
     private String branch;
-
     private String accessModules;
-
     private String status;
 }

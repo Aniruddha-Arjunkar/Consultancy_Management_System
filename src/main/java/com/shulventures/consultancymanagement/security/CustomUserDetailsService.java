@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class CustomUserDetailsService implements UserDetailsService {
+public class CustomUserDetailsService implements UserDetailsService, UserDetailsPasswordService {
 
     private final UserRepository userRepository;
 
@@ -24,5 +24,17 @@ public class CustomUserDetailsService implements UserDetailsService {
                 );
 
         return new CustomUserDetails(user);
+    }
+
+    @Override
+    public UserDetails updatePassword(UserDetails userDetails, String newPassword) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with email: " + userDetails.getUsername()
+                ));
+
+        // DaoAuthenticationProvider passes the already encoded replacement.
+        user.setPassword(newPassword);
+        return new CustomUserDetails(userRepository.save(user));
     }
 }

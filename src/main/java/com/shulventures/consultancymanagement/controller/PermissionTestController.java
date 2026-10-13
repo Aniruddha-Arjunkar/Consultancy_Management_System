@@ -43,6 +43,4 @@ public class PermissionTestController {
     ) {
         return "Branch access granted for: " + branch;
     }
-
-
 }
