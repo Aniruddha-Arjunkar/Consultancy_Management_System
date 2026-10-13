@@ -1,3 +1,949 @@
-.user-management-page{
-    background-color: #f9d9d9;
+/* =========================================================
+   ACCORDION ITEM
+========================================================= */
+
+.accordion-item {
+    display: block;
+    margin-bottom: 5px;
+}
+
+
+/* =========================================================
+   VIEW USERS PAGE
+========================================================= */
+
+.users-page {
+    width: 100%;
+    min-height: calc(100vh - 70px);
+    padding: 20px 30px 25px;
+    box-sizing: border-box;
+    background: linear-gradient(
+        135deg,
+        #e5e7f2 0%,
+        #dfe3f0 50%,
+        #e7e9f4 100%
+    );
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.users-page-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* margin-top: 25px; */
+    margin-bottom: 25px;
+}
+
+.users-title-area {
+    display: flex;
+    flex-direction: column;
+    margin-top: 25px;
+   
+}
+/* =========================================================
+   USERS TITLE - FORCE SIZE
+========================================================= */
+
+.users-page .users-title,
+.users-page .users-title span,
+.users-page .users-title-icon {
+    font-size: 35px !important;
+    font-weight: 800 !important;
+    color: #202b3c !important;
+    line-height: 1.1 !important;
+}
+
+.users-page .users-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.users-page .users-title-icon {
+    display: inline-block !important;
+    line-height: 1 !important;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+    .users-page .users-title,
+    .users-page .users-title span,
+    .users-page .users-title-icon {
+        font-size: 24px !important;
+    }
+}
+
+.users-page .users-title-icon {
+    font-size: 35px !important;
+    line-height: 1;
+}
+.users-title-icon {
+    font-size: 29px;
+    line-height: 1;
+}
+
+.users-subtitle {
+    margin-top: 7px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.users-count {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #dc1f2f;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CREATE USER BUTTON
+========================================================= */
+
+.users-create-btn {
+    height: 35px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #12a84a;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow:
+        0 4px 10px rgba(18,168,74,.16);
+    transition:
+        background 0.2s ease,
+        transform 0.1s ease;
+}
+
+.users-create-btn:hover {
+    background: #0d963f;
+}
+
+.users-create-btn:active {
+    transform: translateY(1px);
+}
+
+
+/* =========================================================
+   WHITE CARD
+========================================================= */
+
+.users-page .panel {
+    background: #ffffff;
+    border: 0;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow:
+        0 4px 15px rgba(15,23,42,.10);
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+.refollowup-search-wrap {
+    position: relative;
+    width: 300px;
+    margin-bottom: 20px;
+}
+
+.refollowup-search-icon {
+    position: absolute;
+    left: 17px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.refollowup-input {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 14px 0 38px;
+    border: 1px solid #d5deeb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 13px;
+    outline: none;
+}
+
+.refollowup-input:focus {
+    border-color: #8da9ff;
+    box-shadow:
+        0 0 0 3px rgba(79,70,229,.08);
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+========================================================= */
+
+.refollowup-table-wrapper {
+    width: 100%;
+    max-height: calc(100vh - 275px);
+    overflow-x: auto;
+    overflow-y: auto;
+    border-radius: 10px;
+    scrollbar-width: thin;
+    scrollbar-color:
+        #aebbd0
+        #f1f5f9;
+}
+
+.refollowup-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.refollowup-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.refollowup-table-wrapper::-webkit-scrollbar-thumb {
+    background: #aebbd0;
+    border-radius: 10px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.refollowup-table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.refollowup-table thead th {
+    height: 49px;
+    padding: 0 10px;
+    background: #2259d9;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+    border-right: 2px solid rgba(255,255,255,.35);
+}
+
+.refollowup-table thead th:first-child {
+    border-top-left-radius: 9px;
+}
+
+.refollowup-table thead th:last-child {
+    border-top-right-radius: 9px;
+    border-right: 0;
+}
+
+
+/* =========================================================
+   TABLE BODY
+========================================================= */
+
+.refollowup-table tbody td {
+    min-height: 60px;
+    padding: 14px 10px;
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.45;
+    vertical-align: middle;
+    word-break: break-word;
+    background: #ffffff;
+}
+
+.refollowup-table tbody tr:nth-child(even) td {
+    background: #f5f8fd;
+}
+
+.refollowup-table tbody tr:hover td {
+    background: #eef4ff;
+}
+
+
+/* =========================================================
+   COLUMN WIDTHS
+========================================================= */
+
+.refollowup-table th:nth-child(1),
+.refollowup-table td:nth-child(1) {
+    width: 70px;
+    text-align: center;
+}
+
+.refollowup-table th:nth-child(2),
+.refollowup-table td:nth-child(2) {
+    width: 140px;
+}
+
+.refollowup-table th:nth-child(3),
+.refollowup-table td:nth-child(3) {
+    width: 125px;
+}
+
+.refollowup-table th:nth-child(4),
+.refollowup-table td:nth-child(4) {
+    width: 190px;
+}
+
+.refollowup-table th:nth-child(5),
+.refollowup-table td:nth-child(5) {
+    width: 120px;
+}
+
+.refollowup-table th:nth-child(6),
+.refollowup-table td:nth-child(6) {
+    width: 115px;
+}
+
+.refollowup-table th:nth-child(7),
+.refollowup-table td:nth-child(7) {
+    width: 120px;
+}
+
+.refollowup-table th:nth-child(8),
+.refollowup-table td:nth-child(8) {
+    width: 220px;
+}
+
+.refollowup-table th:nth-child(9),
+.refollowup-table td:nth-child(9) {
+    width: 180px;
+}
+
+
+/* =========================================================
+   ROLE
+========================================================= */
+
+.refollowup-table td:nth-child(5) {
+    font-weight: 500;
+
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.refollowup-table td:last-child {
+    white-space: nowrap;
+}
+
+.refollowup-table td:last-child .btn-primary {
+    background: #1555d9;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 13px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow:
+        0 4px 10px rgba(21,85,217,.20);
+}
+
+.refollowup-table td:last-child .btn-primary:hover {
+    background: #0d47c5;
+}
+
+.refollowup-table td:last-child .btn-danger {
+    background: #e62536;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 13px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow:
+        0 4px 10px rgba(230,37,54,.18);
+}
+
+.refollowup-table td:last-child .btn-danger:hover {
+    background: #cc1d2d;
+}
+
+
+/* =========================================================
+   NO RESULTS
+========================================================= */
+
+.users-no-result {
+    text-align: center !important;
+    padding: 30px !important;
+}
+
+
+/* =========================================================
+   CREATE USER MODAL
+========================================================= */
+
+/* ---------- FULL SCREEN OVERLAY ---------- */
+
+#createUserModal {
+    display: none !important;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(3px);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ---------- OPEN MODAL ---------- */
+
+#createUserModal.show {
+    display: flex !important;
+}
+
+
+/* =========================================================
+   MODAL DIALOG
+========================================================= */
+
+#createUserModal .modal-dialog {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   MODAL CONTENT
+========================================================= */
+
+#createUserModal .modal-content {
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.28);
+}
+
+
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
+#createUserModal .modal-header {
+    flex-shrink: 0;
+    min-height: 62px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    background:linear-gradient(
+        110deg,
+        #1749cf,
+        #3d45df,
+        #7236e9
+    );
+    border: none;
+    
+}
+
+
+/* =========================================================
+   MODAL TITLE
+========================================================= */
+
+#createUserModal .modal-title {
+    margin: 0;
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+#createUserModal .close {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;    
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    opacity: 1;
+    text-shadow: none;
+    cursor: pointer;
+    transition:
+        background .2s ease,
+        transform .2s ease;
+}
+
+#createUserModal .close:hover {
+    background: #e62536;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+
+/* =========================================================
+   MODAL BODY
+========================================================= */
+
+#createUserModal .modal-body {
+    flex: 1;
+    min-height: 0;
+    padding: 22px;
+    box-sizing: border-box;
+    background: #ffffff;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color:
+        #aebbd0
+        #f1f5f9;
+}
+
+
+/* ---------- MODAL SCROLLBAR ---------- */
+
+#createUserModal .modal-body::-webkit-scrollbar {
+    width: 7px;
+}
+
+#createUserModal .modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#createUserModal .modal-body::-webkit-scrollbar-thumb {
+    background: #aebbd0;
+    border-radius: 10px;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+#createUserModal form {
+    width: 100%;
+    margin: 0;
+}
+
+
+/* =========================================================
+   FORM GROUP
+========================================================= */
+
+#createUserModal .form-group {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+
+/* =========================================================
+   FORM LABEL
+========================================================= */
+
+#createUserModal .form-group > label {
+    display: block;
+    margin: 0 0 7px 0;
+    padding: 0;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+
+/* =========================================================
+   INPUT / SELECT
+========================================================= */
+
+#createUserModal .form-control {
+    display: block;
+    width: 100%;
+    height: 42px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    border: 1px solid #d5deeb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 13px;
+    line-height: 24px;
+    outline: none;
+    box-shadow: none;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+#createUserModal .form-control:focus {
+    border-color: #4f46e5;
+    box-shadow:
+        0 0 0 3px rgba(79,70,229,.10);
+}
+
+
+/* =========================================================
+   MODULE ACCESS TITLE
+========================================================= */
+
+#createUserModal .form-group > label > b {
+    color: #263247;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   MODULE ACCORDION
+========================================================= */
+
+#createUserModal .accordion-item {
+    display: block !important;
+    width: 100%;
+    margin: 0 0 9px 0 !important;
+    padding: 0 !important;
+    border: 1px solid #dfe5ee;
+    border-radius: 9px;
+    background: #ffffff;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+#createUserModal .accordion-item:hover {
+    border-color: #cbd5e1;
+}
+
+
+/* =========================================================
+   MODULE HEADER
+========================================================= */
+
+#createUserModal .accordion-item > label {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    box-sizing: border-box;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 20px;
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background .2s ease,
+        color .2s ease;
+}
+
+#createUserModal .accordion-item > label:hover {
+    background: #eef4ff;
+    color: #2259d9;
+}
+
+
+/* =========================================================
+   SUBMODULE CONTAINER
+========================================================= */
+
+#createUserModal .accordion-item > div {
+    display: block;
+    width: 100%;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    box-sizing: border-box;
+    border: none !important;
+    border-top: 1px solid #e5e7eb !important;
+    border-radius: 0 !important;
+    background: #ffffff;
+}
+
+
+/* =========================================================
+   SUBMODULE LABEL
+========================================================= */
+
+#createUserModal .accordion-item > div label {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+    margin: 0 !important;
+    padding: 5px 8px !important;
+    box-sizing: border-box;
+    border-radius: 6px;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    cursor: pointer;
+    transition:
+        background .15s ease,
+        color .15s ease;
+}
+
+#createUserModal .accordion-item > div label:hover {
+    background: #f5f7fb;
+    color: #374151;
+}
+
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+#createUserModal input[type="checkbox"] {
+    width: 15px !important;
+    height: 15px !important;
+    min-width: 15px !important;
+    margin: 0 9px 0 0 !important;
+    padding: 0 !important;
+    accent-color: #4f46e5;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   REMOVE INLINE LEFT MARGIN
+========================================================= */
+
+#createUserModal .accordion-item > div label[style] {
+    margin-left: 0 !important;
+}
+
+
+/* =========================================================
+   CREATE USER SUBMIT BUTTON
+========================================================= */
+
+#createUserModal form > .btn-primary {
+    display: block;
+    width: 100%;
+    height: 43px;
+    margin: 18px 0 0 0;
+    padding: 0 18px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 8px;
+    background: #2259d9;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 43px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow:
+        0 4px 10px rgba(34,89,217,.18);
+    transition:
+        background .2s ease,
+        transform .1s ease;
+}
+
+#createUserModal form > .btn-primary:hover {
+    background: #1648bd;
+}
+
+#createUserModal form > .btn-primary:active {
+    transform: translateY(1px);
+}
+
+
+/* =========================================================
+   MOBILE - 768px
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .users-page {
+        padding: 0 10px 20px;
+    }
+
+    .users-page-header {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .users-title {
+        font-size: 24px;
+    }
+
+    .users-title-icon {
+        font-size: 24px;
+    }
+
+    .users-create-btn {
+        font-size: 11px;
+        padding: 0 12px;
+    }
+
+    .users-page .panel {
+        padding: 15px;
+    }
+
+    .refollowup-search-wrap {
+        width: 100%;
+    }
+
+    .refollowup-table {
+        min-width: 1200px;
+    }
+
+
+    /* MODAL */
+
+    #createUserModal {
+        padding: 12px;
+    }
+
+    #createUserModal .modal-dialog {
+        max-width: 100%;
+    }
+
+    #createUserModal .modal-content {
+        max-height: 94vh;
+        border-radius: 13px;
+    }
+
+    #createUserModal .modal-header {
+        min-height: 57px;
+        padding: 0 17px;
+    }
+
+    #createUserModal .modal-title {
+        font-size: 15px;
+    }
+
+    #createUserModal .modal-body {
+        padding: 17px;
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE - 480px
+========================================================= */
+
+@media (max-width: 480px) {
+
+    #createUserModal {
+        padding: 7px;
+    }
+
+    #createUserModal .modal-content {
+        max-height: 96vh;
+        border-radius: 11px;
+    }
+
+    #createUserModal .modal-header {
+        min-height: 53px;
+        padding: 0 14px;
+    }
+
+    #createUserModal .modal-body {
+        padding: 14px;
+    }
+
+    #createUserModal .form-control {
+        height: 40px;
+        font-size: 12px;
+    }
+
+    #createUserModal .accordion-item > label {
+        min-height: 42px;
+        padding: 0 11px !important;
+        font-size: 12px;
+    }
+
+    #createUserModal .accordion-item > div {
+        padding: 9px !important;
+    }
+
+    #createUserModal .accordion-item > div label {
+        min-height: 31px;
+        font-size: 11px;
+    }
+}
+
+/* ======================================================================= */
+.password-input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrap .form-control {
+    padding-right: 65px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: #2259d9;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: #1648bd;
 }

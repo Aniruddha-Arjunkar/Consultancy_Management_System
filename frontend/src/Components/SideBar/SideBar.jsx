@@ -1120,10 +1120,7 @@ function SideBar({
                                                         <a href="#"
                                                             onClick={(event) => {
                                                                 event.preventDefault();
-                                                                navigate(
-                                                                    "rejected-candidates"
-                                                                );
-
+                                                                navigate("rejected-candidates");
                                                             }}>
                                                             › Rejected Candidates
                                                         </a>

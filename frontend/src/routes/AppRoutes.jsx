@@ -16,7 +16,6 @@ import { useAuth } from "../context/AuthContext";
 //=============== Chat ==========================
 import Chat from "./../Views/Chat/Chat.jsx"
 
-
 //=============== User Management ===============
 import User from "./../Views/UserManagement/User.jsx";
 
@@ -84,7 +83,6 @@ function ModulePlaceholder({ title }) {
     return (
         <div style={{ padding: "24px" }}>
             <h2>{title}</h2>
-
             <p>
                 This module is ready for implementation.
             </p>
@@ -96,7 +94,6 @@ function NotFoundPage() {
     return (
         <div style={{ padding: "32px" }}>
             <h2>404 - Page Not Found</h2>
-
             <p>
                 The page you requested does not exist.
             </p>
