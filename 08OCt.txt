@@ -1,0 +1,5012 @@
+## Current scope
+
+The project has a working authentication and early authorization foundation. It can sign users in, 
+keep a server-side session, manage user accounts through protected API endpoints, and check access to 
+modules or branches in the permission helper services.
+
+The larger app described in your reference—dashboard, employee and attendance screens, consultancy 
+features, accounts, chat, and the senior project’s matching UI—is not implemented in the files we 
+inspected. The current React app has a login screen and a temporary signed-in screen.
+
+One detail to keep straight: your reference mentions the senior project’s login as 
+Consultancy@gmail.com` / `Shul@123`. The current Spring Boot initializer creates a different 
+development account: `admin@consultancy.com` / `Admin@123`. The current code uses the latter.
+
+## The sign-in flow
+
+```text
+Login.jsx
+  → AuthContext.login()
+  → authService.login()
+  → POST /api/auth/login
+  → AuthController
+  → AuthenticationManager
+  → CustomUserDetailsService → UserRepository → MySQL
+  → verify password hash
+  → save authentication in HTTP session
+  ← LoginResponse JSON + JSESSIONID cookie
+  → React stores user in AuthContext
+  → App.jsx displays the signed-in screen
+```
+
+On a page reload, React calls `GET /api/auth/me`. The browser sends its session cookie, 
+and the backend uses it to identify the current user. Logout invalidates that session.
+
+## Spring Boot backend files
+
+### Configuration
+
+- [DataInitializer.java]
+runs at application startup. If `admin@consultancy.com` is not already in the database, it creates a 
+`SUPER_ADMIN` user, hashes the password using Spring Security’s password encoder, and saves the account.
+ It prints the development credentials to the console.
+
+- [SecurityConfig.java]
+configures Spring Security. It defines BCrypt password hashing, connects the authentication 
+provider to `CustomUserDetailsService`, permits unauthenticated access to `POST /api/auth/login`, 
+and requires authentication for other API requests. It uses an HTTP session to retain login state 
+and limits a user to one session. Method-level permission checks are enabled here too.
+
+### Controllers
+
+- [AuthController.java] exposes three endpoints under `/api/auth`:
+  - `POST /login` authenticates the submitted email and password, stores the authentication in the
+     session, and returns a safe summary of the user.
+  - `GET /me` returns that summary for the current session.
+  - `POST /logout` clears the security context and invalidates the session.
+- [UserController.java] exposes user creation, listing, lookup, update, status change, and deletion
+under `/api/users`. The class-level `@PreAuthorize("hasRole('SUPER_ADMIN')")` means these endpoints 
+are restricted to super-admin users. A normal signed-in user should receive `403 Forbidden`.
+
+### Request and response DTOs
+
+DTOs define the JSON the API accepts or returns; they keep the API contract separate from the database 
+entity.
+
+- [LoginRequest.java] accepts `email` and `password`. Validation requires both fields and checks that 
+  the email is formatted as an email address.
+- [LoginResponse.java] returns `id`, `name`, `email`, `role`, `branch`, and `accessModules`. 
+  It does not return the password hash.
+- [CreateUserRequest.java] accepts fields for a new user. Name, valid email, password of at least six
+  characters, and role are required.
+- [UpdateUserRequest.java] accepts optional fields for a partial update. The service changes only  
+  fields supplied with a usable value.
+- [UserResponse.java] returns user details such as name, role, branch, status, and access modules. 
+  It excludes the password.
+
+### User-management service
+
+[UserService.java] contains the work behind the user endpoints:
+
+- Creates users and rejects an email that already exists.
+- Hashes a new or updated password before saving it.
+- Normalizes roles to uppercase and checks branch values against `Bramhapuri`, `Chandrapur`, 
+`Nagpur`, and `ALL`.
+- Defaults a missing role to `USER`, missing branch to `ALL`, and missing status to `ACTIVE`.
+- Converts saved user entities into `UserResponse` objects so the password is never sent back.
+- Finds, updates, changes status, and deletes users.
+
+The service uses [UserRepository.java] to read and write user records. 
+[User.java] maps those records to the `users` database table.
+
+### Security support classes
+
+- [CustomUserDetailsService.java] looks up an account by email when Spring Security tries to 
+  authenticate a login.
+
+- [CustomUserDetails.java] adapts your `User` entity to the interface Spring Security expects. It 
+  returns the stored password hash and email as the username. Its `getAuthorities()` adds the 
+  `ROLE_` prefix, so a stored role such as `SUPER_ADMIN` becomes `ROLE_SUPER_ADMIN` for checks like 
+  `hasRole('SUPER_ADMIN')`. Its account-status methods currently always return `true`; the user’s 
+  `status` field is not yet used to disable sign-in.
+
+- [AppModule.java] lists module names such as `DASHBOARD`, `ACCOUNTS`, `EMPLOYEE`, `ATTENDANCE`, and 
+  `CONSULTANCY`.
+
+- [PermissionService.java] checks whether the authenticated user has a requested module in their 
+  comma-separated `accessModules` value. `SUPER_ADMIN` and a user whose modules contain `ALL` pass 
+  every module check.
+
+- [Branch.java] lists the branch names as enum constants.
+
+- [BranchPermissionService.java] allows a super-admin or an `ALL`-branch user to access any branch. 
+  Other users can access their assigned branch. These helpers only enforce rules when an endpoint 
+  calls them—for example, with a method security annotation. Their presence alone does not protect 
+  every endpoint.
+
+## React frontend files
+
+- [Login.jsx] renders the email/password form, toggles password visibility, shows errors, disables 
+  the submit button while signing in, and calls the `login` function from the auth context.
+
+- [AuthContext.jsx] shares the current user and login/logout functions across React components. On 
+  startup it tries `/api/auth/me`; if that fails it treats the user as signed out.
+
+- [authService.js] sends the login, current-session, and logout requests. It sets `credentials: 
+  "include"` so the browser sends and receives the `JSESSIONID` session cookie.
+
+- [api.js] defines `API_BASE_URL = "/api"`. The current `authService.js` calls full paths 
+  directly, so it does not currently use this constant.
+
+- [App.jsx] waits while the current session is checked, shows the login page when no user is 
+  signed in, 
+  and otherwise shows a temporary screen with the user’s name, role, branch, and modules. It does not 
+  yet implement the dashboard or module-based navigation.
+- [main.jsx] starts the React app and mounts `App` into the HTML page.
+
+## Example request and response
+
+Login request:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@consultancy.com",
+  "password": "Admin@123"
+}
+```
+
+Successful response:
+
+```json
+{
+  "id": 1,
+  "name": "Admin",
+  "email": "admin@consultancy.com",
+  "role": "SUPER_ADMIN",
+  "branch": "ALL",
+  "accessModules": "ALL"
+}
+```
+
+The session cookie is set separately in the HTTP response headers. The frontend then sends it
+ with later requests. The response body does not contain a token.
+
+## What is implemented versus planned
+
+The reference says the super-admin should manage users and decide which sections each user can 
+access. **The backend has pieces of this rule**: user-management endpoints require super-admin, 
+and module/branch helper services can make checks. The actual dashboard visibility, module navigation, 
+and branch-filtered employee/attendance data still need to be connected to real screens and endpoints.
+
+The implementation plan says user management and permissions, followed by authorization and branch
+security, then React login/session handling and later product modules. Your reference reports that 
+login, session restoration, user management, module checks, and branch checks were exercised. 
+The React files now provide login and session handling, but the broader application remains future work.
+ The senior PHP project and its MySQL schema are references for that work; they are not automatically 
+implemented by these files.
+
+
+1. Install/verify react-router
+             ↓
+2. Create ProtectedRoute
+             ↓
+3. Create DashboardLayout
+             ↓
+4. Migrate Senior Sidebar UI
+             ↓
+5. Migrate Senior TopBar UI
+             ↓
+6. Connect Sidebar to AuthContext
+             ↓
+7. Apply accessModules filtering
+             ↓
+8. Apply SUPER_ADMIN rules
+             ↓
+9. Add logout
+             ↓
+10. Test Admin + Rahul okey lets implement it step by step but without westing time. First keep this 
+important detail in mind that senior use html css and php so she dont use layout and imclude Header.php
+file in all pages which contain Sidebar and TopBar . And also one thing Senior use one css file for for 
+whole project .Just write page specific css in that respective page like we have seen in Login.php. header
+.php ---> "<?php
+/* =========================================================
+   SHUL HEADER + SIDEBAR
+========================================================= */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/* ---------------------------
+   LOGIN CHECK
+---------------------------- */
+if (!isset($_SESSION['email'])) {
+    $_SESSION['msg'] = "You must log in first";
+    header("Location: login.php");
+    exit();
+}
+
+/* ---------------------------
+   DATABASE
+---------------------------- */
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    include_once __DIR__ . '/db_connect.php';
+}
+
+$role = $_SESSION['role'] ?? '';
+
+/* ---------------------------
+   HEADER USER
+---------------------------- */
+$header_role  = $_SESSION['role'] ?? '';
+$header_email = $_SESSION['email'] ?? '';
+$header_name  = $_SESSION['name'] ?? '';
+
+if ($header_name === '' && $header_email !== '') {
+    $header_name = ucfirst(strtok($header_email, '@'));
+}
+
+if ($header_name === '') {
+    $header_name = 'Admin';
+}
+
+/* =========================================================
+   ACCESS FUNCTION
+========================================================= */
+if (!function_exists('hasAccess')) {
+
+    function hasAccess($module, $sub = null)
+    {
+        if (($_SESSION['role'] ?? '') === 'super_admin') {
+            return true;
+        }
+
+        $modules = $_SESSION['modules'] ?? [];
+
+        if (!isset($modules[$module])) {
+            return false;
+        }
+
+        if (empty($modules[$module])) {
+            return true;
+        }
+
+        if ($sub === null) {
+            return true;
+        }
+
+        if (!is_array($modules[$module])) {
+            return false;
+        }
+
+        return in_array($sub, $modules[$module], true);
+    }
+}
+
+
+
+
+/* =========================================================
+   CHAT UNREAD COUNT
+========================================================= */
+
+$totalUnread = 0;
+$latestSenderName = '';
+
+if (
+    !empty($_SESSION['email']) &&
+    isset($conn) &&
+    $conn instanceof mysqli
+) {
+
+    $receiver = mysqli_real_escape_string(
+        $conn,
+        $_SESSION['email']
+    );
+
+    $chat_result = @mysqli_query(
+        $conn,
+        "
+        SELECT COUNT(*) AS total
+        FROM chats
+        WHERE receiver_email = '$receiver'
+        AND is_read = 0
+        "
+    );
+
+    if ($chat_result) {
+
+        $chat_row =
+            mysqli_fetch_assoc($chat_result);
+
+        $totalUnread =
+            (int)($chat_row['total'] ?? 0);
+    }
+
+    $sender_result = @mysqli_query(
+        $conn,
+        "
+        SELECT u.name
+        FROM chats c
+        JOIN users u
+            ON c.sender_email = u.email
+        WHERE c.receiver_email = '$receiver'
+        AND c.is_read = 0
+        ORDER BY c.id DESC
+        LIMIT 1
+        "
+    );
+
+    if (
+        $sender_result &&
+        mysqli_num_rows($sender_result) > 0
+    ) {
+
+        $sender_row =
+            mysqli_fetch_assoc($sender_result);
+
+        $latestSenderName =
+            $sender_row['name'] ?? '';
+    }
+}
+?>
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>SHUL Ventures Pvt. Ltd.</title>
+
+<link
+    rel="shortcut icon"
+    type="image/png"
+    href="image/logo.png"
+>
+
+<link
+    rel="stylesheet"
+    href="css/font-awesome.css"
+>
+
+<link
+    rel="stylesheet"
+    href="css/shul-dashboard.css"
+>
+
+</head>
+
+<body>
+
+<div
+    id="shul-app"
+    class="shul-app-layout"
+>
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="shul-header">
+
+    <!-- LEFT HEADER -->
+    <div class="shul-header-left">
+
+        <div class="shul-brand">
+
+            <img
+                src="image/logo.png"
+                alt="SHUL"
+            >
+
+            <div class="shul-brand-text">
+
+                <div class="shul-brand-title">
+                    SHUL
+                </div>
+
+                <div class="shul-brand-sub">
+                    Ventures Pvt. Ltd.
+                </div>
+
+            </div>
+
+        </div>
+
+        <button
+            type="button"
+            id="shulSidebarToggle"
+            class="shul-sidebar-toggle"
+            title="Toggle Sidebar"
+        >
+            «
+        </button>
+
+    </div>
+
+
+    <!-- HEADER CONTENT -->
+
+    <div class="shul-header-content">
+
+        <div class="shul-header-greeting">
+
+            <div class="shul-greeting-title">
+
+                Good Morning,
+                <?= htmlspecialchars($header_name) ?>
+
+                👋
+
+            </div>
+
+            <div class="shul-greeting-date">
+
+                <?= date('l, d F Y') ?>
+
+            </div>
+
+        </div>
+
+
+        <div class="shul-header-actions">
+
+            <!-- SEARCH -->
+
+            <div class="shul-search-wrap">
+
+                <span class="shul-search-icon">
+                    🔍
+                </span>
+
+                <input
+                    type="text"
+                    id="sidebarSearch"
+                    placeholder="Search clients..."
+                    autocomplete="off"
+                    onkeyup="searchSidebar(event)"
+                    onkeydown="handleEnterSearch(event)"
+                >
+
+                <div
+                    id="searchResults"
+                    class="global-search-results"
+                ></div>
+
+            </div>
+
+
+            <!-- LIVE -->
+
+            <div class="shul-live-badge">
+
+                <span></span>
+
+                Live
+
+            </div>
+
+
+            <!-- CHAT -->
+
+            <button
+                type="button"
+                class="shul-icon-button"
+                title="Chat"
+                onclick="window.location.href='chat.php'"
+            >
+                💬
+            </button>
+
+
+            <!-- NOTIFICATION -->
+
+           <div class="shul-notification-wrap">
+
+    <button
+        type="button"
+        class="shul-icon-button notification-button"
+        title="Notifications"
+        id="shulNotificationButton"
+    >
+        🔔
+    </button>
+
+    <div id="shulNotificationMenu" class="shul-notification-menu">
+
+        <?php if ($notification_total > 0): ?>
+            <?php foreach ($notifications as $note): ?>
+                <a href="<?= htmlspecialchars($note['page']) ?>" class="shul-notification-item">
+                    <span class="shul-notification-icon"><?= $note['icon'] ?></span>
+                    <span><?= htmlspecialchars($note['text']) ?></span>
+                </a>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="shul-notification-empty">No new notifications</div>
+        <?php endif; ?>
+
+    </div>
+
+</div>
+
+            <!-- PROFILE -->
+
+            <div class="shul-profile-wrap">
+
+                <button
+                    type="button"
+                    class="shul-profile-button"
+                    id="shulProfileButton"
+                >
+
+                    <span class="shul-avatar">
+
+                        <?= strtoupper(
+                            substr($header_name, 0, 1)
+                        ) ?>
+
+                    </span>
+
+
+                    <span class="shul-profile-copy">
+
+                        <strong>
+                            <?= htmlspecialchars($header_name) ?>
+                        </strong>
+
+                        <small>
+                            <?= htmlspecialchars(
+                                $header_role ?: 'Admin'
+                            ) ?>
+                        </small>
+
+                    </span>
+
+
+                    <span class="shul-profile-arrow">
+                        ▼
+                    </span>
+
+                </button>
+
+
+                <div
+                    id="shulProfileMenu"
+                    class="shul-profile-menu"
+                >
+
+                    <a href="profile.php">
+                        <i>👤</i>
+                        Profile
+                    </a>
+
+                    <a
+                        href="logout.php"
+                        class="danger"
+                    >
+                        <i class="fa fa-sign-out"></i>
+                        Log Out
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- MOBILE OVERLAY -->
+
+<div
+    id="shulSidebarOverlay"
+    class="shul-sidebar-overlay"
+></div>
+
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside
+    id="shulSidebar"
+    class="shul-sidebar-scroll"
+>
+
+<div class="php-sidebar-navigation">
+
+<ul
+    class="sidebar-menu"
+    id="nav-accordion"
+>
+
+
+<!-- DASHBOARD -->
+
+<li>
+
+<a
+    href="homepage.php"
+    class="active"
+>
+
+🏠
+
+<span>
+    Dashboard
+</span>
+
+</a>
+
+</li>
+
+<!-- CHAT -->
+
+<li>
+
+<a href="chat.php">
+
+💬
+
+<span>
+    Chat
+</span>
+
+<?php if ($totalUnread > 0): ?>
+
+<span class="badge">
+
+<?= $totalUnread ?>
+
+</span>
+
+<?php endif; ?>
+
+</a>
+
+<?php if ($latestSenderName !== ''): ?>
+
+<div class="latest-sender">
+
+<?= htmlspecialchars($latestSenderName) ?>
+
+</div>
+
+<?php endif; ?>
+
+</li>
+
+
+
+
+<li class="sidebar-section-label">
+    MODULES
+</li>
+
+
+
+
+<!-- =====================================================
+     ACCOUNTS
+===================================================== -->
+
+<?php if (
+    hasAccess('accounts','payments_due') ||
+    hasAccess('accounts','payments_view') ||
+    hasAccess('accounts','payments_defaulter') ||
+    hasAccess('accounts','gst_view') ||
+    hasAccess('accounts','gst_generate') ||
+    hasAccess('accounts','expenses_add/view') ||
+    hasAccess('accounts','advance_view/add') ||
+    hasAccess('accounts','TDS_view/add') ||
+    hasAccess('consultancy','payment_due')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+💳
+
+<span>
+    Accounts
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+
+<!-- PAYMENTS -->
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-money"></i>
+
+<span>
+    Payments
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<?php if (
+    hasAccess('accounts','payments_due')
+): ?>
+
+<li>
+<a href="due-payments.php">
+    Due Payments
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<?php if (
+    hasAccess('consultancy','payment_due') &&
+    $role !== 'super_admin'
+): ?>
+
+<li>
+<a href="view-candidate-payment.php">
+    Due Payments (Consultancy)
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<?php if (
+    hasAccess('accounts','payments_view')
+): ?>
+
+<li>
+<a href="view-payments.php">
+    View Payments
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<?php if (
+    hasAccess('accounts','payments_defaulter')
+): ?>
+
+<li>
+<a href="view-defaulters.php">
+    Defaulter Payments
+</a>
+</li>
+
+<?php endif; ?>
+
+</ul>
+
+</li>
+
+
+<!-- GST -->
+
+<?php if (
+    hasAccess('accounts','gst_view')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-money"></i>
+
+<span>
+    GST Bills
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<?php if (
+    hasAccess('accounts','gst_generate')
+): ?>
+
+<li>
+<a href="view-gst-client.php">
+    Generate Invoice
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<li>
+<a href="view-gst-bills.php">
+    GST Invoices
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+<!-- EXPENSE -->
+
+<?php if (
+    hasAccess('accounts','expenses_add/view')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-money"></i>
+
+<span>
+    Expenses
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add expenses.php">
+    Add Expenses
+</a>
+</li>
+
+<li>
+<a href="view-expenses.php">
+    View Expenses
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+<!-- ADVANCE -->
+
+<?php if (
+    hasAccess('accounts','advance_view/add')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-money"></i>
+
+<span>
+    Advance
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add_advance.php">
+    Add Advance
+</a>
+</li>
+
+<li>
+<a href="view_advance.php">
+    View Advance
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+<!-- TDS -->
+
+<?php if (
+    hasAccess('accounts','TDS_view/add')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-credit-card"></i>
+
+<span>
+    TDS
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="due-tds-payments.php">
+    Due TDS
+</a>
+</li>
+
+<li>
+<a href="view-paid-tds.php">
+    Paid TDS
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+
+
+<!-- =====================================================
+     EMPLOYEE MANAGEMENT
+===================================================== -->
+
+<?php if (
+    hasAccess('employee_management','add') ||
+    hasAccess('employee_management','view') ||
+    hasAccess('employee_management','add_salary')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+👥
+
+<span>
+    Employee Management
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-user"></i>
+
+<span>
+    Employee
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<?php if (
+    hasAccess('employee_management','add')
+): ?>
+
+<li>
+<a href="add employee.php">
+    Add Employee
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<?php if (
+    hasAccess('employee_management','view')
+): ?>
+
+<li>
+<a href="view-employee.php">
+    View Employee
+</a>
+</li>
+
+<?php endif; ?>
+
+
+<li>
+<a href="generate_letter.php">
+    Generate Letter
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+<?php if (
+    hasAccess('employee_management','add_salary')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-money"></i>
+
+<span>
+    Salary
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add-salary.php">
+    Add Salary
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+<!-- =====================================================
+     ATTENDANCE
+===================================================== -->
+
+<?php if (
+    hasAccess('attendance')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+📅
+
+<span>
+    Attendance Management
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add-emp-attendance.php">
+    Add Attendance
+</a>
+</li>
+
+<li>
+<a href="view-all-emp-attendance.php">
+    View Attendance
+</a>
+</li>
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+
+<!-- =====================================================
+     CONSULTANCY
+===================================================== -->
+
+<?php if (
+    hasAccess('consultancy')
+): ?>
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+💼
+
+<span>
+    Consultancy Management
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-building"></i>
+
+<span>
+    Associate Companies
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add-associate.php">
+    Add Associate Company
+</a>
+</li>
+
+<li>
+<a href="view-associate.php">
+    View Associate Companies
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-asterisk"></i>
+
+<span>
+    Current Requirements
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="add-requirement.php">
+    Add Current Requirements
+</a>
+</li>
+
+<li>
+<a href="view-requirement.php">
+    View Requirements
+</a>
+</li>
+
+<li>
+<a href="trash2.php">
+    Closed
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-registered"></i>
+
+<span>
+    Registration
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="view-student.php">
+    View Student
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+<li>
+
+<a href="view-all-candidates.php">
+
+👤
+
+<span>
+    All Candidates
+</span>
+
+</a>
+
+</li>
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-calendar"></i>
+
+<span>
+    Interview Status
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="view-interview-schedule-student.php">
+    Interview Scheduled Candidates
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+<li class="sub-menu">
+
+<a href="javascript:void(0);">
+
+<i class="fa fa-child"></i>
+
+<span>
+    Student Status
+</span>
+
+</a>
+
+
+<ul class="sub">
+
+<li>
+<a href="view-placed-candidate.php">
+    Placed Candidates
+</a>
+</li>
+
+<li>
+<a href="view-rejected-candidates.php">
+    Rejected Candidates
+</a>
+</li>
+
+</ul>
+
+</li>
+
+
+</ul>
+
+</li>
+
+<?php endif; ?>
+
+
+
+
+<!-- =====================================================
+     SUPER ADMIN
+===================================================== -->
+
+<?php if (
+    $role === 'super_admin'
+): ?>
+
+<li>
+
+<a href="view-users.php">
+
+👤
+
+<span>
+    Users
+</span>
+
+</a>
+
+</li>
+
+
+
+<?php endif; ?>
+
+
+<!-- HR -->
+
+<?php if (
+    $role === 'HR'
+): ?>
+
+<li>
+
+<a href="trash2.php">
+
+🗑️
+
+<span>
+    Trash
+</span>
+
+</a>
+
+</li>
+
+<?php endif; ?>
+
+
+
+<!-- LOGOUT -->
+
+<li>
+
+<a
+    href="logout.php"
+    class="logout-link"
+>
+
+<i class="fa fa-sign-out"></i>
+
+<span>
+    Log Out
+</span>
+
+</a>
+
+</li>
+
+
+</ul>
+
+</div>
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN CONTENT START
+===================================================== -->
+
+<div
+    id="shul-main-content"
+    class="shul-main-content"
+>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const sidebar = document.getElementById('shulSidebar');
+    const app = document.getElementById('shul-app');
+    const toggle = document.getElementById('shulSidebarToggle');
+    const overlay = document.getElementById('shulSidebarOverlay');
+
+    if (!sidebar) {
+        return;
+    }
+
+
+    /* =====================================================
+       SIDEBAR PARENT MENU
+    ===================================================== */
+
+    sidebar
+        .querySelectorAll('.sidebar-menu li.sub-menu > a')
+        .forEach(function (link) {
+
+            link.addEventListener('click', function (event) {
+
+                /*
+                 * Parent menu has javascript:void(0)
+                 * so it should ONLY open/close submenu.
+                 */
+                const href = this.getAttribute('href');
+
+                if (
+                    href === 'javascript:void(0);' ||
+                    href === '#' ||
+                    !href
+                ) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const li = this.parentElement;
+
+                    /*
+                     * Only toggle this submenu.
+                     */
+                    li.classList.toggle('open');
+
+                }
+
+            });
+
+        });
+
+
+    /* =====================================================
+       CHILD LINKS
+    ===================================================== */
+
+    sidebar
+        .querySelectorAll('.sidebar-menu ul.sub a')
+        .forEach(function (link) {
+
+            link.addEventListener('click', function (event) {
+
+                /*
+                 * Allow normal PHP navigation.
+                 *
+                 * DO NOT use preventDefault() here.
+                 */
+
+                event.stopPropagation();
+
+            });
+
+        });
+
+
+    /* =====================================================
+       ACTIVE CURRENT PHP PAGE
+    ===================================================== */
+
+    const currentPage =
+        window.location.pathname
+            .split('/')
+            .pop()
+            .toLowerCase();
+
+
+    sidebar
+        .querySelectorAll('.sidebar-menu a[href]')
+        .forEach(function (link) {
+
+            const href =
+                link.getAttribute('href');
+
+            if (!href) {
+                return;
+            }
+
+            if (
+                href === '#' ||
+                href === 'javascript:void(0);'
+            ) {
+                return;
+            }
+
+            const linkPage =
+                href
+                    .split('/')
+                    .pop()
+                    .split('?')[0]
+                    .toLowerCase();
+
+
+            if (
+                linkPage === currentPage
+            ) {
+
+                link.classList.add('active');
+
+
+                /*
+                 * Automatically open all parent
+                 * submenus of the current page.
+                 */
+
+                let parent =
+                    link.closest('li');
+
+                while (parent) {
+
+                    const parentMenu =
+                        parent.parentElement?.closest(
+                            'li.sub-menu'
+                        );
+
+                    if (!parentMenu) {
+                        break;
+                    }
+
+                    parentMenu.classList.add('open');
+
+                    parent =
+                        parentMenu;
+
+                }
+
+            }
+
+        });
+
+
+    /* =====================================================
+       SIDEBAR TOGGLE
+    ===================================================== */
+
+    if (toggle) {
+
+        toggle.addEventListener(
+            'click',
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+
+                if (
+                    window.innerWidth <= 768
+                ) {
+
+                    app.classList.toggle(
+                        'sidebar-mobile-open'
+                    );
+
+                    return;
+
+                }
+
+
+                app.classList.toggle(
+                    'sidebar-collapsed-state'
+                );
+
+
+                if (
+                    app.classList.contains(
+                        'sidebar-collapsed-state'
+                    )
+                ) {
+
+                    this.textContent = '»';
+
+                } else {
+
+                    this.textContent = '«';
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       MOBILE OVERLAY
+    ===================================================== */
+
+    if (overlay) {
+
+        overlay.addEventListener(
+            'click',
+            function () {
+
+                app.classList.remove(
+                    'sidebar-mobile-open'
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       CLOSE MOBILE SIDEBAR AFTER PAGE LINK
+    ===================================================== */
+
+    sidebar
+        .querySelectorAll(
+            'a:not([href="javascript:void(0);"])'
+        )
+        .forEach(function (link) {
+
+            link.addEventListener(
+                'click',
+                function () {
+
+                    if (
+                        window.innerWidth <= 768
+                    ) {
+
+                        app.classList.remove(
+                            'sidebar-mobile-open'
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+});
+
+
+
+/* =====================================================
+   NOTIFICATION DROPDOWN
+===================================================== */
+
+const notifButton = document.getElementById('shulNotificationButton');
+const notifMenu = document.getElementById('shulNotificationMenu');
+
+if (notifButton && notifMenu) {
+
+    notifButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        notifMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!notifMenu.contains(event.target) && event.target !== notifButton) {
+            notifMenu.classList.remove('open');
+        }
+    });
+
+}
+
+
+/* =====================================================
+   PROFILE DROPDOWN
+===================================================== */
+
+const profileButton = document.getElementById('shulProfileButton');
+const profileMenu = document.getElementById('shulProfileMenu');
+
+if (profileButton && profileMenu) {
+
+    profileButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        profileMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!profileMenu.contains(event.target) && event.target !== profileButton) {
+            profileMenu.classList.remove('open');
+        }
+    });
+
+}
+</script>
+<script src="js/search.js"></script>" i have attach screenshot of the Seniors After login UI (dashboard)
+. home.php ----> "<?php
+
+/* =========================================================
+   SHUL DASHBOARD
+========================================================= */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+
+/* =========================================================
+   LOGIN CHECK
+========================================================= */
+
+if (!isset($_SESSION['email'])) {
+
+    $_SESSION['msg'] =
+        "You must log in first";
+
+    header("Location: login.php");
+
+    exit();
+}
+
+
+/* =========================================================
+   USER ROLE
+========================================================= */
+
+$role = $_SESSION['role'] ?? '';
+
+
+
+/* =========================================================
+   DATABASE
+========================================================= */
+
+include_once 'db_connect.php';
+
+mysqli_report(
+    MYSQLI_REPORT_ERROR |
+    MYSQLI_REPORT_STRICT
+);
+
+
+/* =========================================================
+   DEFAULT VALUES
+   These prevent undefined variable errors
+========================================================= */
+
+$selected_month = '';
+$year = null;
+$month = null;
+
+$total_clients = 0;
+
+$nagpur_clients = 0;
+$bramhapuri_clients = 0;
+$chandrapur_clients = 0;
+
+$total_payments = 0;
+$due_payments = 0;
+$total_expenses = 0;
+
+$pending_service_count = 0;
+$complaint_count = 0;
+
+$chart_year = (int)date('Y');
+
+$chartData = array_fill(
+    0,
+    12,
+    0
+);
+
+
+/* =========================================================
+   ONLY SUPER ADMIN DASHBOARD DATA
+========================================================= */
+
+if ($role === 'super_admin') {
+
+
+    /* =====================================================
+       TABLE EXISTS
+    ===================================================== */
+
+    function tableExists($conn, $table)
+    {
+        $table = mysqli_real_escape_string(
+            $conn,
+            $table
+        );
+
+        $result = mysqli_query(
+            $conn,
+            "SHOW TABLES LIKE '$table'"
+        );
+
+        return (
+            $result &&
+            mysqli_num_rows($result) > 0
+        );
+    }
+
+
+    /* =====================================================
+       MONTH FILTER
+    ===================================================== */
+
+    $selected_month =
+        $_GET['month'] ?? '';
+
+    if (
+        !empty($selected_month) &&
+        preg_match(
+            '/^\d{4}-\d{2}$/',
+            $selected_month
+        )
+    ) {
+
+        $year =
+            (int)substr(
+                $selected_month,
+                0,
+                4
+            );
+
+        $month =
+            (int)substr(
+                $selected_month,
+                5,
+                2
+            );
+
+        if (
+            $month < 1 ||
+            $month > 12
+        ) {
+
+            $year = null;
+            $month = null;
+            $selected_month = '';
+        }
+
+    } else {
+
+        $year = null;
+        $month = null;
+        $selected_month = '';
+    }
+
+
+    /* =====================================================
+   CLIENT DATA DISABLED
+   tbl_client table does not exist
+===================================================== */
+
+$total_clients = 0;
+
+
+   $nagpur_clients = 0;
+$bramhapuri_clients = 0;
+$chandrapur_clients = 0;
+
+
+    /* =====================================================
+       TOTAL PAYMENTS
+    ===================================================== */
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_payment'
+        )
+    ) {
+
+        if (
+            $year &&
+            $month
+        ) {
+
+            $stmt = $conn->prepare(
+                "
+                SELECT COUNT(*) AS total
+                FROM tbl_payment
+                WHERE YEAR(payment_date)=?
+                AND MONTH(payment_date)=?
+                AND paid_amount > 0
+                "
+            );
+
+            $stmt->bind_param(
+                "ii",
+                $year,
+                $month
+            );
+
+            $stmt->execute();
+
+            $row =
+                $stmt
+                ->get_result()
+                ->fetch_assoc();
+
+            $total_payments =
+                (int)(
+                    $row['total'] ?? 0
+                );
+
+            $stmt->close();
+
+        } else {
+
+            $row =
+                $conn
+                ->query(
+                    "
+                    SELECT COUNT(*) AS total
+                    FROM tbl_payment
+                    WHERE paid_amount > 0
+                    "
+                )
+                ->fetch_assoc();
+
+            $total_payments =
+                (int)(
+                    $row['total'] ?? 0
+                );
+        }
+    }
+
+
+    /* =====================================================
+       DUE PAYMENTS
+    ===================================================== */
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_payment'
+        )
+    ) {
+
+        if (
+            $year &&
+            $month
+        ) {
+
+            $stmt = $conn->prepare(
+                "
+                SELECT COUNT(*) AS total
+                FROM tbl_payment
+                WHERE due_amount > 0
+                AND
+                (
+                    (
+                        payment_date IS NOT NULL
+                        AND YEAR(payment_date)=?
+                        AND MONTH(payment_date)=?
+                    )
+                    OR
+                    (
+                        due_date IS NOT NULL
+                        AND YEAR(due_date)=?
+                        AND MONTH(due_date)=?
+                    )
+                )
+                "
+            );
+
+            $stmt->bind_param(
+                "iiii",
+                $year,
+                $month,
+                $year,
+                $month
+            );
+
+            $stmt->execute();
+
+            $row =
+                $stmt
+                ->get_result()
+                ->fetch_assoc();
+
+            $due_payments =
+                (int)(
+                    $row['total'] ?? 0
+                );
+
+            $stmt->close();
+
+        } else {
+
+            $row =
+                $conn
+                ->query(
+                    "
+                    SELECT COUNT(*) AS total
+                    FROM tbl_payment
+                    WHERE due_amount > 0
+                    "
+                )
+                ->fetch_assoc();
+
+            $due_payments =
+                (int)(
+                    $row['total'] ?? 0
+                );
+        }
+    }
+
+
+    /* =====================================================
+       EXPENSES
+    ===================================================== */
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_expenses'
+        )
+    ) {
+
+        if (
+            $year &&
+            $month
+        ) {
+
+            $stmt = $conn->prepare(
+                "
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CAST(
+                                amount AS DECIMAL(12,2)
+                            )
+                        ),
+                        0
+                    ) AS total
+                FROM tbl_expenses
+                WHERE YEAR(`date`)=?
+                AND MONTH(`date`)=?
+                "
+            );
+
+            $stmt->bind_param(
+                "ii",
+                $year,
+                $month
+            );
+
+            $stmt->execute();
+
+            $row =
+                $stmt
+                ->get_result()
+                ->fetch_assoc();
+
+            $total_expenses =
+                (float)(
+                    $row['total'] ?? 0
+                );
+
+            $stmt->close();
+
+        } else {
+
+            $row =
+                $conn
+                ->query(
+                    "
+                    SELECT
+                        COALESCE(
+                            SUM(
+                                CAST(
+                                    amount AS DECIMAL(12,2)
+                                )
+                            ),
+                            0
+                        ) AS total
+                    FROM tbl_expenses
+                    "
+                )
+                ->fetch_assoc();
+
+            $total_expenses =
+                (float)(
+                    $row['total'] ?? 0
+                );
+        }
+    }
+
+
+    /* =====================================================
+       PENDING SERVICES
+    ===================================================== */
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_pending_services'
+        )
+    ) {
+
+        $sql = "
+            SELECT COUNT(*) AS total
+            FROM tbl_pending_services ps
+            JOIN tbl_client c
+                ON ps.client_Id = c.Id
+            WHERE ps.status = 'Pending'
+        ";
+
+        $result =
+            @mysqli_query(
+                $conn,
+                $sql
+            );
+
+        if ($result) {
+
+            $row =
+                mysqli_fetch_assoc(
+                    $result
+                );
+
+            $pending_service_count =
+                (int)(
+                    $row['total'] ?? 0
+                );
+        }
+    }
+
+
+    /* =====================================================
+       COMPLAINT COUNT
+    ===================================================== */
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_complaints'
+        )
+    ) {
+
+        $sql = "
+            SELECT COUNT(*) AS total
+            FROM tbl_complaints cmp
+            JOIN tbl_client cl
+                ON cmp.client_id = cl.Id
+        ";
+
+        $result =
+            @mysqli_query(
+                $conn,
+                $sql
+            );
+
+        if ($result) {
+
+            $row =
+                mysqli_fetch_assoc(
+                    $result
+                );
+
+            $complaint_count =
+                (int)(
+                    $row['total'] ?? 0
+                );
+        }
+    }
+
+
+    /* =====================================================
+       CHART DATA
+    ===================================================== */
+
+    $chart_year =
+        $year ?: (int)date('Y');
+
+
+    if (
+        tableExists(
+            $conn,
+            'tbl_pending_services'
+        )
+    ) {
+
+        $stmt =
+            $conn->prepare(
+                "
+                SELECT
+                    MONTH(service_date) AS m,
+                    COUNT(*) AS total
+                FROM tbl_pending_services
+                WHERE YEAR(service_date)=?
+                GROUP BY MONTH(service_date)
+                ORDER BY MONTH(service_date)
+                "
+            );
+
+        $stmt->bind_param(
+            "i",
+            $chart_year
+        );
+
+        $stmt->execute();
+
+        $result =
+            $stmt->get_result();
+
+        while (
+            $row =
+            $result->fetch_assoc()
+        ) {
+
+            $m =
+                (int)$row['m'];
+
+            if (
+                $m >= 1 &&
+                $m <= 12
+            ) {
+
+                $chartData[$m - 1] =
+                    (int)$row['total'];
+            }
+        }
+
+        $stmt->close();
+    }
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+include 'header.php';
+
+?>
+
+
+<?php if ($role === 'super_admin'): ?>
+
+
+<!-- =====================================================
+     SUPER ADMIN DASHBOARD
+===================================================== -->
+
+<main class="shul-dashboard">
+
+
+    <!-- PAGE HEADER -->
+
+    <div class="shul-dashboard-header-row">
+
+        <div>
+
+            <h1 class="shul-dashboard-title">
+                Dashboard
+            </h1>
+
+            <div class="shul-dashboard-subtitle">
+                Overview of your business
+            </div>
+
+        </div>
+
+
+        <!-- MONTH PICKER -->
+
+        <div
+            class="shul-month-picker"
+            id="shulMonthPicker"
+        >
+
+            <button
+                type="button"
+                class="shul-month-trigger"
+                id="shulMonthTrigger"
+            >
+
+                <span>📅</span>
+
+                <span id="shulMonthLabel">
+
+                    <?php
+
+                    if ($selected_month) {
+
+                        echo date(
+                            'F Y',
+                            strtotime(
+                                $selected_month . '-01'
+                            )
+                        );
+
+                    } else {
+
+                        echo 'Select Month';
+                    }
+
+                    ?>
+
+                </span>
+
+                <span>▼</span>
+
+            </button>
+
+
+            <div
+                class="shul-month-dropdown"
+                id="shulMonthDropdown"
+            >
+
+                <div class="shul-month-header">
+
+                    <button
+                        type="button"
+                        id="shulMonthPrev"
+                    >
+                        ‹
+                    </button>
+
+                    <strong id="shulMonthYear">
+                        <?= $year ?: date('Y') ?>
+                    </strong>
+
+                    <button
+                        type="button"
+                        id="shulMonthNext"
+                    >
+                        ›
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="shul-month-grid"
+                    id="shulMonthGrid"
+                ></div>
+
+
+                <div class="shul-month-footer">
+
+                    <span>
+
+                        <?php
+
+                        if ($selected_month) {
+
+                            echo date(
+                                'F Y',
+                                strtotime(
+                                    $selected_month . '-01'
+                                )
+                            );
+
+                        } else {
+
+                            echo 'No filter';
+                        }
+
+                        ?>
+
+                    </span>
+
+
+                    <?php if ($selected_month): ?>
+
+                    <button
+                        type="button"
+                        onclick="window.location.href='homepage.php'"
+                    >
+                        ✕ Clear
+                    </button>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         KPI CARDS
+    ================================================= -->
+
+    <div class="shul-kpi-grid">
+
+
+        <!-- CLIENTS -->
+
+        <div
+            class="shul-kpi-card"
+            id="clientKpi"
+        >
+
+            <div class="shul-kpi-bar cyan"></div>
+
+
+            <div class="shul-kpi-top">
+
+                <div>
+
+                    <div class="shul-kpi-value">
+
+                        <?= number_format(
+                            $total_clients
+                        ) ?>
+
+                    </div>
+
+                    <div class="shul-kpi-label">
+
+                        <?= $selected_month
+                            ? 'Monthly Clients'
+                            : 'Total Clients'
+                        ?>
+
+                    </div>
+
+                </div>
+
+
+                <div class="shul-kpi-icon cyan-bg">
+                    👥
+                </div>
+
+            </div>
+
+
+            <div
+                class="shul-kpi-toggle"
+                id="branchToggle"
+            >
+                ▼ Click to see branches
+            </div>
+
+
+            <div
+                class="shul-branch-dropdown"
+                id="branchDropdown"
+            >
+
+                <div>
+
+                    <span>
+                        📍 Nagpur
+                    </span>
+
+                    <strong>
+                        <?= $nagpur_clients ?>
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        📍 Bramhapuri
+                    </span>
+
+                    <strong>
+                        <?= $bramhapuri_clients ?>
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        📍 Chandrapur
+                    </span>
+
+                    <strong>
+                        <?= $chandrapur_clients ?>
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- PAYMENTS -->
+
+        <div class="shul-kpi-card">
+
+            <div class="shul-kpi-bar green"></div>
+
+
+            <div class="shul-kpi-top">
+
+                <div>
+
+                    <div class="shul-kpi-value">
+
+                        <?= number_format(
+                            $total_payments
+                        ) ?>
+
+                    </div>
+
+                    <div class="shul-kpi-label">
+
+                        <?= $selected_month
+                            ? 'Monthly Payments'
+                            : 'Total Payments'
+                        ?>
+
+                    </div>
+
+                </div>
+
+
+                <div class="shul-kpi-icon green-bg">
+                    💰
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- DUE -->
+
+        <div class="shul-kpi-card">
+
+            <div class="shul-kpi-bar red"></div>
+
+
+            <div class="shul-kpi-top">
+
+                <div>
+
+                    <div class="shul-kpi-value">
+
+                        <?= number_format(
+                            $due_payments
+                        ) ?>
+
+                    </div>
+
+                    <div class="shul-kpi-label">
+
+                        <?= $selected_month
+                            ? 'Monthly Due Payments'
+                            : 'Total Due Payments'
+                        ?>
+
+                    </div>
+
+                </div>
+
+
+                <div class="shul-kpi-icon red-bg">
+                    💳
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE -->
+
+        <div class="shul-kpi-card">
+
+            <div class="shul-kpi-bar orange"></div>
+
+
+            <div class="shul-kpi-top">
+
+                <div>
+
+                    <div class="shul-kpi-value expense">
+
+                        ₹<?= number_format(
+                            $total_expenses,
+                            2
+                        ) ?>
+
+                    </div>
+
+                    <div class="shul-kpi-label">
+
+                        <?= $selected_month
+                            ? 'Monthly Expenses'
+                            : 'Total Expenses'
+                        ?>
+
+                    </div>
+
+                </div>
+
+
+                <div class="shul-kpi-icon orange-bg">
+                    📈
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =================================================
+         ALERTS
+    ================================================= -->
+
+    <div class="shul-alert-outer">
+
+        <div class="shul-section-heading">
+
+            <span>
+                ⚠️
+            </span>
+
+            Pending Alerts
+
+        </div>
+
+
+        <div class="shul-alert-grid">
+
+
+            <a
+                href="view-pending-service.php"
+                class="shul-alert-card danger"
+            >
+
+                <span class="shul-alert-icon">
+                    🔴
+                </span>
+
+
+                <div>
+
+                    <div class="shul-alert-label">
+                        Pending Services
+                    </div>
+
+                    <div class="shul-alert-value danger">
+
+                        <?= $pending_service_count ?>
+
+                    </div>
+
+                </div>
+
+
+                <span class="alert-arrow">
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="view-complaints.php"
+                class="shul-alert-card warning"
+            >
+
+                <span class="shul-alert-icon">
+                    ⚠️
+                </span>
+
+
+                <div>
+
+                    <div class="shul-alert-label">
+                        Open Complaints
+                    </div>
+
+                    <div class="shul-alert-value warning">
+
+                        <?= $complaint_count ?>
+
+                    </div>
+
+                </div>
+
+
+                <span class="alert-arrow">
+                    →
+                </span>
+
+            </a>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         CHART
+    ================================================= -->
+
+    <div class="shul-chart-card">
+
+        <div class="shul-chart-head">
+
+            <div>
+
+                <div class="shul-chart-title">
+
+                    📊 Monthly Services Overview
+
+                </div>
+
+                <div class="shul-chart-subtitle">
+
+                    Pending service count by month
+
+                </div>
+
+            </div>
+
+
+            <div class="chart-year-badge">
+
+                <?= $chart_year ?>
+
+            </div>
+
+        </div>
+
+
+        <div class="shul-chart-box">
+
+            <canvas
+                id="shulServicesChart"
+            ></canvas>
+
+        </div>
+
+    </div>
+
+
+</main>
+
+
+<?php else: ?>
+
+<!-- =====================================================
+     OTHER ROLES - WELCOME PAGE
+===================================================== -->
+
+<main class="shul-welcome-page">
+
+    <div class="shul-welcome-content">
+
+        <img
+            src="image/logo.png"
+            alt="SHUL Ventures Pvt. Ltd."
+            class="shul-welcome-logo"
+        >
+
+        <h1>
+            Welcome To Shul Ventures Pvt. Ltd.
+        </h1>
+
+    </div>
+
+</main>
+
+<?php endif; ?>
+
+
+
+<?php if ($role === 'super_admin'): ?>
+
+
+<!-- =====================================================
+     SUPER ADMIN JAVASCRIPT
+===================================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="js/search.js"></script>
+
+
+<script>
+
+(function () {
+
+
+    /* =====================================================
+       ELEMENTS
+    ===================================================== */
+
+    const app =
+        document.getElementById(
+            'shul-app'
+        );
+
+
+    const toggle =
+        document.getElementById(
+            'shulSidebarToggle'
+        );
+
+
+    const overlay =
+        document.getElementById(
+            'shulSidebarOverlay'
+        );
+
+
+    
+
+    const monthTrigger =
+        document.getElementById(
+            'shulMonthTrigger'
+        );
+
+
+    const monthDropdown =
+        document.getElementById(
+            'shulMonthDropdown'
+        );
+
+
+    const monthYear =
+        document.getElementById(
+            'shulMonthYear'
+        );
+
+
+    const monthGrid =
+        document.getElementById(
+            'shulMonthGrid'
+        );
+
+
+    const branchDropdown =
+        document.getElementById(
+            'branchDropdown'
+        );
+
+
+    const branchToggle =
+        document.getElementById(
+            'branchToggle'
+        );
+
+
+
+
+
+    /* =====================================================
+       MOBILE OVERLAY
+    ===================================================== */
+
+    overlay?.addEventListener(
+        'click',
+        function () {
+
+            app?.classList.remove(
+                'sidebar-mobile-open'
+            );
+
+        }
+    );
+
+
+
+
+
+    /* =====================================================
+       MONTH PICKER
+    ===================================================== */
+
+    let viewYear =
+        <?= (int)(
+            $year ?: date('Y')
+        ) ?>;
+
+
+    const selectedMonth =
+        <?= json_encode(
+            $selected_month
+        ) ?>;
+
+
+    const months = [
+
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+
+    ];
+
+
+
+    function renderMonths()
+    {
+
+        if (
+            !monthYear ||
+            !monthGrid
+        ) {
+
+            return;
+        }
+
+
+        monthYear.textContent =
+            viewYear;
+
+
+        monthGrid.innerHTML =
+            '';
+
+
+
+        months.forEach(
+            function (
+                monthName,
+                index
+            ) {
+
+
+                const button =
+                    document.createElement(
+                        'button'
+                    );
+
+
+                button.type =
+                    'button';
+
+
+                const value =
+                    viewYear +
+                    '-' +
+                    String(
+                        index + 1
+                    ).padStart(
+                        2,
+                        '0'
+                    );
+
+
+                button.textContent =
+                    monthName;
+
+
+
+                if (
+                    value ===
+                    selectedMonth
+                ) {
+
+                    button.classList.add(
+                        'selected'
+                    );
+
+                }
+
+
+
+                button.addEventListener(
+                    'click',
+                    function () {
+
+                        window.location.href =
+                            'homepage.php?month=' +
+                            value;
+
+                    }
+                );
+
+
+
+                monthGrid.appendChild(
+                    button
+                );
+
+            }
+        );
+
+    }
+
+
+
+    monthTrigger?.addEventListener(
+        'click',
+        function (event) {
+
+            event.stopPropagation();
+
+
+            monthDropdown?.classList.toggle(
+                'open'
+            );
+
+
+            renderMonths();
+
+        }
+    );
+
+
+
+    monthDropdown?.addEventListener(
+        'click',
+        function (event) {
+
+            event.stopPropagation();
+
+        }
+    );
+
+
+
+    document
+        .getElementById(
+            'shulMonthPrev'
+        )
+        ?.addEventListener(
+            'click',
+            function () {
+
+                viewYear--;
+
+                renderMonths();
+
+            }
+        );
+
+
+
+    document
+        .getElementById(
+            'shulMonthNext'
+        )
+        ?.addEventListener(
+            'click',
+            function () {
+
+                viewYear++;
+
+                renderMonths();
+
+            }
+        );
+
+
+
+    /* =====================================================
+       BRANCH DROPDOWN
+    ===================================================== */
+
+    branchToggle?.addEventListener(
+        'click',
+        function (event) {
+
+            event.stopPropagation();
+
+
+            branchDropdown?.classList.toggle(
+                'open'
+            );
+
+
+
+            if (
+                branchDropdown?.classList.contains(
+                    'open'
+                )
+            ) {
+
+                branchToggle.textContent =
+                    '▲ Hide branches';
+
+            } else {
+
+                branchToggle.textContent =
+                    '▼ Click to see branches';
+
+            }
+
+        }
+    );
+
+
+
+    branchDropdown?.addEventListener(
+        'click',
+        function (event) {
+
+            event.stopPropagation();
+
+        }
+    );
+
+
+
+    /* =====================================================
+       CLOSE DROPDOWNS
+    ===================================================== */
+
+    document.addEventListener(
+        'click',
+        function () {
+
+
+            monthDropdown?.classList.remove(
+                'open'
+            );
+
+
+            branchDropdown?.classList.remove(
+                'open'
+            );
+
+        }
+    );
+
+
+
+    /* =====================================================
+       CHART
+    ===================================================== */
+
+    const chartData =
+        <?= json_encode(
+            array_values(
+                $chartData
+            )
+        ) ?>;
+
+
+    const chartCanvas =
+        document.getElementById(
+            'shulServicesChart'
+        );
+
+
+
+    if (
+        chartCanvas &&
+        typeof Chart !== 'undefined'
+    ) {
+
+
+        new Chart(
+            chartCanvas,
+            {
+
+                type: 'bar',
+
+
+                data: {
+
+                    labels: months,
+
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                'Services',
+
+
+                            data:
+                                chartData,
+
+
+                            backgroundColor:
+                                '#6366f1',
+
+
+                            borderRadius:
+                                6,
+
+
+                            maxBarThickness:
+                                50
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+                    responsive:
+                        true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+
+                        legend: {
+
+                            display:
+                                false
+
+                        },
+
+
+                        tooltip: {
+
+                            backgroundColor:
+                                '#1e293b',
+
+
+                            borderWidth:
+                                0,
+
+
+                            borderRadius:
+                                8
+
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+
+                            grid: {
+
+                                display:
+                                    false
+
+                            },
+
+
+                            ticks: {
+
+                                color:
+                                    '#64748b'
+
+                            }
+
+                        },
+
+
+                        y: {
+
+                            beginAtZero:
+                                true,
+
+
+                            ticks: {
+
+                                color:
+                                    '#64748b',
+
+
+                                precision:
+                                    0
+
+                            },
+
+
+                            grid: {
+
+                                color:
+                                    '#e2e8f0'
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+})();
+
+</script>
+
+
+<?php endif; ?>
+
+
+<style>
+
+/* =========================================================
+   WELCOME PAGE - SAME AS PROVIDED IMAGE
+========================================================= */
+
+.shul-welcome-page {
+
+    min-height: calc(100vh - 64px);
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #f8fafc;
+
+    padding: 30px;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.shul-welcome-content {
+
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    transform: translateY(-20px);
+}
+
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.shul-welcome-logo {
+
+    width: 400px;
+
+    height: 400px;
+
+    object-fit: contain;
+
+    display: block;
+
+    margin-bottom: -30px;
+}
+
+
+/* =========================================================
+   WELCOME TEXT
+========================================================= */
+
+.shul-welcome-content h1 {
+
+    margin: 0;
+
+    color: #123f73;
+
+    font-size: 34px;
+
+    font-weight: 700;
+
+    line-height: 1.25;
+
+    letter-spacing: -0.5px;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 992px) {
+
+    .shul-welcome-logo {
+
+        width: 135px;
+
+        height: 195px;
+
+        margin-bottom: 22px;
+    }
+
+
+    .shul-welcome-content h1 {
+
+        font-size: 30px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .shul-welcome-page {
+
+        min-height: calc(100vh - 60px);
+
+        padding: 20px;
+    }
+
+
+    .shul-welcome-content {
+
+        transform: translateY(-10px);
+    }
+
+
+    .shul-welcome-logo {
+
+        width: 120px;
+
+        height: 170px;
+
+        margin-bottom: 20px;
+    }
+
+
+    .shul-welcome-content h1 {
+
+        font-size: 25px;
+
+        line-height: 1.3;
+
+        padding: 0 15px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .shul-welcome-logo {
+
+        width: 105px;
+
+        height: 150px;
+    }
+
+
+    .shul-welcome-content h1 {
+
+        font-size: 22px;
+    }
+
+}
+
+</style>
+
+
+</body>
+</html>
+" "/* =========================================================
+   SHUL DASHBOARD CSS
+========================================================= */
+
+* {
+    box-sizing: border-box;
+    font-size: 13px;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    font-family:
+        "Segoe UI",
+        Tahoma,
+        Arial,
+        sans-serif;
+    background: #f5f7fb;
+    color: #1e293b;
+     overflow-x: hidden;
+}
+
+
+
+a {
+    text-decoration: none;
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   MAIN APP
+========================================================= */
+
+.shul-app-layout {
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.shul-header {
+    height: 62px;
+    background: #fff;
+
+
+    display: flex;
+
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    z-index: 9999;
+}
+
+
+/* =========================================================
+   HEADER LEFT
+========================================================= */
+
+.shul-header-left {
+    width: 260px;
+    min-width: 260px;
+
+    background: #1748c7;
+
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 14px;
+}
+
+
+.shul-brand {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    min-width: 0;
+}
+
+
+.shul-brand img {
+   
+    width:48px;
+
+    height:48px;
+
+    border-radius:10px;
+
+    background:white;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    color:white;
+
+}
+
+
+.shul-brand-text {
+    line-height: 1;
+}
+
+
+.shul-brand-title {
+    font-size: 17px;
+    font-weight: 800;
+}
+
+
+.shul-brand-sub {
+    font-size: 10px;
+
+    opacity: .9;
+
+    margin-top: 4px;
+}
+
+
+.shul-sidebar-toggle {
+    width: 32px;
+    height: 35px;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #fff;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    border-radius: 7px;
+}
+
+
+.shul-sidebar-toggle:hover {
+    background: rgba(255,255,255,.12);
+}
+
+
+/* =========================================================
+   HEADER CONTENT
+========================================================= */
+
+.shul-header-content {
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 18px 0 24px;
+}
+
+
+.shul-header-greeting {
+    min-width: 0;
+}
+
+
+.shul-greeting-title {
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #1e293b;
+}
+
+
+.shul-greeting-date {
+    font-size: 11px;
+
+    color: #71809b;
+
+    margin-top: 3px;
+}
+
+
+/* =========================================================
+   HEADER ACTIONS
+========================================================= */
+
+.shul-header-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+/* SEARCH */
+
+.shul-search-wrap {
+    width: 230px;
+
+    position: relative;
+}
+
+
+.shul-search-icon {
+    position: absolute;
+
+    left: 13px;
+    top: 10px;
+
+    font-size: 13px;
+
+    z-index: 2;
+}
+
+
+.shul-search-wrap input {
+    width: 100%;
+    height: 39px;
+
+    border: 1px solid #dfe5ef;
+
+    border-radius: 10px;
+
+    background: #f8faff;
+
+    padding: 0 13px 0 35px;
+
+    outline: none;
+
+    color: #344054;
+
+    font-size: 13px;
+}
+
+
+.shul-search-wrap input:focus {
+    border-color: #8da9ff;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(79,70,229,.08);
+}
+
+
+.global-search-results {
+    position:absolute;
+    top:45px;
+    right:0;
+    /*width:330px;*/
+    background:white;
+    border-radius:10px;
+    box-shadow:0 8px 25px rgba(0,0,0,.15);
+    z-index:9999;
+    max-height:400px;
+    overflow-y:auto;
+}
+.global-search-item{
+
+    padding:12px 15px;
+    cursor:pointer;
+    border-bottom:1px solid #eee;
+
+}
+
+/* LIVE */
+
+.shul-live-badge {
+    height: 29px;
+
+    padding: 0 11px;
+
+    border-radius: 18px;
+
+    background: #e5f9ed;
+
+    color: #0d9b56;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.shul-live-badge span {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #18b86b;
+}
+
+
+/* ICON BUTTON */
+
+.shul-icon-button {
+    width: 39px;
+    height: 39px;
+
+    border: 1px solid #e2e7f0;
+
+    border-radius: 10px;
+
+    background: #fff;
+
+    cursor: pointer;
+
+    position: relative;
+
+    font-size: 15px;
+}
+
+
+.shul-icon-button:hover {
+    background: #f8fafc;
+}
+
+
+/* NOTIFICATION */
+
+.notification-button i {
+    position: absolute;
+
+    width: 6px;
+    height: 6px;
+
+    background: #ef4444;
+
+    border-radius: 50%;
+
+    right: 7px;
+    top: 7px;
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.shul-profile-wrap {
+    position: relative;
+}
+
+
+.shul-profile-button {
+    height: 40px;
+
+    min-width: 150px;
+
+    border: 1px solid #e2e7f0;
+
+    border-radius: 10px;
+
+    background: #fff;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 3px 9px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.shul-avatar {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: #6366f1;
+
+    color: #fff;
+
+    font-weight: 800;
+
+    font-size: 13px;
+}
+
+
+.shul-profile-copy {
+    display: flex;
+
+    flex-direction: column;
+
+    line-height: 1.2;
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+.shul-profile-copy strong {
+    font-size: 11px;
+
+    color: #344054;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+.shul-profile-copy small {
+    font-size: 12px;
+
+    color: #6366f1;
+
+    margin-top: 2px;
+}
+
+
+.shul-profile-arrow {
+    font-size: 8px;
+
+    color: #71809b;
+}
+
+
+.shul-profile-menu {
+    display: none;
+
+    position: absolute;
+
+    right: 0;
+    top: 47px;
+
+    width: 190px;
+
+    background: #fff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 11px;
+
+    box-shadow:
+        0 15px 40px
+        rgba(15,23,42,.12);
+
+    padding: 6px;
+
+    z-index: 10000;
+}
+
+
+.shul-profile-menu.open {
+    display: block;
+}
+
+
+.shul-profile-menu a {
+    display: block;
+
+    padding: 10px;
+
+    border-radius: 8px;
+
+    color: #475569;
+
+    font-size: 12px;
+}
+
+
+.shul-profile-menu a:hover {
+    background: #f8fafc;
+}
+
+
+.shul-profile-menu a.danger {
+    color: #ef4444;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.shul-sidebar-scroll {
+    position: fixed;
+
+    left: 0;
+
+    top: 62px;
+
+    bottom: 0;
+
+    width: 260px;
+
+    background: #1748c7;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    z-index: 9998;
+
+    transition:
+        width .25s ease,
+        left .25s ease;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        rgba(255,255,255,.25)
+        transparent;
+}
+
+
+.shul-sidebar-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+
+.shul-sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.25);
+
+    border-radius: 10px;
+}
+
+
+.php-sidebar-navigation {
+    padding: 10px;
+}
+
+
+.sidebar-menu {
+    list-style: none;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+}
+
+
+.sidebar-menu li {
+    list-style: none;
+}
+
+
+/* =========================================================
+   SIDEBAR ITEMS
+========================================================= */
+
+.sidebar-menu > li {
+    margin-bottom: 4px;
+    font-size: 10px;
+}
+
+
+.sidebar-menu > li > a,
+.sidebar-menu li.sub-menu > a {
+    min-height: 43px;
+
+    border-radius: 9px;
+
+    color: #fff !important;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 12px !important;
+
+    text-decoration: none !important;
+
+    font-size: 13.5px !important;
+
+    transition:
+        background .2s ease,
+        transform .2s ease;
+
+    position: relative;
+}
+
+
+.sidebar-menu > li > a:hover,
+.sidebar-menu li.sub-menu > a:hover {
+    background:
+        rgba(255,255,255,.13)
+        !important;
+}
+
+
+.sidebar-menu > li > a.active {
+    background: #4f46e5 !important;
+
+    box-shadow:
+        0 5px 15px
+        rgba(0,0,0,.08);
+}
+
+
+.sidebar-menu li > a i {
+    width: 20px;
+
+    min-width: 20px;
+
+    text-align: center;
+
+    color: #fff;
+
+    font-size: 13px;
+}
+
+
+.sidebar-menu li.sub-menu > a::after {
+    content: "⌄";
+
+    margin-left: auto;
+
+    font-size: 11px;
+
+    opacity: .9;
+
+    transition:
+        transform .2s ease;
+}
+
+
+.sidebar-menu li.sub-menu.open > a::after {
+    transform:
+        rotate(180deg);
+}
+
+
+/* =========================================================
+   MODULE LABEL
+========================================================= */
+
+.sidebar-section-label {
+    color: #dbe7ff;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: .8px;
+
+    padding:
+        15px 7px 7px;
+
+    user-select: none;
+}
+
+
+/* =========================================================
+   SUBMENU
+========================================================= */
+
+.sidebar-menu ul.sub {
+    display: none;
+
+    list-style: none;
+
+    padding: 4px;
+
+    margin:
+        2px 0 6px 12px;
+
+    background:
+        rgba(0,0,0,.08);
+
+    border-radius: 8px;
+}
+
+
+.sidebar-menu li.sub-menu.open > ul.sub {
+    display: block;
+}
+
+
+.sidebar-menu ul.sub li {
+    margin: 1px 0;
+}
+
+
+.sidebar-menu ul.sub li > a {
+    min-height: 33px;
+
+    display: flex;
+
+    align-items: center;
+
+    color: #fff !important;
+
+    text-decoration: none !important;
+
+    border-radius: 7px;
+
+    padding:
+        6px 9px !important;
+
+    font-size: 12.5px !important;
+
+    transition:
+        background .2s ease;
+}
+
+
+.sidebar-menu ul.sub li > a:hover {
+    background:
+        rgba(255,255,255,.12)
+        !important;
+}
+
+
+/* nested submenu */
+
+.sidebar-menu ul.sub li.sub-menu > a::after {
+    content: "⌄";
+
+    margin-left: auto;
+
+    font-size: 9px;
+}
+
+
+.sidebar-menu ul.sub li.sub-menu.open > ul.sub {
+    display: block;
+}
+
+
+.sidebar-menu ul.sub ul.sub {
+    margin-left: 9px;
+}
+
+
+/* =========================================================
+   BADGE
+========================================================= */
+
+.sidebar-menu .badge {
+    margin-left: 25px;
+
+    background: #ef4444;
+
+    color: #fff;
+
+    border-radius: 12px;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    line-height: 1;
+
+    padding: 4px 6px;
+
+    min-width: 18px;
+
+    text-align: center;
+}
+
+
+.latest-sender {
+    display: block;
+
+    color: #dbe7ff;
+
+    font-size: 9px;
+
+    padding:
+        0 12px 4px 42px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* LOGOUT */
+
+.sidebar-menu .logout-link {
+    margin-top: 5px;
+}
+
+
+.sidebar-menu .logout-link:hover {
+    background:
+        rgba(239,68,68,.22)
+        !important;
+}
+
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+========================================================= */
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll {
+    width: 74px;
+}
+
+
+.sidebar-collapsed-state
+.shul-main-content {
+    margin-left: 74px;
+}
+
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-section-label,
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li > a span,
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li.sub-menu > a span,
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li.sub-menu > a::after,
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.latest-sender {
+    display: none;
+}
+
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li > a,
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li.sub-menu > a {
+    justify-content: center;
+
+    padding: 0 !important;
+}
+
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu > li {
+    position: relative;
+}
+
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu .badge {
+    position: absolute;
+
+    right: 5px;
+
+    top: 3px;
+
+    font-size: 8px;
+
+    padding: 3px 5px;
+}
+
+
+.sidebar-collapsed-state
+.shul-sidebar-scroll
+.sidebar-menu ul.sub {
+    display: none !important;
+}
+
+
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
+
+.shul-sidebar-overlay {
+    display: none;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1150px) {
+
+    .shul-search-wrap {
+        width: 180px;
+    }
+
+
+    .shul-greeting-title {
+        font-size: 16px;
+        visibility: hidden;
+    }
+
+
+    .shul-kpi-grid {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+
+    .shul-greeting-date{
+        visibility: hidden;
+    }
+
+}
+
+
+@media (max-width: 768px) {
+
+    /* =====================================================
+       DEFAULT / COLLAPSED
+       BLUE HEADER = 74px
+    ===================================================== */
+
+    .shul-header-left {
+        width: 74px !important;
+        min-width: 74px !important;
+        max-width: 74px !important;
+
+        flex: 0 0 74px !important;
+
+        height: 58px !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        position: relative !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        overflow: hidden !important;
+
+        transition:
+            width .25s ease,
+            min-width .25s ease,
+            max-width .25s ease !important;
+
+        z-index: 10001 !important;
+    }
+
+
+    /* =====================================================
+       DEFAULT LOGO
+    ===================================================== */
+
+    .shul-brand {
+        width: 45px !important;
+        min-width: 45px !important;
+
+        height: 58px !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .shul-brand img {
+        width: 40px !important;
+        height: 40px !important;
+
+        border-radius: 10px !important;
+    }
+
+    /* SHUL TEXT HIDDEN */
+    .shul-brand-text {
+        display: none !important;
+    }
+
+
+    /* =====================================================
+       TOGGLE - COLLAPSED
+    ===================================================== */
+
+    .shul-sidebar-toggle {
+        position: absolute !important;
+
+        right: 3px !important;
+        top: 50% !important;
+
+        transform: translateY(-50%) !important;
+
+        width: 25px !important;
+        height: 34px !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        border: 0 !important;
+        border-radius: 6px !important;
+
+        background: rgba(255,255,255,.12) !important;
+
+        color: #fff !important;
+
+        font-size: 18px !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        z-index: 10002 !important;
+    }
+
+
+    /* =====================================================
+       SIDEBAR DEFAULT
+    ===================================================== */
+
+    .shul-sidebar-scroll {
+
+        width: 74px !important;
+        min-width: 74px !important;
+        max-width: 74px !important;
+
+        transition:
+            width .25s ease,
+            min-width .25s ease,
+            max-width .25s ease !important;
+    }
+
+
+    /* =====================================================
+       HEADER CONTENT
+    ===================================================== */
+
+    .shul-header-content {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+
+        transition: all .25s ease !important;
+    }     /* =====================================================
+       MAIN CONTENT DEFAULT
+    ===================================================== */
+
+    .shul-main-content {
+        margin-left: 74px !important;
+        width: calc(100% - 74px) !important;
+
+        transition:
+            margin-left .25s ease,
+            width .25s ease !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED STATE
+       JS ALREADY ADDS:
+       sidebar-mobile-open
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-header-left {
+
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
+
+        flex: 0 0 260px !important;
+
+        justify-content: flex-start !important;
+
+        padding-left: 12px !important;
+
+        transition:
+            width .25s ease,
+            min-width .25s ease,
+            max-width .25s ease !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED SHUL BRAND
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-brand {
+
+        width: auto !important;
+        min-width: 0 !important;
+
+        display: flex !important;
+
+        justify-content: flex-start !important;
+
+        gap: 10px !important;
+    }
+
+
+    /* LOGO */
+    .shul-app-layout.sidebar-mobile-open
+    .shul-brand img {
+
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+
+    /* SHOW SHUL TEXT */
+    .shul-app-layout.sidebar-mobile-open
+    .shul-brand-text {
+
+        display: block !important;
+
+        white-space: nowrap !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-brand-title {
+
+        display: block !important;
+
+        font-size: 20px !important;
+        font-weight: 700 !important;
+
+        line-height: 20px !important;
+
+        color: #fff !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-brand-sub {
+
+        display: block !important;
+
+        font-size: 9px !important;
+
+        line-height: 12px !important;
+
+        color: #fff !important;
+    }
+
+
+    /* =====================================================
+       TOGGLE POSITION WHEN EXPANDED
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-toggle {
+
+        right: 8px !important;
+
+        width: 32px !important;
+        height: 36px !important;
+
+        font-size: 20px !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED SIDEBAR
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll {
+
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED MAIN CONTENT
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-main-content {
+
+        margin-left: 260px !important;
+        width: calc(100% - 260px) !important;
+    }
+
+
+    /* =====================================================
+       COLLAPSED SIDEBAR - ICON ONLY
+    ===================================================== */
+
+    .shul-sidebar-scroll
+    .sidebar-menu > li > a span,
+    .shul-sidebar-scroll
+    .sidebar-menu > li.sub-menu > a span {
+
+        display: none !important;
+    }
+
+    .shul-sidebar-scroll
+    .sidebar-menu > li.sub-menu > a::after {
+
+        display: none !important;
+    }
+
+    .shul-sidebar-scroll
+    .sidebar-section-label {
+
+        display: none !important;
+    }
+
+
+    .shul-sidebar-scroll
+    .sidebar-menu > li > a,
+    .shul-sidebar-scroll
+    .sidebar-menu > li.sub-menu > a {
+
+        width: 100% !important;
+
+        padding: 0 !important;
+
+        min-height: 48px !important;
+
+        display: flex !important;
+
+        align-items: center !important;
+        justify-content: center !important;
+
+        gap: 0 !important;
+    }
+
+
+    /* Hide submenu when collapsed */
+
+    .shul-sidebar-scroll
+    .sidebar-menu li.sub-menu > ul.sub {
+
+        display: none !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED SIDEBAR - ICON + TEXT
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-menu > li > a span,
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-menu > li.sub-menu > a span {
+
+        display: inline !important;
+
+        visibility: visible !important;
+
+        opacity: 1 !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-section-label {
+
+        display: block !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-menu > li > a,
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-menu > li.sub-menu > a {
+
+        width: 100% !important;
+
+        min-height: 46px !important;
+
+        padding: 0 15px !important;
+
+        display: flex !important;
+
+        align-items: center !important;
+
+        justify-content: flex-start !important;
+
+        gap: 12px !important;
+    }
+
+
+    /* Show submenu after parent is opened */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    .sidebar-menu li.sub-menu.open > ul.sub {
+
+        display: block !important;
+    }
+
+
+    /* =====================================================
+       EXPANDED SUBMENU
+    ===================================================== */
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    ul.sub {
+
+        width: 100% !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll
+    ul.sub a {
+
+        display: flex !important;
+
+        align-items: center !important;
+
+        padding-left: 40px !important;
+
+        min-height: 40px !important;
+    }
+
+
+    /* =====================================================
+       BADGES
+    ===================================================== */
+
+    .shul-sidebar-scroll .badge {
+
+        display: none !important;
+    }
+
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-scroll .badge {
+
+        display: inline-flex !important;
+    }
+
+
+    /* =====================================================
+       OVERLAY
+    ===================================================== */
+
+    .shul-sidebar-overlay {
+        display: none !important;
+    }
+
+    .shul-app-layout.sidebar-mobile-open
+    .shul-sidebar-overlay {
+
+        display: block !important;
+
+        position: fixed !important;
+
+        top: 58px !important;
+
+        left: 260px !important;
+
+        right: 0 !important;
+
+        bottom: 0 !important;
+
+        background: rgba(0,0,0,.15) !important;
+
+        z-index: 9997 !important;
+    }
+
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .shul-dashboard {
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+
+    .shul-kpi-value {
+        font-size: 22px;
+    }
+
+
+    .shul-kpi-value.expense {
+        font-size: 19px;
+    }
+
+
+    .shul-alert-outer,
+    .shul-chart-card {
+        padding: 15px;
+    }
+
+
+    .shul-chart-box {
+        height: 220px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .shul-dashboard {
+        padding-left: 10px;
+
+        padding-right: 10px;
+    }
+
+
+    .shul-kpi-value {
+        font-size: 22px;
+    }
+
+
+    .shul-kpi-value.expense {
+        font-size: 19px;
+    }
+
+
+    .shul-alert-outer,
+    .shul-chart-card {
+        padding: 15px;
+    }
+
+
+    .shul-chart-box {
+        height: 220px;
+    }
+}
+
+
+
+@Entity
+@Table(name="users")
+public class User{
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+@Column(name="Id")
+private long id;
+
+
+private StringBuilder Name;
+Private String Email;
+Private String Password;
+}

@@ -21,3 +21,38 @@ PHASE 10 — Accounts Management
 PHASE 11 — Chat
         ↓
 PHASE 12 — Final testing / deployment
+
+
+PHASE 4
+React Authentication
+    │
+    ├── Login UI                 ← NOW
+    ├── Session persistence
+    ├── AuthContext
+    └── Logout
+             ↓
+PHASE 5
+Senior UI Layout Migration
+    │
+    ├── Header
+    ├── Sidebar
+    ├── Main Layout
+    ├── Protected Routes
+    └── Permission-based menu
+             ↓
+PHASE 6
+User Management UI
+    │
+    ├── View Users
+    ├── Add User
+    ├── Edit User
+    ├── Status
+    └── Delete
+             ↓
+PHASE 7
+Dashboard
+             ↓
+PHASE 8
+Employee + Attendance
+             ↓
+...
