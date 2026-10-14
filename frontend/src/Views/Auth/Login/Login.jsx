@@ -34,9 +34,6 @@ function Login() {
              */
 
         } catch (err) {
-
-            console.error("Login failed:", err);
-
             setError(err.message || "Invalid email or password");
 
         } finally {
@@ -94,7 +91,7 @@ function Login() {
                 <form onSubmit={handleSubmit}>
 
                     {/* Email */}
-                    <div className="form-group">
+                    <div className="form-group" style={{ border: 'none', backgroundColor: 'transparent' }}>
 
                         <label htmlFor="email">
                             Email Address
@@ -119,7 +116,7 @@ function Login() {
 
 
                     {/* Password */}
-                    <div className="form-group">
+                    <div className="form-group" style={{ border: 'none', backgroundColor: 'transparent' }}>
 
                         <label htmlFor="password">
                             Password
