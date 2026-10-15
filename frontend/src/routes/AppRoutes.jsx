@@ -27,6 +27,7 @@ import GenerateLetter from "./../Views/EmployeeManagement/GenerateLetter/Generat
 import ViewAllEmployee from "./../Views/EmployeeManagement/ViewEmployee/ViewAllEmployee.jsx";
 import ViewExitEmployee from "./../Views/EmployeeManagement/ViewEmployee/ExitEmployee.jsx";
 import ViewAbscondEmployee from "./../Views/EmployeeManagement/ViewEmployee/AbscondEmployee.jsx";
+import ViewEmployeeDetail from "./../Views/EmployeeManagement/ViewEmployee/ViewEmployeeDetail.jsx";
 
 
 
@@ -194,6 +195,7 @@ function AppRoutes() {
                         <Route path="employee/view-all-employee" element={<ViewAllEmployee />} />
                         <Route path="employee/exit-employee" element={<ViewExitEmployee />} />
                         <Route path="employee/abscond-employee" element={<ViewAbscondEmployee />} />
+                        <Route path="employee/view-employee-detail/:employeeId" element={<ViewEmployeeDetail />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="EMPLOYEE" page="GENERATE_LETTER" />}>

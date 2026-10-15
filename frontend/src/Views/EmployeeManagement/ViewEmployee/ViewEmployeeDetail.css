@@ -1,0 +1,622 @@
+#main-content {
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .wrapper {
+            width: 100%;
+            padding: 12px;
+        }
+
+        .employee-container {
+            width: 100%;
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+
+
+        /* =====================================================
+           PAGE HEADER
+        ===================================================== */
+
+        .page-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #27364b;
+        }
+
+        .page-title i {
+            color: #4b82e8;
+            margin-right: 5px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            height: 26px;
+            padding: 0 12px;
+
+            text-decoration: none !important;
+
+            background: #5269f3;
+            color: #fff !important;
+
+            border-radius: 4px;
+
+            font-size: 10px;
+            font-weight: 500;
+
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: #3d55dc;
+            color: #fff !important;
+            transform: translateY(-1px);
+        }
+
+
+        /* =====================================================
+           PROFILE CARD
+        ===================================================== */
+
+        .profile-card {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #dfe4ec;
+            border-radius: 5px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            margin-bottom: 10px;
+        }
+
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #4b82e8;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        .profile-info {
+            min-width: 0;
+        }
+
+        .profile-info h2 {
+            margin: 0 0 3px;
+
+            font-size: 16px;
+            font-weight: 600;
+
+            color: #27364b;
+        }
+
+        .profile-info p {
+            margin: 2px 0;
+
+            color: #697586;
+
+            font-size: 12px;
+        }
+
+        .profile-info .designation {
+            color: #555;
+        }
+
+
+        /* =====================================================
+           TWO COLUMN LAYOUT
+        ===================================================== */
+
+        .columns {
+            width: 100%;
+
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 10px;
+
+            align-items: start;
+        }
+
+        .column {
+            min-width: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            gap: 10px;
+        }
+
+
+        /* =====================================================
+           CARD
+        ===================================================== */
+
+        .card {
+            width: 100%;
+
+            background: #fff;
+
+            border: 1px solid #dfe4ec;
+
+            border-radius: 5px;
+
+            padding: 8px;
+
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+        }
+
+
+        /* =====================================================
+           SECTION TITLE
+        ===================================================== */
+
+        .section-title {
+            width: 100%;
+
+            background: #4b82e8;
+
+            color: #fff;
+
+            font-size: 15px;
+            font-weight: 600;
+
+            padding: 6px 9px;
+
+            border-radius: 3px;
+
+            margin-bottom: 8px;
+        }
+
+
+        /* =====================================================
+           FIELD GRID
+        ===================================================== */
+
+        .field-grid {
+            width: 100%;
+
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 7px 8px;
+        }
+
+        .field {
+            min-width: 0;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label {
+            display: block;
+
+
+            font-size: 14px;
+
+            margin-bottom: 3px;
+
+            font-weight: 500;
+        }
+
+        .field-value {
+            width: 100%;
+
+            min-height: 25px;
+
+            border: 1px solid #d3dce9;
+
+            border-radius: 3px;
+
+            background: #fff;
+
+            padding: 5px 7px;
+
+
+            font-size: 12px;
+
+            display: flex;
+            align-items: center;
+
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+
+        /* =====================================================
+           EMPLOYEE ACTIONS
+        ===================================================== */
+
+        .actions-card {
+            position: static !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 10px 0 0 0 !important;
+            padding: 8px !important;
+            background: #fff !important;
+            border: 1px solid #dfe4ec !important;
+            border-radius: 5px !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            clear: both;
+        }
+
+        .actions-title {
+            position: static !important;
+            width: 100% !important;
+            background: #4b82e8;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 9px;
+            border-radius: 3px;
+            margin-bottom: 8px;
+        }
+
+
+        /* =====================================================
+           ACTION BUTTON CONTAINER
+        ===================================================== */
+
+        .action-buttons {
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            float: none !important;
+            clear: both !important;
+        }
+
+
+        /* =====================================================
+           ALL ACTION BUTTONS
+        ===================================================== */
+
+        .action-buttons a,
+        .action-buttons button {
+            position: static !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: auto !important;
+            min-width: 0 !important;
+            height: 27px !important;
+            margin: 0 !important;
+            padding: 0 11px !important;
+            border: none !important;
+            border-radius: 4px !important;
+            text-decoration: none !important;
+            color: #fff !important;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            float: none !important;
+            cursor: pointer;
+            transition:
+                background-color 0.2s ease,
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .action-buttons a:hover,
+        .action-buttons button:hover {
+            color: #fff !important;
+
+            transform: translateY(-1px);
+
+            box-shadow: 0 3px 7px rgba(0, 0, 0, .12);
+        }
+
+
+        /* =====================================================
+           ATTENDANCE
+        ===================================================== */
+
+        .btn-attendance {
+            background: #12a66a !important;
+        }
+
+        .btn-attendance:hover {
+            background: #078c57 !important;
+        }
+
+
+        /* =====================================================
+           SALARY
+        ===================================================== */
+
+        .btn-salary {
+            background: #754bc3 !important;
+        }
+
+        .btn-salary:hover {
+            background: #6039a5 !important;
+        }
+
+
+        /* =====================================================
+           UPLOAD
+        ===================================================== */
+
+        .btn-upload {
+            background: #1689d7 !important;
+        }
+
+        .btn-upload:hover {
+            background: #086fb6 !important;
+        }
+
+
+        /* =====================================================
+           UPDATE
+        ===================================================== */
+
+        .btn-update {
+            background: #f0a900 !important;
+        }
+
+        .btn-update:hover {
+            background: #d28e00 !important;
+        }
+
+
+        /* =====================================================
+           RESIGNATION
+        ===================================================== */
+
+        .btn-resignation {
+            background: #e53935 !important;
+        }
+
+        .btn-resignation:hover {
+            background: #c62828 !important;
+        }
+
+
+        /* =====================================================
+           DOCUMENTS
+        ===================================================== */
+
+        .documents-card {
+            position: static !important;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #dfe4ec;
+            border-radius: 5px;
+            padding: 8px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+            clear: both;
+        }
+
+        .document-row {
+            width: 100%;
+            padding: 7px 5px;
+            border-bottom: 1px solid #edf0f5;
+            font-size: 10px;
+        }
+
+        .document-row:last-child {
+            border-bottom: none;
+        }
+
+        .document-type {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .document-link {
+            color: #2878d4;
+            text-decoration: none;
+            margin-left: 5px;
+        }
+
+        .document-link:hover {
+            text-decoration: underline;
+        }
+
+        .no-document {
+            color: #777;
+            font-size: 10px;
+            padding: 5px;
+        }
+
+
+        /* =====================================================
+           TABLET
+        ===================================================== */
+
+        @media (max-width: 768px) {
+
+            .wrapper {
+                padding: 10px;
+            }
+
+            .columns {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-card {
+                padding: 10px;
+            }
+
+            .profile-photo {
+                width: 55px;
+                height: 55px;
+            }
+
+            .action-buttons {
+                gap: 6px !important;
+            }
+
+            .action-buttons a,
+            .action-buttons button {
+                height: 29px !important;
+            }
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media (max-width: 500px) {
+
+            .wrapper {
+                padding: 7px;
+            }
+
+            .page-header {
+                margin-bottom: 7px;
+            }
+
+            .page-title {
+                font-size: 11px;
+            }
+
+            .back-btn {
+                height: 24px;
+                font-size: 8px;
+                padding: 0 9px;
+            }
+
+            .profile-card {
+                padding: 9px;
+                gap: 10px;
+            }
+
+            .profile-photo {
+                width: 50px;
+                height: 50px;
+            }
+
+            .profile-info h2 {
+                font-size: 12px;
+            }
+
+            .profile-info p {
+                font-size: 12px;
+            }
+
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .field.full {
+                grid-column: auto;
+            }
+
+
+            /* Mobile Buttons */
+
+            .action-buttons {
+                position: static !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 6px !important;
+                width: 100% !important;
+            }
+
+            .action-buttons a,
+            .action-buttons button {
+                width: 100% !important;
+                height: 30px !important;
+                padding: 0 5px !important;
+                font-size: 8px !important;
+                text-align: center;
+            }
+        }
+
+
+        /* =====================================================
+           VERY SMALL MOBILE
+        ===================================================== */
+
+        @media (max-width: 350px) {
+
+            .action-buttons {
+                grid-template-columns: 1fr !important;
+            }
+
+            .action-buttons a,
+            .action-buttons button {
+                width: 100% !important;
+                height: 30px !important;
+            }
+        }
+
+
+        /* =====================================================
+           IMPORTANT OVERRIDE
+           Stops external/header CSS from making buttons
+           floating on right side.
+        ===================================================== */
+
+        #main-content .employee-container .actions-card {
+            position: static !important;
+            right: auto !important;
+            left: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: none !important;
+        }
+
+        #main-content .employee-container .actions-card .action-buttons {
+            position: static !important;
+            right: auto !important;
+            left: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            height: auto !important;
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #main-content .employee-container .actions-card .action-buttons a {
+            position: static !important;
+            right: auto !important;
+            left: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            transform: none;
+            float: none !important;
+            margin: 0 !important;
+        }

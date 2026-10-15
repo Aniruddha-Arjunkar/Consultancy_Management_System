@@ -46,8 +46,33 @@ const getEmployees = async (status = "regular") => {
     return response.json();
 };
 
+
+const getEmployeeById = async (id) => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees/${encodeURIComponent(id)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        let message = `Request failed (${response.status}).`;
+        try {
+            const data = await response.json();
+            message = data.message || data.error || message;
+        } catch {
+            // The response did not contain JSON.
+        }
+        throw new Error(message);
+    }
+
+    return response.json();
+};
+
 const employeesService = {
     createEmployee,
     getEmployees,
+    getEmployeeById
 };
 export default employeesService;
