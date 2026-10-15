@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import "./ViewEmployee.css";
 import employeesService from "../../../services/employeesService";
 
@@ -87,8 +88,26 @@ const ViewEmployee = () => {
                                 />
                             </div>
 
-                            {/* Add the Senior page's other navigation links
-                                after their React routes have been created. */}
+                            <Link
+                                to="/employee/view-all-employee"
+                                className="view-client-btn view-client-all-btn"
+                            >
+                                👥 View All Employees
+                            </Link>
+
+                            <Link
+                                to="/employee/exit-employee"
+                                className="view-client-btn view-client-exit-btn"
+                            >
+                                🚪 Exit Employee
+                            </Link>
+
+                            <Link
+                                to="/employee/abscond-employee"
+                                className="view-client-btn view-client-abscond-btn"
+                            >
+                                ⚠ Abscond Employee
+                            </Link>
                         </div>
 
                         <br />

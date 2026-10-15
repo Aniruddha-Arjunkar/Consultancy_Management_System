@@ -24,6 +24,10 @@ import AddEmployee from "./../Views/EmployeeManagement/AddEmployee/AddEmployee.j
 import ViewEmployee from "./../Views/EmployeeManagement/ViewEmployee/ViewEmployee.jsx";
 import Salary from "./../Views/EmployeeManagement/Salary/Salary.jsx";
 import GenerateLetter from "./../Views/EmployeeManagement/GenerateLetter/GenerateLetter.jsx";
+import ViewAllEmployee from "./../Views/EmployeeManagement/ViewEmployee/ViewAllEmployee.jsx";
+import ViewExitEmployee from "./../Views/EmployeeManagement/ViewEmployee/ExitEmployee.jsx";
+import ViewAbscondEmployee from "./../Views/EmployeeManagement/ViewEmployee/AbscondEmployee.jsx";
+
 
 
 //============== Attendance Management ==================
@@ -133,20 +137,7 @@ function AppRoutes() {
                     {/* Chat: available to all authenticated users */}
                     <Route path="chat" element={<Chat />} />
 
-                    {/* Accounts */}
-                    {/* <Route element={<PermissionRoute module="ACCOUNTS" />}>
-                        <Route path="accounts/due-payment" element={<DuePayments />}/>
-                        <Route path="accounts/view-payment" element={<ViewPayments />}/>
-                        <Route path="accounts/payment-defaulter" element={<DefaulterPayments />}/>
-                        <Route path="accounts/generate-invoice" element={<GenerateInvoice />}/>
-                        <Route path="accounts/gst-Invoice" element={<GSTInvoices/>}/>
-                        <Route path="accounts/add-expenses" element={<AddExpenses />}/>
-                        <Route path="accounts/view-expenses" element={<ViewExpenses />}/>
-                        <Route path="accounts/add-advance" element={<AddAdvance />}/>
-                        <Route path="accounts/view-advance" element={<ViewAdvance />}/>
-                        <Route path="accounts/due-tds" element={<DueTDS />}/>
-                        <Route path="accounts/paid-tds" element={<PaidTDS />}/>
-                    </Route> */}
+    
                     {/* Accounts */}
                     <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_DUE" />}>
                         <Route path="accounts/due-payment" element={<DuePayments />} />
@@ -192,34 +183,6 @@ function AppRoutes() {
                         <Route path="accounts/paid-tds" element={<PaidTDS />} />
                     </Route>
 
-                    {/* Employee */}
-                    {/* <Route element={<PermissionRoute module="EMPLOYEE" />}>
-                        <Route path="employee/add-employee" element={<AddEmployee />} />
-                        <Route path="employee/view-employee" element={<ViewEmployee />} />
-                        <Route path="employee/generate-letter" element={<GenerateLetter />} />
-                        <Route path="employee/salary" element={<Salary />} />
-                    </Route> */}
-
-                    {/* Attendance */}
-                    {/* <Route element={<PermissionRoute module="ATTENDANCE" />}>
-                        <Route path="attendance/add-attendance" element={<AddAttendance />} />
-                        <Route path="attendance/view-attendance" element={<ViewAttendance />} />
-                    </Route> */}
-
-                    {/* Consultancy */}
-                    {/* <Route element={<PermissionRoute module="CONSULTANCY" />}>
-                        <Route path="consultancy/add-associate-company" element={<AddAssociateCompany />} />
-                        <Route path="consultancy/view-associate-company" element={<ViewAssociateCompany />} />
-                        <Route path="consultancy/add-current-requirement" element={<AddCurrentRequirement />} />
-                        <Route path="consultancy/view-requirement" element={<ViewRequirement />} />
-                        <Route path="consultancy/closed-requirement" element={<ClosedRequirements />} />
-                        <Route path="consultancy/add-students" element={<AddStudent />} />
-                        <Route path="consultancy/viewStudents" element={<ViewStudent />} />
-                        <Route path="consultancy/all-candidates" element={<AllCandidates />} />
-                        <Route path="consultancy/interview-schedule" element={<InterviewScheduled />} />
-                        <Route path="consultancy/placed-candidates" element={<PlacedCandidates />} />
-                        <Route path="consultancy/rejected-candidates" element={<RejectedCandidates />} />
-                    </Route> */}
 
                     {/* Employee */}
                     <Route element={<PermissionRoute module="EMPLOYEE" page="ADD" />}>
@@ -228,6 +191,9 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="EMPLOYEE" page="VIEW" />}>
                         <Route path="employee/view-employee" element={<ViewEmployee />} />
+                        <Route path="employee/view-all-employee" element={<ViewAllEmployee />} />
+                        <Route path="employee/exit-employee" element={<ViewExitEmployee />} />
+                        <Route path="employee/abscond-employee" element={<ViewAbscondEmployee />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="EMPLOYEE" page="GENERATE_LETTER" />}>

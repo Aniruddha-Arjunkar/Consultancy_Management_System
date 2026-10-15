@@ -443,6 +443,12 @@ body {
     .view-clients-card {
         padding: 9px;
     }
+
+    .view-client-action-btn {
+        min-width: 85px;
+        height: 32px;
+        font-size: 12px;
+    }
 }
 
 .view-clients-header {
@@ -814,4 +820,26 @@ body {
 .view-client-bottom-scroll-inner {
     width: 1150px;
     height: 1px;
+}
+
+a {
+    text-decoration: none;
+}
+
+.view-client-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 95px;
+    height: 34px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: #1748c7;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }

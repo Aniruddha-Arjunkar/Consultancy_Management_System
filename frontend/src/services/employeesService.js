@@ -23,11 +23,14 @@ const createEmployee = async (formData) => {
     return response.json();
 };
 
-const getEmployees = async () => {
-    const response = await fetch(`${API_BASE_URL}/employees`, {
-        method: "GET",
-        credentials: "include",
-    });
+const getEmployees = async (status = "regular") => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees?status=${encodeURIComponent(status)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
 
     if (!response.ok) {
         let message = `Request failed (${response.status}).`;
