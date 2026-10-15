@@ -50,8 +50,9 @@ public class EmployeeController {
             "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
     )
     public List<EmployeeListItemResponse> getEmployees(
+            @RequestParam(defaultValue = "regular") String status,
             Authentication authentication
     ) {
-        return employeeService.getEmployeesForUser(authentication);
+        return employeeService.getEmployeesForUser(authentication, status);
     }
 }

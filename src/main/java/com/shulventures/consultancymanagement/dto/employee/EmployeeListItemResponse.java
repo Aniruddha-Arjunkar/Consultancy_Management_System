@@ -9,5 +9,6 @@ public record EmployeeListItemResponse(
         String custPhone,
         String custEmail,
         LocalDate joiningDate,
-        String designation
+        String designation,
+        String resignationType
 ) {}

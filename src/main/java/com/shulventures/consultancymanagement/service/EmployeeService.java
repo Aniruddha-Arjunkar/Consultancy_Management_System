@@ -136,7 +136,7 @@ public class EmployeeService {
 
 
     public List<EmployeeListItemResponse> getEmployeesForUser(
-            Authentication authentication
+            Authentication authentication,String status
     ) {
         if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
             throw new AccessDeniedException("Authenticated user details are unavailable.");
@@ -156,8 +156,29 @@ public class EmployeeService {
             }
             employees = employeeRepository.findByBranchIgnoreCase(branch);
         }
+        String normalizedStatus =
+                status == null ? "all" : status.trim().toLowerCase();
 
         return employees.stream()
+                .filter(employee -> {
+                    String resignationType = employee.getResignationType();
+
+                    return switch (normalizedStatus) {
+                        case "regular" ->
+                                !"With Notice".equalsIgnoreCase(resignationType)
+                                        && !"Without Notice".equalsIgnoreCase(resignationType)
+                                        && !"Abscond".equalsIgnoreCase(resignationType);
+                        case "all" -> true;
+                        case "exit" ->
+                                "With Notice".equalsIgnoreCase(resignationType)
+                                        || "Without Notice".equalsIgnoreCase(resignationType);
+                        case "abscond" ->
+                                "Abscond".equalsIgnoreCase(resignationType);
+                        default -> throw new IllegalArgumentException(
+                                "Invalid employee list status."
+                        );
+                    };
+                })
                 .map(employee -> new EmployeeListItemResponse(
                         employee.getId(),
                         employee.getTitle(),
@@ -165,7 +186,8 @@ public class EmployeeService {
                         employee.getCustPhone(),
                         employee.getCustEmail(),
                         employee.getJoiningDate(),
-                        employee.getDesignation()
+                        employee.getDesignation(),
+                        employee.getResignationType()
                 ))
                 .toList();
     }
