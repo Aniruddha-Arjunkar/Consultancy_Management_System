@@ -1,7 +1,7 @@
 import API_BASE_URL from "../../../services/api";
 
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import employeesService from "../../../services/employeesService";
 import "./ViewEmployeeDetail.css";
 
@@ -33,6 +33,10 @@ const ViewEmployeeDetail = () => {
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [photoFailed, setPhotoFailed] = useState(false);
+    const [documents, setDocuments] = useState([]);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadEmployee = async () => {
@@ -48,6 +52,22 @@ const ViewEmployeeDetail = () => {
         };
 
         loadEmployee();
+    }, [employeeId]);
+
+    useEffect(() => {
+        const loadDocuments = async () => {
+            try {
+                const data =
+                    await employeesService.getEmployeeDocuments(employeeId);
+                setDocuments(data);
+            } catch (error) {
+                window.alert(error.message || "Could not load employee documents.");
+            } finally {
+                setDocumentsLoading(false);
+            }
+        };
+
+        loadDocuments();
     }, [employeeId]);
 
     if (loading) {
@@ -240,7 +260,13 @@ const ViewEmployeeDetail = () => {
                             <button type="button" className="btn-salary">
                                 ₹&nbsp; View Salary
                             </button>
-                            <button type="button" className="btn-upload">
+                            <button
+                                type="button"
+                                className="btn-upload"
+                                onClick={() =>
+                                    navigate(`/employee/${employeeId}/upload-document`)
+                                }
+                            >
                                 ↑&nbsp; Upload Document
                             </button>
                             <button type="button" className="btn-update">
@@ -255,7 +281,30 @@ const ViewEmployeeDetail = () => {
                     <div className="documents-card">
                         <div className="section-title">View Documents</div>
                         <div className="no-document">
-                            Document list will be connected after its API is added.
+                            {documentsLoading ? (
+                                <div className="no-document">Loading documents...</div>
+                            ) : documents.length === 0 ? (
+                                <div className="no-document">No documents uploaded.</div>
+                            ) : (
+                                documents.map((document) => (
+                                    <div className="document-row" key={document.id}>
+                                        <span className="document-type">
+                                            {document.documentType}:
+                                        </span>
+
+                                        <span>{document.documentName}</span>
+
+                                        <a
+                                            className="document-link"
+                                            href={`${API_BASE_URL}/employees/${encodeURIComponent(employeeId)}/documents/${encodeURIComponent(document.id)}/file`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            View PDF
+                                        </a>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

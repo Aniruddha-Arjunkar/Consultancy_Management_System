@@ -22,12 +22,20 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.MediaTypeFactory;
 import java.nio.file.Path;
 
+import com.shulventures.consultancymanagement.entity.EmployeeDocument;
+import com.shulventures.consultancymanagement.service.EmployeeDocumentService;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.shulventures.consultancymanagement.dto.employee.EmployeeDocumentResponse;
+import org.springframework.http.HttpHeaders;
+
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeeDocumentService employeeDocumentService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(
@@ -95,5 +103,71 @@ public class EmployeeController {
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .body(new FileSystemResource(photoPath));
+    }
+
+
+    @PostMapping(
+            value = "/{employeeId}/documents",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'ADD')"
+    )
+    public ResponseEntity<Map<String, Object>> uploadEmployeeDocument(
+            @PathVariable Long employeeId,
+            @RequestParam("documentType") String documentType,
+            @RequestParam("document") MultipartFile document,
+            Authentication authentication
+    ) {
+        EmployeeDocument savedDocument = employeeDocumentService.upload(
+                employeeId,
+                documentType,
+                document,
+                authentication
+        );
+
+        Map<String, Object> response = Map.of(
+                "id", savedDocument.getId(),
+                "documentType", savedDocument.getDocumentType(),
+                "documentName", savedDocument.getDocumentName()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+
+    @GetMapping("/{employeeId}/documents")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
+    )
+    public List<EmployeeDocumentResponse> getEmployeeDocuments(
+            @PathVariable Long employeeId,
+            Authentication authentication
+    ) {
+        return employeeDocumentService.getDocuments(
+                employeeId,
+                authentication
+        );
+    }
+
+    @GetMapping("/{employeeId}/documents/{documentId}/file")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
+    )
+    public ResponseEntity<Resource> getEmployeeDocumentFile(
+            @PathVariable Long employeeId,
+            @PathVariable Long documentId,
+            Authentication authentication
+    ) {
+        Path documentPath = employeeDocumentService.getDocumentPath(
+                employeeId,
+                documentId,
+                authentication
+        );
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .body(new FileSystemResource(documentPath));
     }
 }

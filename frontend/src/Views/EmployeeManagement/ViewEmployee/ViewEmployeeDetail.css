@@ -42,20 +42,14 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-
             height: 26px;
             padding: 0 12px;
-
             text-decoration: none !important;
-
             background: #5269f3;
             color: #fff !important;
-
             border-radius: 4px;
-
             font-size: 10px;
             font-weight: 500;
-
             transition: all 0.2s ease;
         }
 
@@ -99,18 +93,14 @@
 
         .profile-info h2 {
             margin: 0 0 3px;
-
             font-size: 16px;
             font-weight: 600;
-
             color: #27364b;
         }
 
         .profile-info p {
             margin: 2px 0;
-
             color: #697586;
-
             font-size: 12px;
         }
 
@@ -118,32 +108,24 @@
             color: #555;
         }
 
-
         /* =====================================================
            TWO COLUMN LAYOUT
         ===================================================== */
 
         .columns {
             width: 100%;
-
             display: grid;
-
             grid-template-columns: 1fr 1fr;
-
             gap: 10px;
-
             align-items: start;
         }
 
         .column {
             min-width: 0;
-
             display: flex;
             flex-direction: column;
-
             gap: 10px;
         }
-
 
         /* =====================================================
            CARD
@@ -151,18 +133,12 @@
 
         .card {
             width: 100%;
-
             background: #fff;
-
             border: 1px solid #dfe4ec;
-
             border-radius: 5px;
-
             padding: 8px;
-
             box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
         }
-
 
         /* =====================================================
            SECTION TITLE
@@ -170,18 +146,12 @@
 
         .section-title {
             width: 100%;
-
             background: #4b82e8;
-
             color: #fff;
-
             font-size: 15px;
             font-weight: 600;
-
             padding: 6px 9px;
-
             border-radius: 3px;
-
             margin-bottom: 8px;
         }
 
@@ -192,11 +162,8 @@
 
         .field-grid {
             width: 100%;
-
             display: grid;
-
             grid-template-columns: 1fr 1fr;
-
             gap: 7px 8px;
         }
 
@@ -210,38 +177,24 @@
 
         .field label {
             display: block;
-
-
             font-size: 14px;
-
             margin-bottom: 3px;
-
             font-weight: 500;
         }
 
         .field-value {
             width: 100%;
-
             min-height: 25px;
-
             border: 1px solid #d3dce9;
-
             border-radius: 3px;
-
             background: #fff;
-
             padding: 5px 7px;
-
-
             font-size: 12px;
-
             display: flex;
             align-items: center;
-
             overflow-wrap: anywhere;
             word-break: break-word;
         }
-
 
         /* =====================================================
            EMPLOYEE ACTIONS

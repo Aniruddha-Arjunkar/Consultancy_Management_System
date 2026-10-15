@@ -28,7 +28,7 @@ import ViewAllEmployee from "./../Views/EmployeeManagement/ViewEmployee/ViewAllE
 import ViewExitEmployee from "./../Views/EmployeeManagement/ViewEmployee/ExitEmployee.jsx";
 import ViewAbscondEmployee from "./../Views/EmployeeManagement/ViewEmployee/AbscondEmployee.jsx";
 import ViewEmployeeDetail from "./../Views/EmployeeManagement/ViewEmployee/ViewEmployeeDetail.jsx";
-
+import UploadEmployeeDocument from "./../Views/EmployeeManagement/ViewEmployee/UploadEmployeeDocument.jsx";
 
 
 //============== Attendance Management ==================
@@ -196,6 +196,8 @@ function AppRoutes() {
                         <Route path="employee/exit-employee" element={<ViewExitEmployee />} />
                         <Route path="employee/abscond-employee" element={<ViewAbscondEmployee />} />
                         <Route path="employee/view-employee-detail/:employeeId" element={<ViewEmployeeDetail />} />
+                        <Route path="employee/:employeeId/upload-document" element={<UploadEmployeeDocument />} />
+                        
                     </Route>
 
                     <Route element={<PermissionRoute module="EMPLOYEE" page="GENERATE_LETTER" />}>
