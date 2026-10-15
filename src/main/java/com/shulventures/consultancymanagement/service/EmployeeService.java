@@ -22,6 +22,10 @@ import java.util.UUID;
 import com.shulventures.consultancymanagement.dto.employee.EmployeeListItemResponse;
 import java.util.List;
 
+import com.shulventures.consultancymanagement.dto.employee.EmployeeDetailResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
@@ -190,5 +194,79 @@ public class EmployeeService {
                         employee.getResignationType()
                 ))
                 .toList();
+    }
+
+
+    public EmployeeDetailResponse getEmployeeDetails(
+            Long employeeId,
+            Authentication authentication
+    ) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Employee not found."
+                ));
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employee.getBranch()
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot view employees from this branch."
+            );
+        }
+
+        EmployeeDetailResponse response = new EmployeeDetailResponse();
+        BeanUtils.copyProperties(employee, response);
+
+        return response;
+    }
+
+
+
+    public Path getEmployeePhotoPath(
+            Long employeeId,
+            Authentication authentication
+    ) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Employee not found."
+                ));
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employee.getBranch()
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot view employees from this branch."
+            );
+        }
+
+        if (employee.getPhoto() == null || employee.getPhoto().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "No employee photo is available."
+            );
+        }
+
+        Path uploadDirectory =
+                Path.of(photoDirectory).toAbsolutePath().normalize();
+
+        Path photoPath =
+                Path.of(employee.getPhoto()).toAbsolutePath().normalize();
+
+        if (!photoPath.startsWith(uploadDirectory)) {
+            throw new AccessDeniedException("Invalid employee photo path.");
+        }
+
+        if (!Files.isRegularFile(photoPath)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Employee photo file was not found."
+            );
+        }
+
+        return photoPath;
     }
 }
