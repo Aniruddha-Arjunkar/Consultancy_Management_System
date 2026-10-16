@@ -170,4 +170,31 @@ public class EmployeeController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(new FileSystemResource(documentPath));
     }
+
+
+    @PutMapping(
+            value = "/{employeeId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
+    )
+    public ResponseEntity<Map<String, Object>> updateEmployee(
+            @PathVariable Long employeeId,
+            @ModelAttribute CreateEmployeeRequest request,
+            Authentication authentication
+    ) {
+        Employee employee = employeeService.update(
+                employeeId,
+                request,
+                authentication
+        );
+
+        Map<String, Object> response = Map.of(
+                "id", employee.getId(),
+                "message", "Employee updated successfully."
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }

@@ -269,4 +269,85 @@ public class EmployeeService {
 
         return photoPath;
     }
+
+
+    public Employee update(
+            Long employeeId,
+            CreateEmployeeRequest request,
+            Authentication authentication
+    ) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Employee not found."
+                ));
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employee.getBranch()
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot update employees from this branch."
+            );
+        }
+
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Employee title is required.");
+        }
+
+        if (request.getCustName() == null || request.getCustName().isBlank()) {
+            throw new IllegalArgumentException("Employee name is required.");
+        }
+
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new AccessDeniedException(
+                    "Authenticated user details are unavailable."
+            );
+        }
+
+        String userBranch = userDetails.getUser().getBranch();
+        boolean isSuperAdmin =
+                "SUPER_ADMIN".equalsIgnoreCase(userDetails.getUser().getRole());
+
+        String requestedBranch = request.getBranch();
+        if (requestedBranch == null || requestedBranch.isBlank()) {
+            requestedBranch = employee.getBranch();
+        }
+
+        String employeeBranch =
+                !isSuperAdmin
+                        && userBranch != null
+                        && !userBranch.isBlank()
+                        && !"ALL".equalsIgnoreCase(userBranch)
+                        ? userBranch
+                        : requestedBranch;
+
+        employeeBranch = normalizeBranch(employeeBranch);
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employeeBranch
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot move an employee to that branch."
+            );
+        }
+
+        BeanUtils.copyProperties(
+                request,
+                employee,
+                "id",
+                "empId",
+                "photo",
+                "branch"
+        );
+
+        employee.setBranch(employeeBranch);
+
+        if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
+            employee.setPhoto(savePhoto(request.getPhoto()));
+        }
+
+        return employeeRepository.save(employee);
+    }
 }
