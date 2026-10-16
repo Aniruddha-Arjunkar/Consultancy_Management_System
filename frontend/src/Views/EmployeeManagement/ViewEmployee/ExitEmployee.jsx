@@ -87,8 +87,6 @@ const ExitEmployee = () => {
                                 />
                             </div>
 
-                            {/* Add the Senior page's other navigation links
-                                after their React routes have been created. */}
                         </div>
 
                         <br />

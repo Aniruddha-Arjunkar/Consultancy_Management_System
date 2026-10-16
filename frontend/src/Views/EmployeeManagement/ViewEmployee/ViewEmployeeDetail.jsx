@@ -278,7 +278,13 @@ const ViewEmployeeDetail = () => {
                             >
                                 ✎&nbsp; Update Profile
                             </button>
-                            <button type="button" className="btn-resignation">
+                            <button
+                                type="button"
+                                className="btn-resignation"
+                                onClick={() =>
+                                    navigate(`/employee/${employeeId}/resignation`)
+                                }
+                            >
                                 ⚠&nbsp; Resignation
                             </button>
                         </div>

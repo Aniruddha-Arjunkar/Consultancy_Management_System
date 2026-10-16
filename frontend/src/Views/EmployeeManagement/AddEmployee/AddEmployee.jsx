@@ -162,7 +162,7 @@ function AddEmployee() {
     return (
         <div className="add-employee-page">
             <section id="main-content">
-                <section className="wrapper">
+                <section className="">
                     <div className="reg-w3">
                         <div className="refollowup-card">
                             <div className="refollowup-header">

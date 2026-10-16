@@ -146,12 +146,42 @@ const updateEmployee = async (employeeId, formData) => {
     return response.json();
 };
 
+const processEmployeeResignation = async (employeeId, resignationData) => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees/${encodeURIComponent(employeeId)}/resignation`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(resignationData),
+        }
+    );
+
+    if (!response.ok) {
+        let message = `Request failed (${response.status}).`;
+
+        try {
+            const data = await response.json();
+            message = data.message || data.error || message;
+        } catch {
+            // The response did not contain JSON.
+        }
+
+        throw new Error(message);
+    }
+
+    return response.json();
+};
+
 const employeesService = {
     createEmployee,
     getEmployees,
     getEmployeeById,
     uploadEmployeeDocument,
     getEmployeeDocuments,
-    updateEmployee
+    updateEmployee,
+    processEmployeeResignation
 };
 export default employeesService;
