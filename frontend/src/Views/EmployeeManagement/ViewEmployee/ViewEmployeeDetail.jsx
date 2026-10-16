@@ -269,7 +269,13 @@ const ViewEmployeeDetail = () => {
                             >
                                 ↑&nbsp; Upload Document
                             </button>
-                            <button type="button" className="btn-update">
+                            <button
+                                type="button"
+                                className="btn-update"
+                                onClick={() =>
+                                    navigate(`/employee/${employeeId}/update-employee`)
+                                }
+                            >
                                 ✎&nbsp; Update Profile
                             </button>
                             <button type="button" className="btn-resignation">

@@ -121,11 +121,37 @@ const getEmployeeDocuments = async (employeeId) => {
     return response.json();
 };
 
+
+const updateEmployee = async (employeeId, formData) => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees/${encodeURIComponent(employeeId)}`,
+        {
+            method: "PUT",
+            credentials: "include",
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        let message = `Request failed (${response.status}).`;
+
+        try {
+            const data = await response.json();
+            message = data.message || data.error || message;
+        } catch {
+            // The response did not contain JSON.
+        }
+        throw new Error(message);
+    }
+    return response.json();
+};
+
 const employeesService = {
     createEmployee,
     getEmployees,
     getEmployeeById,
     uploadEmployeeDocument,
-    getEmployeeDocuments
+    getEmployeeDocuments,
+    updateEmployee
 };
 export default employeesService;
