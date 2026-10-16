@@ -1,7 +1,6 @@
 package com.shulventures.consultancymanagement.controller;
 
-import com.shulventures.consultancymanagement.dto.employee.CreateEmployeeRequest;
-import com.shulventures.consultancymanagement.dto.employee.EmployeeDetailResponse;
+import com.shulventures.consultancymanagement.dto.employee.*;
 import com.shulventures.consultancymanagement.entity.Employee;
 import com.shulventures.consultancymanagement.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-import com.shulventures.consultancymanagement.dto.employee.EmployeeListItemResponse;
 import java.util.List;
 
 import org.springframework.core.io.FileSystemResource;
@@ -26,7 +24,6 @@ import com.shulventures.consultancymanagement.entity.EmployeeDocument;
 import com.shulventures.consultancymanagement.service.EmployeeDocumentService;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.shulventures.consultancymanagement.dto.employee.EmployeeDocumentResponse;
 import org.springframework.http.HttpHeaders;
 
 @RestController
@@ -196,5 +193,27 @@ public class EmployeeController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+
+    @PutMapping("/{employeeId}/resignation")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
+    )
+    public ResponseEntity<Map<String, Object>> processEmployeeResignation(
+            @PathVariable Long employeeId,
+            @RequestBody EmployeeResignationRequest request,
+            Authentication authentication
+    ) {
+        Employee employee = employeeService.processResignation(
+                employeeId,
+                request,
+                authentication
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "id", employee.getId(),
+                "message", "Employee resignation processed successfully."
+        ));
     }
 }

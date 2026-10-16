@@ -1,14 +1,10 @@
+Update employee is working perfectlly now next is Resignation button . In 
+EmployeeResignation.jsx we will specify the Details regarding to the Resignation.
+senior code file process_resignation.php ---> "<?php
 
-okey now photo is visible perfecly now lets implement upload Document for employee.
-Seniors code file upload-document .php ---> "
-<?php
-
+// Start session for login check
 session_start();
-ob_start();
-
-/* =========================
-   LOGIN CHECK
-========================= */
+ob_start(); // Start output buffering
 
 if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
@@ -16,259 +12,484 @@ if (!isset($_SESSION['email'])) {
     exit();
 }
 
-
-/* =========================
-   LOGOUT
-========================= */
-
-if (isset($_GET['logout'])) {
-    session_destroy();
-    unset($_SESSION['email']);
-    header('location:login.php');
-    exit();
-}
-
-
-/* =========================
-   EMPLOYEE ID
-========================= */
-
-if (isset($_GET['employee_id'])) {
-    $employee_id = $_GET['employee_id'];
-} else {
-    die("No employee ID provided.");
-}
-
-/* =========================
-   DATABASE
-========================= */
-
 require_once 'db_connect.php';
 include 'header.php';
 
+// Fetch employee details if employee_id is set
+if (isset($_GET['employee_id'])) {
 
-/* =========================
-   DOCUMENT UPLOAD
-========================= */
+    $employee_id = $_GET['employee_id'];
 
+    // Fetch employee details from the database
+    $sql = "SELECT * FROM tbl_employee WHERE Id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $employee_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $employee = $result->fetch_assoc();
+
+    // Check if employee exists
+    if (!$employee) {
+        $_SESSION['msg'] = "Employee not found.";
+        header('Location: view-employee.php');
+        exit();
+    }
+}
+
+
+// Process resignation form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-    /* =========================
-       DOCUMENT DETAILS
-    ========================= */
-
-    $document_type =
-        $_POST['document_type'];
-
-    $upload_dir =
-        'uploads/' . $employee_id . '/';
-
-
-    /* =========================
-       CREATE DIRECTORY
-    ========================= */
-
-    if (!file_exists($upload_dir)) {
-        mkdir(
-            $upload_dir,
-            0777,
-            true
-        );
-    }
+    // Retrieve form data
+    $employee_id = $_POST['employee_id'];
+    $resignation_type = $_POST['resignation_type'];
+    $resignation_date = $_POST['resignation_date'];
+    $notice_period = isset($_POST['notice_period']) ? $_POST['notice_period'] : NULL;
+    $release_date = $_POST['release_date'];
+    $reason_for_leaving = $_POST['reason_for_leaving'];
+    $abscond_date = isset($_POST['abscond_date']) ? $_POST['abscond_date'] : NULL;
 
 
-    /* =========================
-       FILE DETAILS
-    ========================= */
+    // Prepare SQL statement to update the employee's resignation data
+    if ($resignation_type === 'With Notice') {
 
-    $document_name =
-        $_FILES['document']['name'];
+        $sql = "UPDATE tbl_employee 
+                SET resignation_type = ?, 
+                    resignation_date = ?, 
+                    notice_period = ?, 
+                    release_date = ?, 
+                    reason_for_leaving = ? 
+                WHERE Id = ?";
 
-    $document_tmp =
-        $_FILES['document']['tmp_name'];
+        $stmt = $conn->prepare($sql);
 
-    $document_path =
-        $upload_dir . $document_name;
-
-
-    /* =========================
-       PDF VALIDATION
-    ========================= */
-
-    $file_ext =
-        pathinfo(
-            $document_name,
-            PATHINFO_EXTENSION
+        $stmt->bind_param(
+            "sssssi",
+            $resignation_type,
+            $resignation_date,
+            $notice_period,
+            $release_date,
+            $reason_for_leaving,
+            $employee_id
         );
 
-    if ($file_ext != 'pdf') {
-        echo "
-            <div class='alert alert-danger'>
-                Error: Only PDF files are allowed!
-            </div>
-        ";
+    } elseif ($resignation_type === 'Abscond') {
+
+        $sql = "UPDATE tbl_employee 
+                SET resignation_type = ?, 
+                    resignation_date = ?, 
+                    abscond_date = ?, 
+                    release_date = ?, 
+                    reason_for_leaving = ? 
+                WHERE Id = ?";
+
+        $stmt = $conn->prepare($sql);
+
+        $stmt->bind_param(
+            "sssssi",
+            $resignation_type,
+            $resignation_date,
+            $abscond_date,
+            $release_date,
+            $reason_for_leaving,
+            $employee_id
+        );
 
     } else {
 
+        $sql = "UPDATE tbl_employee 
+                SET resignation_type = ?, 
+                    resignation_date = ?, 
+                    release_date = ?, 
+                    reason_for_leaving = ? 
+                WHERE Id = ?";
 
-        /* =========================
-           MOVE FILE
-        ========================= */
+        $stmt = $conn->prepare($sql);
 
-        if (
-            move_uploaded_file(
-                $document_tmp,
-                $document_path
-            )
-        ) {
-
-            /* =========================
-               DATABASE INSERT
-            ========================= */
-
-            $sql = "
-                INSERT INTO employee_documents
-                (
-                    employee_id,
-                    document_type,
-                    document_name,
-                    file_path
-                )
-                VALUES
-                (
-                    '$employee_id',
-                    '$document_type',
-                    '$document_name',
-                    '$document_path'
-                )
-            ";
-
-            if ($conn->query($sql) === TRUE) {
-                echo "
-                    <div class='alert alert-success'>
-                        Document uploaded successfully.
-                    </div>
-                ";
-            } else {
-                echo "
-                    <div class='alert alert-danger'>
-                        Error: " .
-                        htmlspecialchars(
-                            $conn->error
-                        ) .
-                    "
-                    </div>
-                ";
-            }
-        } else {
-            echo "
-                <div class='alert alert-danger'>
-                    Error uploading document.
-                </div>
-            ";
-        }
+        $stmt->bind_param(
+            "ssssi",
+            $resignation_type,
+            $resignation_date,
+            $release_date,
+            $reason_for_leaving,
+            $employee_id
+        );
     }
+
+
+    // Execute the query and check for success
+    if ($stmt->execute()) {
+
+        $_SESSION['msg'] = "Employee's resignation has been processed successfully.";
+
+    } else {
+
+        $_SESSION['msg'] = "There was an error processing the resignation.";
+    }
+
+
+    // Redirect to the employee list page
+    header('Location: view-employee.php');
+    exit();
 }
-$conn->close();
+
 ?>
 
-<section id="main-content">
-    <section class="wrapper">
-        <div class="reg-w3">
-            <div class="refollowup-card">
 
-                <div class="refollowup-header">
-                    <div class="refollowup-title">
-                        <span class="phone-icon">📄</span>
-                        <div>
-                            <h2>
-                                Upload Employee Document
-                            </h2>
-                            <p>
-                                Upload PDF document for
-                                Employee ID:
-                                <?= htmlspecialchars($employee_id); ?>
-                            </p>
-                        </div>
-                    </div>
+<body>
+
+<section id="main-content">
+<section class="wrapper">
+
+<div class="reg-w3">
+
+    <div class="refollowup-card">
+
+        <!-- Header -->
+        <div class="refollowup-header">
+
+            <div class="refollowup-title">
+
+                <span class="phone-icon">📞</span>
+
+                <div>
+                    <h2>Process Employee Resignation</h2>
+                    <p>Update employee resignation details</p>
                 </div>
 
-                <form
-                    action="upload_document.php?employee_id=<?= urlencode($employee_id); ?>"
-                    method="POST"
-                    enctype="multipart/form-data"
-                    class="refollowup-form"
-                >
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="document_type">
-                                Document Type <span>*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="document_type"
-                                id="document_type"
-                                placeholder="Enter document type"
-                                required
-                            >
-                        </div>
-                    </div>
-
-                    <!-- DOCUMENT -->
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="document">
-                                Document (PDF only)
-                                <span>*</span>
-                            </label>
-                            <input
-                                type="file"
-                                name="document"
-                                id="document"
-                                accept=".pdf,application/pdf"
-                                required
-                            >
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <button
-                                type="submit"
-                                class="submit-btn">
-                                <span>📄</span>
-                                Upload Document
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
+
         </div>
-    </section>
+
+
+        <!-- Resignation Form -->
+        <form action="" method="POST" class="refollowup-form">
+
+            <input
+                type="hidden"
+                name="employee_id"
+                value="<?= $employee_id; ?>"
+            >
+
+
+            <!-- Resignation Type -->
+            <div class="form-row">
+
+                <div class="form-group full-width">
+
+                    <label for="resignation_type">
+                        Resignation Type
+                    </label>
+
+                    <select
+                        name="resignation_type"
+                        id="resignation_type"
+                    >
+
+                        <option
+                            value="With Notice"
+                            <?= $employee['resignation_type'] === 'With Notice' ? 'selected' : ''; ?>
+                        >
+                            With Notice
+                        </option>
+
+                        <option
+                            value="Without Notice"
+                            <?= $employee['resignation_type'] === 'Without Notice' ? 'selected' : ''; ?>
+                        >
+                            Without Notice
+                        </option>
+
+                        <option
+                            value="Abscond"
+                            <?= $employee['resignation_type'] === 'Abscond' ? 'selected' : ''; ?>
+                        >
+                            Abscond
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- Resignation Date -->
+            <div
+                class="form-row"
+                id="resignation_date_group"
+            >
+
+                <div class="form-group full-width">
+
+                    <label for="resignation_date">
+                        Resignation Date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="resignation_date"
+                        id="resignation_date"
+                        value="<?= $employee['resignation_date']; ?>"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Notice Period -->
+            <div
+                class="form-row"
+                id="notice_period_group"
+            >
+
+                <div class="form-group full-width">
+
+                    <label for="notice_period">
+                        Notice Period (Last Working Day)
+                    </label>
+
+                    <input
+                        type="date"
+                        name="notice_period"
+                        id="notice_period"
+                        value="<?= $employee['notice_period']; ?>"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Release Date -->
+            <div
+                class="form-row"
+                id="release_date_group"
+            >
+
+                <div class="form-group full-width">
+
+                    <label for="release_date">
+                        Release Date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="release_date"
+                        id="release_date"
+                        value="<?= $employee['release_date']; ?>"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Abscond Date -->
+            <div
+                class="form-row"
+                id="abscond_date_group"
+            >
+
+                <div class="form-group full-width">
+
+                    <label for="abscond_date">
+                        Abscond Date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="abscond_date"
+                        id="abscond_date"
+                        value="<?= $employee['abscond_date']; ?>"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Reason For Leaving -->
+            <div
+                class="form-row"
+                id="reason_for_leaving_group"
+            >
+
+                <div class="form-group full-width">
+
+                    <label for="reason_for_leaving">
+                        Reason for Leaving
+                    </label>
+
+                    <textarea
+                        name="reason_for_leaving"
+                        id="reason_for_leaving"
+                        rows="4"
+                        required
+                    ><?= $employee['reason_for_leaving']; ?></textarea>
+
+                </div>
+
+            </div>
+
+
+            <!-- Submit Button -->
+            <div class="form-row">
+
+                <div class="form-group full-width">
+
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                    >
+               📤  Submit Resignation
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
 </section>
+</section>
+
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const resignationType =
+        document.querySelector('select[name="resignation_type"]');
+
+    const resignationDateGroup =
+        document.getElementById('resignation_date_group');
+
+    const noticePeriodGroup =
+        document.getElementById('notice_period_group');
+
+    const releaseDateGroup =
+        document.getElementById('release_date_group');
+
+    const abscondDateGroup =
+        document.getElementById('abscond_date_group');
+
+    const reasonForLeavingGroup =
+        document.getElementById('reason_for_leaving_group');
+
+
+    const noticePeriodInput =
+        document.getElementById('notice_period');
+
+    const releaseDateInput =
+        document.getElementById('release_date');
+
+
+    function updateResignationFields() {
+
+        // ABScond
+        if (resignationType.value === 'Abscond') {
+
+            resignationDateGroup.style.display = 'none';
+
+            noticePeriodGroup.style.display = 'none';
+
+            releaseDateGroup.style.display = 'none';
+
+            abscondDateGroup.style.display = 'block';
+
+            reasonForLeavingGroup.style.display = 'block';
+
+
+            noticePeriodInput.disabled = true;
+
+            releaseDateInput.disabled = true;
+
+        }
+
+
+        // WITHOUT NOTICE
+        else if (resignationType.value === 'Without Notice') {
+
+            resignationDateGroup.style.display = 'block';
+
+            noticePeriodGroup.style.display = 'none';
+
+            releaseDateGroup.style.display = 'block';
+
+            abscondDateGroup.style.display = 'none';
+
+            reasonForLeavingGroup.style.display = 'block';
+
+
+            noticePeriodInput.disabled = true;
+
+            releaseDateInput.disabled = false;
+
+        }
+
+
+        // WITH NOTICE
+        else {
+
+            resignationDateGroup.style.display = 'block';
+
+            noticePeriodGroup.style.display = 'block';
+
+            releaseDateGroup.style.display = 'block';
+
+            abscondDateGroup.style.display = 'none';
+
+            reasonForLeavingGroup.style.display = 'block';
+
+
+            noticePeriodInput.disabled = false;
+
+            releaseDateInput.disabled = false;
+
+        }
+
+    }
+
+
+    // Change event
+    resignationType.addEventListener(
+        'change',
+        updateResignationFields
+    );
+
+
+    // Initial state
+    updateResignationFields();
+
+});
+
+</script>
+
 
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
 <script src="js/jquery.slimscroll.js"></script>
 <script src="js/jquery.nicescroll.js"></script>
+
+<!--[if lte IE 8]>
+<script
+    language="javascript"
+    type="text/javascript"
+    src="js/flot-chart/excanvas.min.js">
+</script>
+<![endif]-->
 <script src="js/jquery.scrollTo.js"></script>
 <script src="js/search.js"></script>
 </body>
 </html>
 <?php
-ob_end_flush();
-?>
+ob_end_flush(); // End output buffering and send output to browser
+?>"
 
-now the upload document and View document is implemented now we can move for
-
-"
-database scema ---> "CREATE TABLE `employee_documents` (
-  `Id` bigint(20) UNSIGNED NOT NULL,
-  `employee_id` int(11) NOT NULL,
-  `document_type` varchar(255) NOT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `file_path` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;"
-
-now the document is added successfully we can show it in View document section in 
-viewEmployeeDetail.jsx.  

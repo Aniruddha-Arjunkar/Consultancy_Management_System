@@ -1,6 +1,7 @@
 package com.shulventures.consultancymanagement.service;
 
 import com.shulventures.consultancymanagement.dto.employee.CreateEmployeeRequest;
+import com.shulventures.consultancymanagement.dto.employee.EmployeeResignationRequest;
 import com.shulventures.consultancymanagement.entity.Employee;
 import com.shulventures.consultancymanagement.repository.EmployeeRepository;
 import com.shulventures.consultancymanagement.security.BranchPermissionService;
@@ -348,6 +349,90 @@ public class EmployeeService {
             employee.setPhoto(savePhoto(request.getPhoto()));
         }
 
+        return employeeRepository.save(employee);
+    }
+
+
+    public Employee processResignation(
+            Long employeeId,
+            EmployeeResignationRequest request,
+            Authentication authentication
+    ) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Employee not found."
+                ));
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employee.getBranch()
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot update employees from this branch."
+            );
+        }
+
+        String type = request.resignationType() == null
+                ? ""
+                : request.resignationType().trim();
+
+        String reason = request.reasonForLeaving() == null
+                ? ""
+                : request.reasonForLeaving().trim();
+
+        if (reason.isBlank()) {
+            throw new IllegalArgumentException("Reason for leaving is required.");
+        }
+
+        employee.setResignationType(type);
+        employee.setReasonForLeaving(reason);
+
+        switch (type) {
+            case "With Notice" -> {
+                if (request.resignationDate() == null
+                        || request.noticePeriod() == null
+                        || request.releaseDate() == null) {
+                    throw new IllegalArgumentException(
+                            "Resignation date, last working day, and release date are required."
+                    );
+                }
+
+                employee.setResignationDate(request.resignationDate());
+                employee.setNoticePeriod(request.noticePeriod());
+                employee.setReleaseDate(request.releaseDate());
+                employee.setAbscondDate(null);
+            }
+
+            case "Without Notice" -> {
+                if (request.resignationDate() == null
+                        || request.releaseDate() == null) {
+                    throw new IllegalArgumentException(
+                            "Resignation date and release date are required."
+                    );
+                }
+
+                employee.setResignationDate(request.resignationDate());
+                employee.setNoticePeriod(null);
+                employee.setReleaseDate(request.releaseDate());
+                employee.setAbscondDate(null);
+            }
+
+            case "Abscond" -> {
+                if (request.abscondDate() == null) {
+                    throw new IllegalArgumentException("Abscond date is required.");
+                }
+
+                employee.setResignationDate(null);
+                employee.setNoticePeriod(null);
+                employee.setReleaseDate(null);
+                employee.setAbscondDate(request.abscondDate());
+            }
+
+            default -> throw new IllegalArgumentException(
+                    "Select a valid resignation type."
+            );
+        }
         return employeeRepository.save(employee);
     }
 }
