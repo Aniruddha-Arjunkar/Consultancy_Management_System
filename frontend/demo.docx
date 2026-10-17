@@ -1,495 +1,370 @@
-Update employee is working perfectlly now next is Resignation button . In 
-EmployeeResignation.jsx we will specify the Details regarding to the Resignation.
-senior code file process_resignation.php ---> "<?php
-
-// Start session for login check
+okey now next step . 
+seniors code file generate_letter.php ------> "
+<?php
 session_start();
-ob_start(); // Start output buffering
 
+/* =========================
+   LOGIN CHECK
+========================= */
 if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
-    header('location:login.php');
-    exit();
+    header('Location: login.php');
+    exit;
 }
 
+/* =========================
+   LOGOUT
+========================= */
+if (isset($_GET['logout'])) {
+    session_destroy();
+    unset($_SESSION['email']);
+    header('Location: login.php');
+    exit;
+}
+
+/* =========================
+   DATABASE
+========================= */
 require_once 'db_connect.php';
 include 'header.php';
-
-// Fetch employee details if employee_id is set
-if (isset($_GET['employee_id'])) {
-
-    $employee_id = $_GET['employee_id'];
-
-    // Fetch employee details from the database
-    $sql = "SELECT * FROM tbl_employee WHERE Id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $employee_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $employee = $result->fetch_assoc();
-
-    // Check if employee exists
-    if (!$employee) {
-        $_SESSION['msg'] = "Employee not found.";
-        header('Location: view-employee.php');
-        exit();
-    }
-}
-
-
-// Process resignation form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-    // Retrieve form data
-    $employee_id = $_POST['employee_id'];
-    $resignation_type = $_POST['resignation_type'];
-    $resignation_date = $_POST['resignation_date'];
-    $notice_period = isset($_POST['notice_period']) ? $_POST['notice_period'] : NULL;
-    $release_date = $_POST['release_date'];
-    $reason_for_leaving = $_POST['reason_for_leaving'];
-    $abscond_date = isset($_POST['abscond_date']) ? $_POST['abscond_date'] : NULL;
-
-
-    // Prepare SQL statement to update the employee's resignation data
-    if ($resignation_type === 'With Notice') {
-
-        $sql = "UPDATE tbl_employee 
-                SET resignation_type = ?, 
-                    resignation_date = ?, 
-                    notice_period = ?, 
-                    release_date = ?, 
-                    reason_for_leaving = ? 
-                WHERE Id = ?";
-
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param(
-            "sssssi",
-            $resignation_type,
-            $resignation_date,
-            $notice_period,
-            $release_date,
-            $reason_for_leaving,
-            $employee_id
-        );
-
-    } elseif ($resignation_type === 'Abscond') {
-
-        $sql = "UPDATE tbl_employee 
-                SET resignation_type = ?, 
-                    resignation_date = ?, 
-                    abscond_date = ?, 
-                    release_date = ?, 
-                    reason_for_leaving = ? 
-                WHERE Id = ?";
-
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param(
-            "sssssi",
-            $resignation_type,
-            $resignation_date,
-            $abscond_date,
-            $release_date,
-            $reason_for_leaving,
-            $employee_id
-        );
-
-    } else {
-
-        $sql = "UPDATE tbl_employee 
-                SET resignation_type = ?, 
-                    resignation_date = ?, 
-                    release_date = ?, 
-                    reason_for_leaving = ? 
-                WHERE Id = ?";
-
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param(
-            "ssssi",
-            $resignation_type,
-            $resignation_date,
-            $release_date,
-            $reason_for_leaving,
-            $employee_id
-        );
-    }
-
-
-    // Execute the query and check for success
-    if ($stmt->execute()) {
-
-        $_SESSION['msg'] = "Employee's resignation has been processed successfully.";
-
-    } else {
-
-        $_SESSION['msg'] = "There was an error processing the resignation.";
-    }
-
-
-    // Redirect to the employee list page
-    header('Location: view-employee.php');
-    exit();
-}
-
 ?>
 
 
-<body>
+
+<!-- =========================================
+     MAIN CONTENT
+========================================= -->
 
 <section id="main-content">
-<section class="wrapper">
 
-<div class="reg-w3">
+    <section class="wrapper">
 
-    <div class="refollowup-card">
+        <div class="reg-w3">
 
-        <!-- Header -->
-        <div class="refollowup-header">
+            <div class="refollowup-card">
 
-            <div class="refollowup-title">
 
-                <span class="phone-icon">📞</span>
+                <!-- =================================
+                     HEADER
+                ================================== -->
 
-                <div>
-                    <h2>Process Employee Resignation</h2>
-                    <p>Update employee resignation details</p>
+                <div class="refollowup-header">
+
+                    <div class="refollowup-title">
+
+                        <span class="phone-icon">📄</span>
+
+                        <div>
+
+                            <h2>Generate Employee Letter</h2>
+
+                            <p>
+                                Search employee and generate required letter
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     FORM AREA
+                ================================== -->
+
+                <div class="refollowup-form">
+
+
+                    <!-- =================================
+                         SEARCH FORM
+                    ================================== -->
+
+                    <form method="post" action="">
+
+
+                        <div class="form-row">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Search Employee <span>*</span>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="keyword"
+                                    placeholder="Search employee by name"
+                                    value="<?= htmlspecialchars($_POST['keyword'] ?? '') ?>"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group"
+                                 style="flex:0 0 150px; display:flex; align-items:flex-end;">
+
+                                <button
+                                    type="submit"
+                                    class="search-btn"
+                                >
+
+                                    <i class="fa fa-search"></i>
+                                    Search
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </form>
+
+
+                    <?php
+
+                    /* =================================
+                       SEARCH EMPLOYEE
+                    ================================= */
+
+                    if (isset($_POST['keyword'])) {
+
+                        $key = mysqli_real_escape_string(
+                            $conn,
+                            trim($_POST['keyword'])
+                        );
+
+                        $sql = "SELECT Id, cust_name, designation
+                                FROM tbl_employee
+                                WHERE cust_name LIKE '%$key%'";
+
+                        $result = mysqli_query($conn, $sql);
+
+
+                        if ($result && mysqli_num_rows($result) > 0) {
+
+                    ?>
+
+                            <!-- =================================
+                                 EMPLOYEE + LETTER FORM
+                            ================================= -->
+
+                            <form
+                                method="post"
+                                action="generate_letter_pdf.php"
+                                target="_blank"
+                                class="refollowup-form"
+                                style="padding:0; margin-top:20px;"
+                            >
+
+
+                                <!-- =================================
+                                     EMPLOYEE TABLE
+                                ================================= -->
+
+                                <div class="form-group">
+
+                                    <label>
+                                        Select Employee <span>*</span>
+                                    </label>
+
+
+                                    <div class="employee-table-wrapper">
+
+                                        <table class="employee-table">
+
+                                            <thead>
+
+                                                <tr>
+
+                                                    <th class="select-column">
+                                                        Select
+                                                    </th>
+
+                                                    <th>
+                                                        Employee Name
+                                                    </th>
+
+                                                    <th>
+                                                        Designation
+                                                    </th>
+
+                                                </tr>
+
+                                            </thead>
+
+
+                                            <tbody>
+
+                                            <?php
+
+                                            while (
+                                                $emp =
+                                                mysqli_fetch_assoc($result)
+                                            ) {
+
+                                            ?>
+
+                                                <tr>
+
+                                                    <td class="select-column">
+
+                                                        <input
+                                                            type="radio"
+                                                            name="employee_id"
+                                                            value="<?= htmlspecialchars($emp['Id']) ?>"
+                                                            required
+                                                        >
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        <?= htmlspecialchars(
+                                                            $emp['cust_name']
+                                                        ) ?>
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        <?= htmlspecialchars(
+                                                            $emp['designation']
+                                                        ) ?>
+
+                                                    </td>
+
+                                                </tr>
+
+                                            <?php
+
+                                            }
+
+                                            ?>
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- =================================
+                                     LETTER TYPE
+                                ================================= -->
+
+                                <div class="letter-box">
+
+                                    <div class="form-group"
+                                         style="margin-bottom:0;">
+
+                                        <label>
+                                            Select Letter Type <span>*</span>
+                                        </label>
+
+
+                                        <select
+                                            name="letter_type"
+                                            required
+                                        >
+
+                                            <option value="">
+                                                -- Select Letter --
+                                            </option>
+
+                                            <option value="offer">
+                                                Offer Letter
+                                            </option>
+                                            <option value="appointment">
+                                                Appointment Letter
+                                            </option>
+                                            <option value="relieving">
+                                                Relieving Letter
+                                            </option>
+                                            <option value="internship">
+                                                Internship Letter
+                                            </option>
+                                            <option value="experience">
+                                                Experience Letter
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+                                <!-- =================================
+                                     GENERATE BUTTON
+                                ================================= -->
+
+                                <button
+                                    type="submit"
+                                    class="submit-btn"
+                                >
+
+                                    <i class="fa fa-file-pdf-o"></i>
+
+                                    &nbsp; Generate Letter
+
+                                </button>
+
+
+                            </form>
+
+
+                    <?php
+
+                        } else {
+
+                    ?>
+
+                            <div class="alert alert-warning text-center">
+
+                                <i class="fa fa-exclamation-circle"></i>
+
+                                No employee found.
+
+                            </div>
+
+                    <?php
+
+                        }
+
+                    }
+
+                    ?>
+
+
                 </div>
 
             </div>
 
         </div>
 
-
-        <!-- Resignation Form -->
-        <form action="" method="POST" class="refollowup-form">
-
-            <input
-                type="hidden"
-                name="employee_id"
-                value="<?= $employee_id; ?>"
-            >
-
-
-            <!-- Resignation Type -->
-            <div class="form-row">
-
-                <div class="form-group full-width">
-
-                    <label for="resignation_type">
-                        Resignation Type
-                    </label>
-
-                    <select
-                        name="resignation_type"
-                        id="resignation_type"
-                    >
-
-                        <option
-                            value="With Notice"
-                            <?= $employee['resignation_type'] === 'With Notice' ? 'selected' : ''; ?>
-                        >
-                            With Notice
-                        </option>
-
-                        <option
-                            value="Without Notice"
-                            <?= $employee['resignation_type'] === 'Without Notice' ? 'selected' : ''; ?>
-                        >
-                            Without Notice
-                        </option>
-
-                        <option
-                            value="Abscond"
-                            <?= $employee['resignation_type'] === 'Abscond' ? 'selected' : ''; ?>
-                        >
-                            Abscond
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- Resignation Date -->
-            <div
-                class="form-row"
-                id="resignation_date_group"
-            >
-
-                <div class="form-group full-width">
-
-                    <label for="resignation_date">
-                        Resignation Date
-                    </label>
-
-                    <input
-                        type="date"
-                        name="resignation_date"
-                        id="resignation_date"
-                        value="<?= $employee['resignation_date']; ?>"
-                    >
-
-                </div>
-
-            </div>
-
-
-            <!-- Notice Period -->
-            <div
-                class="form-row"
-                id="notice_period_group"
-            >
-
-                <div class="form-group full-width">
-
-                    <label for="notice_period">
-                        Notice Period (Last Working Day)
-                    </label>
-
-                    <input
-                        type="date"
-                        name="notice_period"
-                        id="notice_period"
-                        value="<?= $employee['notice_period']; ?>"
-                    >
-
-                </div>
-
-            </div>
-
-
-            <!-- Release Date -->
-            <div
-                class="form-row"
-                id="release_date_group"
-            >
-
-                <div class="form-group full-width">
-
-                    <label for="release_date">
-                        Release Date
-                    </label>
-
-                    <input
-                        type="date"
-                        name="release_date"
-                        id="release_date"
-                        value="<?= $employee['release_date']; ?>"
-                    >
-
-                </div>
-
-            </div>
-
-
-            <!-- Abscond Date -->
-            <div
-                class="form-row"
-                id="abscond_date_group"
-            >
-
-                <div class="form-group full-width">
-
-                    <label for="abscond_date">
-                        Abscond Date
-                    </label>
-
-                    <input
-                        type="date"
-                        name="abscond_date"
-                        id="abscond_date"
-                        value="<?= $employee['abscond_date']; ?>"
-                    >
-
-                </div>
-
-            </div>
-
-
-            <!-- Reason For Leaving -->
-            <div
-                class="form-row"
-                id="reason_for_leaving_group"
-            >
-
-                <div class="form-group full-width">
-
-                    <label for="reason_for_leaving">
-                        Reason for Leaving
-                    </label>
-
-                    <textarea
-                        name="reason_for_leaving"
-                        id="reason_for_leaving"
-                        rows="4"
-                        required
-                    ><?= $employee['reason_for_leaving']; ?></textarea>
-
-                </div>
-
-            </div>
-
-
-            <!-- Submit Button -->
-            <div class="form-row">
-
-                <div class="form-group full-width">
-
-                    <button
-                        type="submit"
-                        class="submit-btn"
-                    >
-               📤  Submit Resignation
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
+    </section>
 
 </section>
-</section>
 
 
-<script>
+<!-- =========================================
+     JAVASCRIPT
+========================================= -->
 
-document.addEventListener('DOMContentLoaded', function () {
-
-    const resignationType =
-        document.querySelector('select[name="resignation_type"]');
-
-    const resignationDateGroup =
-        document.getElementById('resignation_date_group');
-
-    const noticePeriodGroup =
-        document.getElementById('notice_period_group');
-
-    const releaseDateGroup =
-        document.getElementById('release_date_group');
-
-    const abscondDateGroup =
-        document.getElementById('abscond_date_group');
-
-    const reasonForLeavingGroup =
-        document.getElementById('reason_for_leaving_group');
-
-
-    const noticePeriodInput =
-        document.getElementById('notice_period');
-
-    const releaseDateInput =
-        document.getElementById('release_date');
-
-
-    function updateResignationFields() {
-
-        // ABScond
-        if (resignationType.value === 'Abscond') {
-
-            resignationDateGroup.style.display = 'none';
-
-            noticePeriodGroup.style.display = 'none';
-
-            releaseDateGroup.style.display = 'none';
-
-            abscondDateGroup.style.display = 'block';
-
-            reasonForLeavingGroup.style.display = 'block';
-
-
-            noticePeriodInput.disabled = true;
-
-            releaseDateInput.disabled = true;
-
-        }
-
-
-        // WITHOUT NOTICE
-        else if (resignationType.value === 'Without Notice') {
-
-            resignationDateGroup.style.display = 'block';
-
-            noticePeriodGroup.style.display = 'none';
-
-            releaseDateGroup.style.display = 'block';
-
-            abscondDateGroup.style.display = 'none';
-
-            reasonForLeavingGroup.style.display = 'block';
-
-
-            noticePeriodInput.disabled = true;
-
-            releaseDateInput.disabled = false;
-
-        }
-
-
-        // WITH NOTICE
-        else {
-
-            resignationDateGroup.style.display = 'block';
-
-            noticePeriodGroup.style.display = 'block';
-
-            releaseDateGroup.style.display = 'block';
-
-            abscondDateGroup.style.display = 'none';
-
-            reasonForLeavingGroup.style.display = 'block';
-
-
-            noticePeriodInput.disabled = false;
-
-            releaseDateInput.disabled = false;
-
-        }
-
-    }
-
-
-    // Change event
-    resignationType.addEventListener(
-        'change',
-        updateResignationFields
-    );
-
-
-    // Initial state
-    updateResignationFields();
-
-});
-
-</script>
-
-
+<script src="js/jquery.js"></script>
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
 <script src="js/jquery.slimscroll.js"></script>
 <script src="js/jquery.nicescroll.js"></script>
-
-<!--[if lte IE 8]>
-<script
-    language="javascript"
-    type="text/javascript"
-    src="js/flot-chart/excanvas.min.js">
-</script>
-<![endif]-->
 <script src="js/jquery.scrollTo.js"></script>
 <script src="js/search.js"></script>
 </body>
 </html>
-<?php
-ob_end_flush(); // End output buffering and send output to browser
-?>"
 
+<?php
+mysqli_close($conn);
+?>"

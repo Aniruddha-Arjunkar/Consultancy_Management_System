@@ -26,6 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.http.HttpHeaders;
 
+import com.shulventures.consultancymanagement.service.EmployeeLetterService;
+
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
@@ -33,6 +35,7 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
     private final EmployeeDocumentService employeeDocumentService;
+    private final EmployeeLetterService employeeLetterService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(
@@ -64,6 +67,47 @@ public class EmployeeController {
             Authentication authentication
     ) {
         return employeeService.getEmployeesForUser(authentication, status);
+    }
+
+    @GetMapping("/letters/options")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'GENERATE_LETTER')"
+    )
+    public List<EmployeeListItemResponse> getEmployeesForLetter(Authentication authentication) {
+        return employeeService.getEmployeesForUser(authentication, "all");
+    }
+
+    @GetMapping(
+            value = "/{employeeId}/letter",
+            produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'GENERATE_LETTER')"
+    )
+    public ResponseEntity<byte[]> generateEmployeeLetter(
+            @PathVariable Long employeeId,
+            @RequestParam("type") String letterType,
+            Authentication authentication
+    ) {
+        byte[] pdf = employeeLetterService.generateLetterPdf(
+                employeeId,
+                letterType,
+                authentication
+        );
+
+        String safeType = letterType.trim()
+                .toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^a-z0-9_-]", "");
+
+        String filename = safeType + "_letter_" + employeeId + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + filename + "\""
+                )
+                .body(pdf);
     }
 
 
