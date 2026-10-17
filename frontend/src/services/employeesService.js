@@ -175,6 +175,56 @@ const processEmployeeResignation = async (employeeId, resignationData) => {
     return response.json();
 };
 
+
+const getEmployeesForLetter = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees/letters/options`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        let message = `Request failed (${response.status}).`;
+
+        try {
+            const data = await response.json();
+            message = data.message || data.detail || data.error || message;
+        } catch {
+            // The response did not contain JSON.
+        }
+
+        throw new Error(message);
+    }
+
+    return response.json();
+};
+
+const generateEmployeeLetter = async (employeeId, letterType) => {
+    const response = await fetch(
+        `${API_BASE_URL}/employees/${encodeURIComponent(employeeId)}/letter?type=${encodeURIComponent(letterType)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        let message = `Request failed (${response.status}).`;
+
+        try {
+            const data = await response.json();
+            message = data.message || data.detail || data.error || message;
+        } catch {
+            // The response did not contain JSON.
+        }
+        throw new Error(message);
+    }
+    
+    return response.blob();
+};
+
 const employeesService = {
     createEmployee,
     getEmployees,
@@ -182,6 +232,8 @@ const employeesService = {
     uploadEmployeeDocument,
     getEmployeeDocuments,
     updateEmployee,
-    processEmployeeResignation
+    processEmployeeResignation,
+    generateEmployeeLetter,
+    getEmployeesForLetter    
 };
 export default employeesService;
