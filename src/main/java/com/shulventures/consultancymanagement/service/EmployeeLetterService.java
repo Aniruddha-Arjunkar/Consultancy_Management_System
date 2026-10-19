@@ -130,7 +130,7 @@ public class EmployeeLetterService {
                 PageSize.A4,
                 42,
                 42,
-                150,
+                70,
                 50
         );
 
@@ -140,11 +140,11 @@ public class EmployeeLetterService {
             byte[] letterhead = loadLetterhead();
 
             PdfWriter writer = PdfWriter.getInstance(document, output);
-            PdfTemplate totalPages =
-                    writer.getDirectContent().createTemplate(40, 12);
+            document.open();
+            PdfTemplate totalPages = writer.getDirectContent().createTemplate(40, 12);
             writer.setPageEvent(new LetterheadFooter(letterhead, totalPages));
 
-            document.open();
+//            document.open();
 
             Font normalFont = new Font(Font.HELVETICA, 11, Font.NORMAL);
             Font boldFont = new Font(Font.HELVETICA, 11, Font.BOLD);
@@ -300,6 +300,7 @@ public class EmployeeLetterService {
             }
 
 //          Paragraph paragraph = new Paragraph(line, font);
+
             Font lineFont = line.matches("^\\d+\\. .+")
                     ? new Font(Font.HELVETICA, 11, Font.BOLD | Font.UNDERLINE)
                     : font;
@@ -335,11 +336,17 @@ public class EmployeeLetterService {
         public void onEndPage(PdfWriter writer, Document document) {
             try {
                 Image image = Image.getInstance(letterhead);
-                image.scaleToFit(PageSize.A4.getWidth(), 112);
-                image.setAbsolutePosition(
-                        0,
-                        PageSize.A4.getHeight() - image.getScaledHeight()
+//                image.scaleToFit(PageSize.A4.getWidth(), 112);
+//                image.setAbsolutePosition(
+//                        0,
+//                        PageSize.A4.getHeight() - image.getScaledHeight()
+//                );
+//                writer.getDirectContentUnder().addImage(image);
+                image.scaleAbsolute(
+                        PageSize.A4.getWidth(),
+                        PageSize.A4.getHeight()
                 );
+                image.setAbsolutePosition(0, 0);
                 writer.getDirectContentUnder().addImage(image);
 
                 PdfContentByte canvas = writer.getDirectContent();
