@@ -5,7 +5,6 @@ import employeesService from "../../../services/employeesService";
 const GenerateLetter = () => {
     const [employees, setEmployees] = useState([]);
     const [employeesLoading, setEmployeesLoading] = useState(true);
-
     const [keyword, setKeyword] = useState("");
     const [hasSearched, setHasSearched] = useState(false);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState("");

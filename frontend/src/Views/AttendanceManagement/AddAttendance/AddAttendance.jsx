@@ -11,9 +11,18 @@ const STATUSES = [
     { label: "Week Off", value: "WO" },
 ];
 
+const getTodayLocalDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
 const AddAttendance = () => {
     const [employees, setEmployees] = useState([]);
-    const [selectedDate, setSelectedDate] = useState("");
+    const [selectedDate, setSelectedDate] = useState(getTodayLocalDate);
     const [attendanceByEmployee, setAttendanceByEmployee] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -100,7 +109,6 @@ const AddAttendance = () => {
                                 border="1"
                                 cellSpacing="0"
                             >
-                                <thead>
                                     <tr>
                                         <td>Select Date (Optional)</td>
                                         <td colSpan="6">
@@ -125,9 +133,7 @@ const AddAttendance = () => {
                                             </th>
                                         ))}
                                     </tr>
-                                </thead>
 
-                                <tbody>
                                     {loading && (
                                         <tr>
                                             <td colSpan="7">
@@ -184,7 +190,6 @@ const AddAttendance = () => {
                                             </button>
                                         </th>
                                     </tr>
-                                </tbody>
                             </table>
                         </form>
                     </div>

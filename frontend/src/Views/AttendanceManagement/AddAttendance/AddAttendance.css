@@ -227,34 +227,27 @@
    SUBMIT BUTTON
 ========================================================= */
 
-#main-content input[name="addAttendanceBTN"] {
+#main-content button[name="addAttendanceBTN"] {
     border: none;
     outline: none;
-
     padding: 11px 24px;
-
     background: #6366f1;
     color: #ffffff;
-
     font-size: 14px;
     font-weight: 600;
-
     border-radius: 7px;
-
     cursor: pointer;
-
     box-shadow: 0 3px 8px rgba(99, 102, 241, 0.25);
-
     transition: all 0.2s ease;
 }
 
-#main-content input[name="addAttendanceBTN"]:hover {
+#main-content button[name="addAttendanceBTN"]:hover {
     background: #4f46e5;
     transform: translateY(-1px);
     box-shadow: 0 5px 12px rgba(99, 102, 241, 0.30);
 }
 
-#main-content input[name="addAttendanceBTN"]:active {
+#main-content button[name="addAttendanceBTN"]:active {
     transform: translateY(0);
 }
 

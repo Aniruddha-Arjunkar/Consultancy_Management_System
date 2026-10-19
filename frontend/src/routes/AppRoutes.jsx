@@ -36,6 +36,7 @@ import EmployeeResignation from "../Views/EmployeeManagement/ViewEmployee/Employ
 //============== Attendance Management ==================
 import AddAttendance from "./../Views/AttendanceManagement/AddAttendance/AddAttendance.jsx";
 import ViewAttendance from "./../Views/AttendanceManagement/ViewAttendance/ViewAttendance.jsx";
+import ViewEmployeeAttendance from "../Views/AttendanceManagement/ViewAttendance/ViewEmployeeAttendance.jsx";
 
 //============= Acounts Managements ===================
 import DuePayments from "./../Views/AccountsManagement/Payments/DuePayments/DuePayment.jsx";
@@ -218,6 +219,7 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="ATTENDANCE" page="VIEW" />}>
                         <Route path="attendance/view-attendance" element={<ViewAttendance />} />
+                        <Route path="attendance/view-employee-attendance/:employeeId" element={<ViewEmployeeAttendance />} />
                     </Route>
 
                     {/* Consultancy */}

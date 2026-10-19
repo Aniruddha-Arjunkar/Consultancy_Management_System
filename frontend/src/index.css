@@ -845,4 +845,958 @@ a {
 }
 
 /* ============================================================================================================ */
+/*                                 VIEW ATTENDANCE MODULE CSS                           */
 /* ============================================================================================================ */
+
+.attendance-page {
+    width: 100%;
+    padding: 25px 20px;
+    background: #f5f7fb;
+    min-height: calc(100vh - 70px);
+    box-sizing: border-box;
+}
+
+.attendance-card {
+    width: 100%;
+    background: #eef0f8;
+    border-radius: 18px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.attendance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 25px;
+}
+
+.attendance-header-left h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    color: #172b4d;
+}
+
+.attendance-subtitle {
+    margin-top: 8px;
+    font-size: 16px;
+    color: #718096;
+}
+
+.attendance-record-count {
+    background: #e02020;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 5px;
+}
+
+
+/* =========================================================
+   WHITE CONTENT BOX
+========================================================= */
+
+.attendance-content {
+    width: 100%;
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   MONTH SELECTOR
+========================================================= */
+
+.attendance-month-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.attendance-month-label {
+    font-size: 18px;
+    color: #172b4d;
+    font-weight: 500;
+}
+
+.attendance-month-form {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attendance-month-input {
+    width: 365px !important;
+    height: 50px;
+    padding: 10px 16px;
+    border: 1px solid #d9e0eb;
+    border-radius: 10px;
+    background: #fff;
+    color: #172b4d;
+    font-size: 15px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.attendance-month-input:focus {
+    border-color: #2457d6;
+    box-shadow: 0 0 0 2px rgba(36, 87, 214, 0.08);
+}
+
+
+/* =========================================================
+   MONTH VIEW BUTTON
+========================================================= */
+
+.attendance-month-form button {
+    display: inline-block !important;
+    height: 50px;
+    padding: 0 25px;
+    margin: 0;
+    border: none;
+    border-radius: 10px;
+    background: #1557d6;
+    color: #fff !important;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 50px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.attendance-month-form button:hover {
+    background: #0d43ac;
+    color: #fff !important;
+}
+
+
+/* =========================================================
+   MONTH TITLE
+========================================================= */
+
+.attendance-month-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #172b4d;
+    margin: 5px 0 18px;
+}
+
+.attendance-month-title span {
+    color: #ef1717;
+}
+
+
+/* =========================================================
+   LEGEND
+========================================================= */
+
+.attendance-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    border: 1px solid #dce1e8;
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 14px;
+    color: #253858;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.attendance-legend-title {
+    font-weight: 700;
+    margin-right: 3px;
+}
+
+.legend-box {
+    min-width: 30px;
+    height: 32px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   LEGEND COLORS
+========================================================= */
+
+.legend-present {
+    background: green;
+}
+
+.legend-absent {
+    background: red;
+}
+
+.legend-leave {
+    background: orange;
+}
+
+.legend-halfday {
+    background: skyblue;
+}
+
+.legend-holiday {
+    background: purple;
+}
+
+.legend-weekoff {
+    background: BlueViolet;
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+   NO SCROLL
+========================================================= */
+
+.attendance-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden !important;
+    border: 1px solid #d5dce7;
+    border-radius: 4px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   ATTENDANCE TABLE
+   FIXED FULL WIDTH
+========================================================= */
+
+.attendance-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: fixed !important;
+    margin: 0 !important;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   TABLE CELLS
+========================================================= */
+
+.attendance-table th,
+.attendance-table td {
+    border: 1px solid #d5dce7;
+    text-align: center;
+    vertical-align: middle;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 0;
+    word-break: normal;
+}
+
+
+/* =========================================================
+   NO COLUMN
+========================================================= */
+
+.attendance-table th:first-child,
+.attendance-table td:first-child {
+    width: 42px;
+    min-width: 42px;
+    max-width: 42px;
+}
+
+
+/* =========================================================
+   NAME COLUMN
+========================================================= */
+
+.attendance-table th:nth-child(2),
+.attendance-table td:nth-child(2) {
+    width: 155px;
+    min-width: 155px;
+    max-width: 155px;
+}
+
+
+/* =========================================================
+   DAY COLUMNS
+   ALL REMAINING COLUMNS SHARE AVAILABLE WIDTH
+========================================================= */
+
+.attendance-table th:nth-child(n + 3),
+.attendance-table td:nth-child(n + 3) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 8px;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.attendance-table thead tr:first-child th {
+    background: #1f5bd5;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    height: 35px;
+    padding: 0;
+}
+
+.attendance-table thead tr:nth-child(2) th {
+    background: #1f5bd5;
+    color: #fff;
+    font-size: 7px;
+    font-weight: 700;
+    height: 25px;
+    padding: 0;
+}
+
+
+/* =========================================================
+   FIRST TWO HEADER CELLS
+========================================================= */
+
+.attendance-table thead tr:first-child th:first-child,
+.attendance-table thead tr:first-child th:nth-child(2) {
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   EMPLOYEE ROW
+========================================================= */
+
+.attendance-table tbody tr {
+    height: 62px;
+}
+
+
+/* =========================================================
+   NO CELL
+========================================================= */
+
+.attendance-table tbody td:first-child {
+    background: #f8fafc;
+    color: #253858;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   EMPLOYEE NAME CELL
+========================================================= */
+
+.attendance-table tbody td:nth-child(2) {
+    background: #fff;
+    padding: 5px;
+    color: #253858;
+    font-size: 11px;
+    font-weight: 700;
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   EMPLOYEE NAME
+========================================================= */
+
+.employee-name {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #253858;
+    line-height: 14px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   EMPLOYEE BRANCH
+========================================================= */
+
+.employee-branch {
+    display: block;
+    font-size: 8px;
+    font-weight: 400;
+    color: #718096;
+    margin-top: 2px;
+    line-height: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   EMPLOYEE VIEW BUTTON
+========================================================= */
+
+.employee-view-btn {
+    display: inline-block;
+    margin-top: 3px;
+    padding: 2px 7px;
+    border: none;
+    border-radius: 10px;
+    background: #1557d6;
+    color: #fff !important;
+    text-decoration: none !important;
+    font-size: 7px;
+    font-weight: 600;
+    line-height: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.employee-view-btn:hover {
+    background: #0d43ac;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+
+/* =========================================================
+   ATTENDANCE COLORS
+========================================================= */
+
+.attendance-present,
+.attendance-absent,
+.attendance-leave,
+.attendance-halfday,
+.attendance-holiday,
+.attendance-weekoff {
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 7px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 0 !important;
+}
+
+
+/* =========================================================
+   PRESENT
+========================================================= */
+
+.attendance-present {
+    background: green !important;
+}
+
+
+/* =========================================================
+   ABSENT
+========================================================= */
+
+.attendance-absent {
+    background: red !important;
+}
+
+
+/* =========================================================
+   LEAVE
+========================================================= */
+
+.attendance-leave {
+    background: orange !important;
+}
+
+
+/* =========================================================
+   HALF DAY
+========================================================= */
+
+.attendance-halfday {
+    background: skyblue !important;
+}
+
+
+/* =========================================================
+   HOLIDAY
+========================================================= */
+
+.attendance-holiday {
+    background: purple !important;
+}
+
+
+/* =========================================================
+   WEEK OFF
+========================================================= */
+
+.attendance-weekoff {
+    background: BlueViolet !important;
+}
+
+
+/* =========================================================
+   BLANK
+========================================================= */
+
+.attendance-blank {
+    background: #fff !important;
+    color: #333 !important;
+}
+
+
+/* =================== NO EMPLOYEE ================== */
+
+.no-attendance {
+    padding: 25px !important;
+    text-align: center;
+    color: #777;
+    font-size: 13px !important;
+    background: #fafafa;
+}
+
+
+/* ================== REMOVE ALL TABLE SCROLLBARS =============== */
+
+.attendance-table-wrapper::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+}
+
+.attendance-table-wrapper {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+
+/* ============= PREVENT PAGE HORIZONTAL SCROLL ===================== */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden !important;
+}
+
+
+/* =================  TABLET ====================== */
+
+@media (max-width: 992px) {
+
+    .attendance-page {
+        padding: 15px;
+    }
+
+    .attendance-card {
+        padding: 18px;
+        border-radius: 15px;
+    }
+
+    .attendance-content {
+        padding: 18px;
+    }
+
+    .attendance-header-left h1 {
+        font-size: 26px;
+    }
+
+    .attendance-subtitle {
+        font-size: 14px;
+    }
+
+    .attendance-month-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .attendance-month-form {
+        width: 100%;
+    }
+
+    .attendance-month-input {
+        width: 365px !important;
+        max-width: 100%;
+    }
+
+    .attendance-table th:first-child,
+    .attendance-table td:first-child {
+        width: 35px;
+        min-width: 35px;
+        max-width: 35px;
+    }
+
+    .attendance-table th:nth-child(2),
+    .attendance-table td:nth-child(2) {
+        width: 130px;
+        min-width: 130px;
+        max-width: 130px;
+    }
+
+    .attendance-table thead tr:first-child th {
+        font-size: 8px;
+        height: 32px;
+    }
+
+    .attendance-table thead tr:nth-child(2) th {
+        font-size: 6px;
+        height: 22px;
+    }
+
+    .attendance-table tbody tr {
+        height: 58px;
+    }
+
+    .employee-name {
+        font-size: 10px;
+        line-height: 13px;
+    }
+
+    .employee-branch {
+        font-size: 7px;
+    }
+
+    .employee-view-btn {
+        font-size: 6px;
+        padding: 1px 6px;
+        line-height: 12px;
+    }
+
+    .attendance-present,
+    .attendance-absent,
+    .attendance-leave,
+    .attendance-halfday,
+    .attendance-holiday,
+    .attendance-weekoff {
+        font-size: 6px;
+    }
+}
+
+
+/* =================== MOBILE ============== */
+
+@media (max-width: 600px) {
+
+    .attendance-page {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    .attendance-card {
+        width: 100%;
+        padding: 10px;
+        border-radius: 12px;
+        box-sizing: border-box;
+    }
+
+    .attendance-content {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        box-sizing: border-box;
+    }
+
+
+    /* HEADER */
+
+    .attendance-header {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .attendance-header-left h1 {
+        font-size: 20px;
+        line-height: 25px;
+    }
+
+    .attendance-subtitle {
+        margin-top: 4px;
+        font-size: 12px;
+    }
+
+    .attendance-record-count {
+        margin-top: 0;
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+
+    /* MONTH */
+
+    .attendance-month-label {
+        font-size: 14px;
+    }
+
+    .attendance-month-form {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .attendance-month-input {
+        width: calc(100% - 70px) !important;
+        height: 40px;
+        padding: 7px 9px;
+        font-size: 12px;
+    }
+
+    .attendance-month-form button {
+        width: 65px;
+        height: 40px;
+        line-height: 40px;
+        padding: 0;
+        font-size: 11px;
+    }
+
+
+    /* TITLE */
+
+    .attendance-month-title {
+        font-size: 16px;
+        margin: 5px 0 12px;
+    }
+
+
+    /* LEGEND */
+
+    .attendance-legend {
+        gap: 4px;
+        padding: 7px;
+        margin-bottom: 10px;
+        font-size: 10px;
+    }
+
+    .attendance-legend-title {
+        font-size: 10px;
+    }
+
+    .legend-box {
+        min-width: 22px;
+        height: 24px;
+        padding: 3px 5px;
+        border-radius: 4px;
+        font-size: 10px;
+    }
+
+
+    /* TABLE */
+
+    .attendance-table-wrapper {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden !important;
+    }
+
+    .attendance-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed !important;
+    }
+
+
+    /* NO COLUMN */
+
+    .attendance-table th:first-child,
+    .attendance-table td:first-child {
+        width: 25px;
+        min-width: 25px;
+        max-width: 25px;
+    }
+
+    /* NAME COLUMN */
+
+    .attendance-table th:nth-child(2),
+    .attendance-table td:nth-child(2) {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px;
+    }
+
+    /* DAY COLUMNS */
+
+    .attendance-table th:nth-child(n + 3),
+    .attendance-table td:nth-child(n + 3) {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        padding: 0;
+        font-size: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+
+    /* HEADER */
+
+    .attendance-table thead tr:first-child th {
+        font-size: 6px;
+        height: 25px;
+    }
+
+    .attendance-table thead tr:nth-child(2) th {
+        font-size: 4px;
+        height: 18px;
+    }
+
+
+    /* ROW */
+
+    .attendance-table tbody tr {
+        height: 52px;
+    }
+
+
+    /* NO */
+
+    .attendance-table tbody td:first-child {
+        font-size: 7px;
+    }
+
+
+    /* NAME */
+
+    .attendance-table tbody td:nth-child(2) {
+        padding: 3px;
+        font-size: 8px;
+    }
+
+    .employee-name {
+        font-size: 8px;
+        line-height: 10px;
+    }
+
+    .employee-branch {
+        font-size: 6px;
+        line-height: 8px;
+        margin-top: 1px;
+    }
+
+
+    /* VIEW BUTTON */
+
+    .employee-view-btn {
+        margin-top: 2px;
+        padding: 1px 4px;
+        border-radius: 7px;
+        font-size: 5px;
+        line-height: 10px;
+    }
+
+
+    /* ATTENDANCE */
+
+    .attendance-present,
+    .attendance-absent,
+    .attendance-leave,
+    .attendance-halfday,
+    .attendance-holiday,
+    .attendance-weekoff {
+        font-size: 5px;
+        font-weight: 700;
+        padding: 0 !important;
+    }
+}
+
+
+/* ================= VERY SMALL MOBILE ========== */
+
+@media (max-width: 400px) {
+
+    .attendance-page {
+        padding: 5px;
+    }
+
+    .attendance-card {
+        padding: 7px;
+    }
+
+    .attendance-content {
+        padding: 7px;
+    }
+
+    .attendance-table th:first-child,
+    .attendance-table td:first-child {
+        width: 22px;
+        min-width: 22px;
+        max-width: 22px;
+    }
+
+    .attendance-table th:nth-child(2),
+    .attendance-table td:nth-child(2) {
+        width: 85px;
+        min-width: 85px;
+        max-width: 85px;
+    }
+
+    .attendance-table thead tr:first-child th {
+        font-size: 5px;
+        height: 22px;
+    }
+
+    .attendance-table thead tr:nth-child(2) th {
+        font-size: 3.5px;
+        height: 16px;
+    }
+
+    .attendance-table tbody tr {
+        height: 48px;
+    }
+
+    .employee-name {
+        font-size: 7px;
+        line-height: 9px;
+    }
+
+    .employee-branch {
+        font-size: 5px;
+    }
+
+    .employee-view-btn {
+        font-size: 4.5px;
+        padding: 1px 3px;
+        line-height: 9px;
+    }
+
+    .attendance-present,
+    .attendance-absent,
+    .attendance-leave,
+    .attendance-halfday,
+    .attendance-holiday,
+    .attendance-weekoff {
+        font-size: 4px;
+    }
+}
