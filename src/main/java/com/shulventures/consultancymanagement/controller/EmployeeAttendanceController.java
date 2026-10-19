@@ -1,6 +1,8 @@
 package com.shulventures.consultancymanagement.controller;
 
 import com.shulventures.consultancymanagement.dto.attendance.AttendanceBatchRequest;
+import com.shulventures.consultancymanagement.dto.attendance.EmployeeMonthlyAttendanceResponse;
+import com.shulventures.consultancymanagement.dto.attendance.MonthlyAttendanceReportResponse;
 import com.shulventures.consultancymanagement.dto.employee.EmployeeListItemResponse;
 import com.shulventures.consultancymanagement.service.EmployeeAttendanceService;
 import com.shulventures.consultancymanagement.service.EmployeeService;
@@ -50,4 +52,37 @@ public class EmployeeAttendanceController {
                 "savedCount", savedCount
         );
     }
+
+
+    @GetMapping("/monthly")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'ATTENDANCE', 'VIEW')"
+    )
+    public MonthlyAttendanceReportResponse getMonthlyAttendance(
+            @RequestParam(required = false) String month,
+            Authentication authentication
+    ) {
+        return attendanceService.getMonthlyAttendance(
+                month,
+                authentication
+        );
+    }
+
+
+    @GetMapping("/employees/{employeeId}/monthly")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'ATTENDANCE', 'VIEW')"
+    )
+    public EmployeeMonthlyAttendanceResponse getEmployeeMonthlyAttendance(
+            @PathVariable Long employeeId,
+            @RequestParam(required = false) String month,
+            Authentication authentication
+    ) {
+        return attendanceService.getEmployeeMonthlyAttendance(
+                employeeId,
+                month,
+                authentication
+        );
+    }
+
 }
