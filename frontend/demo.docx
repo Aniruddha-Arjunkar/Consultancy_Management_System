@@ -1,370 +1,540 @@
-okey now next step . 
-seniors code file generate_letter.php ------> "
-<?php
-session_start();
+import API_BASE_URL from "./api";
 
-/* =========================
-   LOGIN CHECK
-========================= */
+const readError = async (response) => {
+    let message = `Request failed (${response.status}).`;
+
+    try {
+        const data = await response.json();
+        message = data.message || data.detail || data.error || message;
+    } catch {
+        // Response did not contain JSON.
+    }
+
+    return message;
+};
+
+const getEligibleEmployees = async () => {
+    const response = await fetch(`${API_BASE_URL}/salaries/employees`, {
+        method: "GET",
+        credentials: "include",
+    });
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+const previewSalary = async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/salaries/preview`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+    Now next is View Salary button ----> View Salary page 
+    senior code file view-salary.php --> "<?php
+session_start();
 if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
-    header('Location: login.php');
-    exit;
+    header('location:login.php');
+    exit();
 }
 
-/* =========================
-   LOGOUT
-========================= */
-if (isset($_GET['logout'])) {
-    session_destroy();
-    unset($_SESSION['email']);
-    header('Location: login.php');
-    exit;
-}
-
-/* =========================
-   DATABASE
-========================= */
 require_once 'db_connect.php';
 include 'header.php';
+
+$employee_id = $_GET['employee_id'];
+$employee_sql = "SELECT * FROM tbl_employee WHERE Id = '$employee_id'";
+$employee_result = mysqli_query($conn, $employee_sql);
+$employee = mysqli_fetch_assoc($employee_result);
+
+if (!$employee) {
+    echo "Employee not found.";
+    exit();
+}
+
+$salary_records = [];
+$salary_paid = null;
+$selected_month = null;
+
+if (isset($_POST['month'])) {
+    $selected_month = $_POST['month'];
+    $salary_sql = "SELECT * FROM tbl_salary WHERE employee_id = '$employee_id' AND month = '$selected_month' ORDER BY FIELD(payment_type, 'Advance','Salary','Stipend','PerDay')";
+    $salary_result = mysqli_query($conn, $salary_sql);
+
+    if (!$salary_result) {
+        echo "Error: " . mysqli_error($conn);
+    }
+
+    while ($row = mysqli_fetch_assoc($salary_result)) {
+        $salary_records[] = $row; // âœ… Fix: Store all rows
+    }
+}
+
+// ===== ATTENDANCE CALCULATION (COMMON FOR ALL) =====
+$days_in_month = 0; // default value
+$num_days_attended = 0;
+$month_num = $year_full = $month_short = $year_short = null;
+
+if (!empty($selected_month)) {
+    $timestamp = strtotime($selected_month);
+
+    $month_num   = date('m', $timestamp);
+    $year_full   = date('Y', $timestamp);
+    $month_short = date('M', $timestamp);
+    $year_short  = substr($year_full, 2);
+
+    $attQuery = mysqli_query($conn, "
+        SELECT SUM(
+            CASE 
+                WHEN attendance='P' THEN 1
+                WHEN attendance='HD' THEN 0.5
+                ELSE 0
+            END
+        ) AS attended_days
+        FROM tbl_emp_attendance
+        WHERE employee_id = $employee_id
+        AND attendance_month = '$month_short'
+        AND attendance_year = '$year_short'
+    ");
+
+    $attData = mysqli_fetch_assoc($attQuery);
+    $num_days_attended = $attData['attended_days'] ?? 0;
+}
+
+
+
+
+// âœ… Corrected numberToWords() function (Indian format)
+function numberToWords($num)
+{
+    $num = (int)$num;
+    if ($num == 0) return 'Zero';
+
+    $ones = array(
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+    );
+
+    $tens = array('', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety');
+
+    $levels = array('', 'Thousand', 'Lakh', 'Crore');
+
+    $words = '';
+
+    $level = 0;
+
+    while ($num > 0) {
+        $divider = ($level == 0) ? 1000 : 100;
+        $part = $num % $divider;
+        $num = floor($num / $divider);
+
+        if ($part > 0) {
+            $segment = '';
+
+            if ($part > 99) {
+                $segment .= $ones[floor($part / 100)] . ' Hundred ';
+                $part = $part % 100;
+            }
+
+            if ($part > 19) {
+                $segment .= $tens[floor($part / 10)] . ' ';
+                $segment .= $ones[$part % 10] . ' ';
+            } else {
+                $segment .= $ones[$part] . ' ';
+            }
+
+            if ($levels[$level] != '') {
+                $segment .= $levels[$level] . ' ';
+            }
+
+            $words = $segment . $words;
+        }
+
+        $level++;
+    }
+
+    return trim($words) . '';
+}
+
 ?>
 
-
-
-<!-- =========================================
-     MAIN CONTENT
-========================================= -->
-
-<section id="main-content">
-
-    <section class="wrapper">
-
-        <div class="reg-w3">
-
-            <div class="refollowup-card">
-
-
-                <!-- =================================
-                     HEADER
-                ================================== -->
-
-                <div class="refollowup-header">
-
-                    <div class="refollowup-title">
-
-                        <span class="phone-icon">📄</span>
-
-                        <div>
-
-                            <h2>Generate Employee Letter</h2>
-
-                            <p>
-                                Search employee and generate required letter
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =================================
-                     FORM AREA
-                ================================== -->
-
-                <div class="refollowup-form">
-
-
-                    <!-- =================================
-                         SEARCH FORM
-                    ================================== -->
-
-                    <form method="post" action="">
-
-
-                        <div class="form-row">
-
-                            <div class="form-group">
-
-                                <label>
-                                    Search Employee <span>*</span>
-                                </label>
-
-                                <input
-                                    type="text"
-                                    name="keyword"
-                                    placeholder="Search employee by name"
-                                    value="<?= htmlspecialchars($_POST['keyword'] ?? '') ?>"
-                                    required
-                                >
-
-                            </div>
-
-
-                            <div class="form-group"
-                                 style="flex:0 0 150px; display:flex; align-items:flex-end;">
-
-                                <button
-                                    type="submit"
-                                    class="search-btn"
-                                >
-
-                                    <i class="fa fa-search"></i>
-                                    Search
-
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </form>
-
-
-                    <?php
-
-                    /* =================================
-                       SEARCH EMPLOYEE
-                    ================================= */
-
-                    if (isset($_POST['keyword'])) {
-
-                        $key = mysqli_real_escape_string(
-                            $conn,
-                            trim($_POST['keyword'])
-                        );
-
-                        $sql = "SELECT Id, cust_name, designation
-                                FROM tbl_employee
-                                WHERE cust_name LIKE '%$key%'";
-
-                        $result = mysqli_query($conn, $sql);
-
-
-                        if ($result && mysqli_num_rows($result) > 0) {
-
-                    ?>
-
-                            <!-- =================================
-                                 EMPLOYEE + LETTER FORM
-                            ================================= -->
-
-                            <form
-                                method="post"
-                                action="generate_letter_pdf.php"
-                                target="_blank"
-                                class="refollowup-form"
-                                style="padding:0; margin-top:20px;"
-                            >
-
-
-                                <!-- =================================
-                                     EMPLOYEE TABLE
-                                ================================= -->
-
-                                <div class="form-group">
-
-                                    <label>
-                                        Select Employee <span>*</span>
-                                    </label>
-
-
-                                    <div class="employee-table-wrapper">
-
-                                        <table class="employee-table">
-
-                                            <thead>
-
-                                                <tr>
-
-                                                    <th class="select-column">
-                                                        Select
-                                                    </th>
-
-                                                    <th>
-                                                        Employee Name
-                                                    </th>
-
-                                                    <th>
-                                                        Designation
-                                                    </th>
-
-                                                </tr>
-
-                                            </thead>
-
-
-                                            <tbody>
-
-                                            <?php
-
-                                            while (
-                                                $emp =
-                                                mysqli_fetch_assoc($result)
-                                            ) {
-
-                                            ?>
-
-                                                <tr>
-
-                                                    <td class="select-column">
-
-                                                        <input
-                                                            type="radio"
-                                                            name="employee_id"
-                                                            value="<?= htmlspecialchars($emp['Id']) ?>"
-                                                            required
-                                                        >
-
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        <?= htmlspecialchars(
-                                                            $emp['cust_name']
-                                                        ) ?>
-
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        <?= htmlspecialchars(
-                                                            $emp['designation']
-                                                        ) ?>
-
-                                                    </td>
-
-                                                </tr>
-
-                                            <?php
-
-                                            }
-
-                                            ?>
-
-                                            </tbody>
-
-                                        </table>
-
-                                    </div>
-
-                                </div>
-
-
-                                <!-- =================================
-                                     LETTER TYPE
-                                ================================= -->
-
-                                <div class="letter-box">
-
-                                    <div class="form-group"
-                                         style="margin-bottom:0;">
-
-                                        <label>
-                                            Select Letter Type <span>*</span>
-                                        </label>
-
-
-                                        <select
-                                            name="letter_type"
-                                            required
-                                        >
-
-                                            <option value="">
-                                                -- Select Letter --
-                                            </option>
-
-                                            <option value="offer">
-                                                Offer Letter
-                                            </option>
-                                            <option value="appointment">
-                                                Appointment Letter
-                                            </option>
-                                            <option value="relieving">
-                                                Relieving Letter
-                                            </option>
-                                            <option value="internship">
-                                                Internship Letter
-                                            </option>
-                                            <option value="experience">
-                                                Experience Letter
-                                            </option>
-                                        </select>
-                                    </div>
-                                </div>
-
-
-                                <!-- =================================
-                                     GENERATE BUTTON
-                                ================================= -->
-
-                                <button
-                                    type="submit"
-                                    class="submit-btn"
-                                >
-
-                                    <i class="fa fa-file-pdf-o"></i>
-
-                                    &nbsp; Generate Letter
-
-                                </button>
-
-
-                            </form>
-
-
-                    <?php
-
-                        } else {
-
-                    ?>
-
-                            <div class="alert alert-warning text-center">
-
-                                <i class="fa fa-exclamation-circle"></i>
-
-                                No employee found.
-
-                            </div>
-
-                    <?php
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Salary Details - <?= $employee['cust_name']; ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fc;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .salary-container {
+            background: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            border-radius: 8px;
+        }
+        h2, h3 {
+            color: #333;
+             text-align: center;  /* Center align all H2 and H3 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .no-records {
+            color: red;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .form-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4e73df;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2e59d9;
+        }
+    </style>
+</head>
+<body>
+    <section id="main-content">
+        <section class="wrapper">
+            <div class="container">
+                <div class="salary-container">
+                    <div class="salary-header">
+                        <h2>Salary Details for <?= $employee['cust_name']; ?></h2>
+                        
+                        <?php
+                        if (isset($_GET['status'])) {
+                            if ($_GET['status'] == 'success') {
+                                echo "<script>alert('Salary slip sent successfully');</script>";
+                            } elseif ($_GET['status'] == 'error') {
+                                echo "<script>alert('Failed to send salary slip');</script>";
+                            }
                         }
+                        ?>
+                        
+                        <form method="POST" class="form-inline" style="margin-bottom:10px;">
+                            <label for="month">Select Month:</label>
+                            <input type="month" name="month" value="<?= htmlspecialchars($selected_month) ?>" required>
+                            <button type="submit">View Salary</button>
 
-                    }
+                            <!-- ðŸ”¹ View Advance Button -->
+                            <a href="view_advance_details.php?id=<?= $employee_id ?>" class="btn" 
+                             style="background:#1cc88a; color:white; padding:8px 16px; border-radius:5px; text-decoration:none;">
+                             💰 View Advance
+                         </a>
+                     </form>
 
-                    ?>
+                 </div>
+                 
+                 <!-- Show Attendance -->
+    <!--<?php if(!empty($selected_month)): ?>-->
+    <!--    <div class="attendance-badge">-->
+    <!--        Attendance: <?= $num_days_attended ?> Days-->
+    <!--    </div>-->
+    <!--<?php endif; ?>-->
+
+                 <?php if (!empty($salary_records)): ?>
+                    <?php foreach ($salary_records as $salary_paid): ?>
+
+                        <?php if ($salary_paid['payment_type'] === 'Salary' || $salary_paid['payment_type'] === 'PerDay'): ?>
+                            <?php
+                            
+                            if($salary_paid['payment_type'] === 'PerDay'){
+                /// ✅ PER DAY
+    $amount   = $salary_paid['amount'] ?? 0;
+    $incentive = $salary_paid['performance_incentive'] ?? 0;
+    $expense   = $salary_paid['expense_reimbursement'] ?? 0;
+
+    $tax     = $salary_paid['profession_tax'] ?? 0;
+    $advance = $salary_paid['advance'] ?? 0;
+    
+    $total_earnings   = 0;
+$total_deductions = 0;
+$net_salary       = 0;
+    
+            } else {
+                            
+                            $total_earnings =
+                            $salary_paid['basic'] +
+                            $salary_paid['hra'] +
+                            $salary_paid['conveyance'] +
+                            $salary_paid['food_allowance'] +
+                            $salary_paid['performance_incentive'] +
+                            $salary_paid['expense_reimbursement'];
+            }
+                            $total_deductions =
+                            $salary_paid['profession_tax'] +
+                            $salary_paid['advance'];
+
+                            $net_salary = $total_earnings - $total_deductions;
+                            ?>
+                            
+                            
+                          
+                            <div class="salary-details">
+                                <h3>Salary - <?= date('F Y', strtotime($salary_paid['month'] . '-01')); ?></h3>
+                                Attendance: <?= $num_days_attended ?> Days
+                                <table>
+                                    <tr>
+                                        <th colspan="2">Earnings</th>
+                                        <th colspan="2">Deductions</th>
+                                    </tr>
+                                    
+                                    <?php if ($salary_paid['payment_type'] === 'Salary'): ?>
+
+                                    <tr>
+                                        <td>Basic</td><td>₹<?= number_format($salary_paid['basic'], 2); ?></td>
+                                        <td><?= $salary_paid['advance'] > 0 ? 'Advance' : ''?></td>
+                                        <td>
+                                            <?= ($salary_paid['advance'] > 0)
+                                            ? '₹' . number_format($salary_paid['advance'], 2)
+                                            : '' ?>
+                                        </td>
+                                        
+                                    </tr>
+                                    <tr>
+                                        <td>HRA</td><td>₹<?= number_format($salary_paid['hra'], 2); ?></td>
+                                        
+                                        <td><?= $salary_paid['profession_tax'] > 0 ?'Professional Tax' : ''?></td><td><?= ($salary_paid['profession_tax'] > 0)
+                                            ? '₹' . number_format($salary_paid['profession_tax'], 2) : '' ?></td>
+                                    </tr>
+
+                                </tr>
+                                <tr>
+                                    <td>Conveyance</td><td>₹<?= number_format($salary_paid['conveyance'], 2); ?></td>
+                                    <td></td><td></td>
+                                </tr>
+                                <tr>
+                                    <td>Food Allowance</td><td>₹<?= number_format($salary_paid['food_allowance'], 2); ?></td>
+                                    <td></td><td></td>
+                                </tr>
+                                
+                                <?php elseif ($salary_paid['payment_type'] === 'PerDay'): ?>
+
+                                    <?php
+// ===== PER DAY CALCULATION (INSIDE TABLE SCOPE) =====
+                                   // Extract month & year from selected month
+// Fetch package and employee type
+$empQuery = mysqli_query($conn, "SELECT package, employee_type FROM tbl_employee WHERE Id='$employee_id'");
+$empData = mysqli_fetch_assoc($empQuery);
+$package = floatval($empData['package'] ?? 0); // ensures it's numeric
+ $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month_num, $year_full);
+$employee_type = $empData['employee_type'] ?? 'Salary';
+
+if ($employee_type === 'Per Day') {
+    $rate_per_day = $package; // per-day employees package = rate per day
+} else {
+    $rate_per_day = $package / $days_in_month; // for monthly salary, calculate per-day rate
+}
+
+// Calculate total for per-day employees
+if ($employee_type === 'Per Day') {
+    $amount = $num_days_attended * $rate_per_day;
+    $total_earnings = $amount + $incentive + $expense;
+    $total_deductions = $tax + $advance;
+    $net_salary = $total_earnings - $total_deductions;
+}
+
+                                    ?>
+
+                                    <tr>
+                                        <td>Rate Per Day</td>
+                                        <td>₹<?= number_format($rate_per_day,2) ?></td>
+                                        <?php if($advance > 0): ?>
+                                            <td>Advance</td>
+                                            <td>₹<?= number_format($advance,2) ?></td>
+                                        <?php else: ?>
+                                            <td></td><td></td>
+                                        <?php endif; ?>
+                                    </tr>
+
+                                    <tr>
+                                        
+                                        <?php if($tax > 0): ?>
+                                            <td>Professional Tax</td>
+                                            <td>₹<?= number_format($tax,2) ?></td>
+                                        <?php endif; ?>
+                                    </tr>
 
 
+                                    <tr>
+                                        <th>Total (Days × Rate)</th>
+                                        <th>₹<?= number_format($amount,2) ?></th>
+                                        <th></th><th></th>
+                                    </tr>
+<?php endif; ?>
+                                
+                                
+                                
+                                <?php if ($salary_paid['performance_incentive'] > 0): ?>
+                                    <tr>
+                                        <td>Performance Incentive</td>
+                                        <td>₹<?= number_format($salary_paid['performance_incentive'], 2); ?></td>
+                                        <td></td><td></td>
+                                    </tr>
+                                <?php endif; ?>
+
+                                <?php if ($salary_paid['expense_reimbursement'] > 0): ?>
+                                    <tr>
+                                        <td><strong>Expense Reimbursement</strong></td>
+                                        <td><strong>₹<?= number_format($salary_paid['expense_reimbursement'], 2); ?></strong></td>
+                                        <td></td><td></td>
+                                    </tr>
+                                <?php endif; ?>
+
+
+                                <tr>
+                                    <th>Total Earnings</th><td>₹<?= number_format($total_earnings ?? 0, 2); ?></td>
+                                    <th>Total Deductions</th><td>₹<?= number_format($total_deductions, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <th colspan="3">Net Salary</th>
+                                    <td><strong>₹<?= number_format($net_salary, 2); ?></strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4"><strong>In Words:</strong> <?= numberToWords($net_salary); ?> Rupees Only</td>
+                                </tr>
+                            </table>
+                            
+                            <div style="margin-top:20px; display:flex; gap:10px;">
+                            <!-- ðŸ“¤ Send Salary Slip Button -->
+                            <form method="POST" action="send-slip.php">
+                                <input type="hidden" name="employee_id" value="<?= $employee_id ?>">
+                                <input type="hidden" name="month" value="<?= $selected_month ?>">
+                                <button type="submit">📤 Send Salary Slip</button>
+                            </form>
+                            <form method="POST" action="send-slip.php">
+                                    <input type="hidden" name="employee_id" value="<?= $employee_id ?>">
+                                    <input type="hidden" name="month" value="<?= $selected_month ?>">
+                                    <input type="hidden" name="download" value="1">
+                                    <button type="submit" style="background:#36b9cc;">⬇️ Download Slip</button>
+                                </form>
+                            </div>
+                        </div>
+
+
+                    <?php elseif ($salary_paid['payment_type'] === 'Stipend'): ?>
+                        <div style="margin-top:30px;">
+                            <h3>Stipend - <?= date('F Y', strtotime($salary_paid['month'].'-01')); ?></h3>
+                            <table>
+                                <tr><th>Stipend Amount</th><td>â‚¹<?= number_format($salary_paid['amount'],2); ?></td></tr>
+                                <tr><td colspan="2"><strong>In Words:</strong> <?= numberToWords($salary_paid['amount']); ?> Rupees Only</td></tr>
+                            </table>
+                               
+                             <div style="margin-top:20px; display:flex; gap:10px;">  
+                            <!-- ðŸ“¤ Send Salary Slip Button -->
+                            <form method="POST" action="send-slip.php">
+                                <input type="hidden" name="employee_id" value="<?= $employee_id ?>">
+                                <input type="hidden" name="month" value="<?= $selected_month ?>">
+                                <button type="submit">📤 Send Salary Slip</button>
+                            </form>
+                            
+                            <form method="POST" action="send-slip.php">
+                                    <input type="hidden" name="employee_id" value="<?= $employee_id ?>">
+                                    <input type="hidden" name="month" value="<?= $selected_month ?>">
+                                    <input type="hidden" name="download" value="1">
+                                    <button type="submit" style="background:#36b9cc;">⬇️ Download Slip</button>
+                                </form>
+                            </div>
+                        </div>
+
+
+                    <?php elseif ($salary_paid['payment_type'] === 'Advance'): ?>
+                        <div style="margin-top:30px;">
+                            <h3>Advance Payment</h3>
+                            <table>
+                                <tr><th>Advance Amount</th><td>₹<?= number_format($salary_paid['advance'],2); ?></td></tr>
+                                <tr><th>Advance Date</th><td><?= date('d M Y', strtotime($salary_paid['advance_date'])); ?></td></tr>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="no-records">
+                    No salary records found for the selected month.
                 </div>
-
-            </div>
-
+            <?php endif; ?>
         </div>
-
-    </section>
-
+    </div>
+</section>
 </section>
 
-
-<!-- =========================================
-     JAVASCRIPT
-========================================= -->
-
-<script src="js/jquery.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
 <script src="js/jquery.slimscroll.js"></script>
 <script src="js/jquery.nicescroll.js"></script>
 <script src="js/jquery.scrollTo.js"></script>
-<script src="js/search.js"></script>
 </body>
 </html>
+" and remove the send salary slip button keep the View Advance Button non functional for 
+now we will implement it when we implement acccounts module .
+    return response.json();
+};
 
-<?php
-mysqli_close($conn);
-?>"
+const createSalary = async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/salaries`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+     
+     two more small thing is remain Implement is in View Employee > Action column > 
+     View All Detail > Employee Action section (inside ViewEmployeeDetail.jsx) View Attendance and View Salary button.
+     First is View Attendance Button we already have Implemented View Individual salary
+     end point and logic we just have navigate to that page (ViewEmployeeAttendance.jsx)
+    with current employee and month.
+
+    return response.json();
+};
+
+const salaryService = {
+    getEligibleEmployees,
+    previewSalary,
+    createSalary,
+};
+
+export default salaryService;
+
+

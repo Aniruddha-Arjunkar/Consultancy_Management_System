@@ -254,7 +254,20 @@ const ViewEmployeeDetail = () => {
                         <div className="actions-title">Employee Actions</div>
 
                         <div className="action-buttons">
-                            <button type="button" className="btn-attendance">
+                            <button
+                                type="button"
+                                className="btn-attendance"
+                                onClick={() => {
+                                    const today = new Date();
+                                    const currentMonth = `${today.getFullYear()}-${String(
+                                        today.getMonth() + 1
+                                    ).padStart(2, "0")}`;
+
+                                    navigate(
+                                        `/attendance/view-employee-attendance/${employeeId}?month=${currentMonth}`
+                                    );
+                                }}
+                            >
                                 ✓&nbsp; View Attendance
                             </button>
                             <button type="button" className="btn-salary">

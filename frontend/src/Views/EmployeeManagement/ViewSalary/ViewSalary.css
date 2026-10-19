@@ -1,0 +1,49 @@
+ body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fc;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .salary-container {
+            background: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            border-radius: 8px;
+        }
+        h2, h3 {
+            color: #333;
+             text-align: center;  /* Center align all H2 and H3 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .no-records {
+            color: red;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .form-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4e73df;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2e59d9;
+        }
