@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.shulventures.consultancymanagement.dto.salary.EmployeeSalaryHistoryResponse;
+
 @RestController
 @RequestMapping("/api/salaries")
 @RequiredArgsConstructor
@@ -57,6 +59,23 @@ public class EmployeeSalaryController {
         return Map.of(
                 "message", "Salary payment recorded successfully.",
                 "salary", savedSalary
+        );
+    }
+
+
+    @GetMapping("/employees/{employeeId}/history")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'EMPLOYEE', 'VIEW')"
+    )
+    public EmployeeSalaryHistoryResponse getEmployeeSalaryHistory(
+            @PathVariable Long employeeId,
+            @RequestParam(required = false) String month,
+            Authentication authentication
+    ) {
+        return salaryService.getEmployeeSalaryHistory(
+                employeeId,
+                month,
+                authentication
         );
     }
 }

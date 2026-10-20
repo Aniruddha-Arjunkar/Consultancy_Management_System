@@ -25,6 +25,10 @@ import java.util.Locale;
 import com.shulventures.consultancymanagement.dto.salary.SalaryEmployeeOptionResponse;
 import java.util.Comparator;
 
+import com.shulventures.consultancymanagement.dto.salary.EmployeeSalaryHistoryResponse;
+import java.time.LocalDate;
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class EmployeeSalaryService {
@@ -412,5 +416,105 @@ public class EmployeeSalaryService {
                         employee.getBranch()
                 ))
                 .toList();
+    }
+
+
+    @Transactional(readOnly = true)
+    public EmployeeSalaryHistoryResponse getEmployeeSalaryHistory(
+            Long employeeId,
+            String requestedMonth,
+            Authentication authentication
+    ) {
+        String monthValue = requestedMonth == null || requestedMonth.isBlank()
+                ? YearMonth.now().toString()
+                : requestedMonth.trim();
+
+        YearMonth month;
+        try {
+            month = YearMonth.parse(monthValue);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("Month must use YYYY-MM format.");
+        }
+
+        try {
+            month = requestedMonth == null || requestedMonth.isBlank()
+                    ? YearMonth.now().toString().equals("")
+                    ? YearMonth.now()
+                    : YearMonth.parse(requestedMonth)
+                    : YearMonth.parse(requestedMonth.trim());
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("Month must use YYYY-MM format.");
+        }
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found."));
+
+        if (!branchPermissionService.hasBranchAccess(
+                authentication,
+                employee.getBranch()
+        )) {
+            throw new AccessDeniedException(
+                    "You cannot view salary for this employee."
+            );
+        }
+
+        List<EmployeeAttendance> attendanceRecords =
+                attendanceRepository.findByEmployeeIdInAndCurrDateBetween(
+                        List.of(employeeId),
+                        month.atDay(1),
+                        month.atEndOfMonth()
+                );
+
+        BigDecimal attendanceDays = attendanceRecords.stream()
+                .map(record -> {
+                    String status = record.getAttendance() == null
+                            ? ""
+                            : record.getAttendance().trim().toUpperCase(Locale.ROOT);
+
+                    if ("P".equals(status)) {
+                        return BigDecimal.ONE;
+                    }
+                    if ("HD".equals(status)) {
+                        return new BigDecimal("0.5");
+                    }
+                    return BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        List<EmployeeSalaryHistoryResponse.SalaryRecord> records =
+                salaryRepository.findByEmployeeIdAndMonth(
+                                employeeId,
+                                month.toString()
+                        ).stream()
+                        .sorted(Comparator.comparing(
+                                EmployeeSalary::getPaymentType,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                        ))
+                        .map(salary -> new EmployeeSalaryHistoryResponse.SalaryRecord(
+                                salary.getId(),
+                                salary.getPaymentType(),
+                                salary.getAmount(),
+                                salary.getBasic(),
+                                salary.getHra(),
+                                salary.getConveyance(),
+                                salary.getFoodAllowance(),
+                                salary.getPerformanceIncentive(),
+                                salary.getExpenseReimbursement(),
+                                salary.getProfessionTax(),
+                                salary.getAdvance(),
+                                salary.getAdvanceDate()
+                        ))
+                        .toList();
+
+        return new EmployeeSalaryHistoryResponse(
+                employee.getId(),
+                employee.getCustName(),
+                employee.getEmployeeType(),
+                parsePackage(employee.getPackageName()),
+                month.toString(),
+                attendanceDays,
+                records
+        );
     }
 }
