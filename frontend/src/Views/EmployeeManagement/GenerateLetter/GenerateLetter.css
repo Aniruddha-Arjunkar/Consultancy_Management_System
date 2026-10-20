@@ -1,0 +1,210 @@
+.generate-letter-main {
+    padding: 16px !important;
+}
+
+.generate-letter-page .refollowup-card {
+    max-width: 760px;
+}
+
+.generate-letter-page .reg-w3 {
+    min-height: auto;
+    padding-top: 24px;
+    padding-bottom: 32px;
+}
+
+.generate-letter-page .refollowup-header {
+    padding: 14px 20px;
+}
+
+.generate-letter-page .refollowup-title {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.generate-letter-page .refollowup-title h2,
+.generate-letter-page .refollowup-title p {
+    text-align: left !important;
+}
+
+.generate-letter-page .refollowup-form > form > .form-row {
+    align-items: stretch;
+}
+
+.generate-letter-page .search-button-group {
+    flex: 0 0 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 75px;
+}
+
+.generate-letter-page .search-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 112px;
+    height: 36px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 7px;
+    background: linear-gradient(100deg, #4b3de4, #194fd4);
+    color: #fff;
+    font: 600 13px 'Poppins', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(50, 66, 210, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.generate-letter-page .search-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(50, 66, 210, 0.28);
+}
+
+.generate-letter-page .search-btn:focus-visible,
+.generate-letter-page .employee-table input[type="radio"]:focus-visible {
+    outline: 3px solid rgba(70, 86, 223, 0.28);
+    outline-offset: 2px;
+}
+
+.generate-letter-page .generate-letter-results {
+    margin-top: 20px;
+    padding: 0;
+}
+
+.generate-letter-page .employee-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dfe5ef;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.generate-letter-page .employee-table {
+    width: 100%;
+    min-width: 440px;
+    border-collapse: collapse;
+    margin: 0;
+    color: #27364b;
+}
+
+.generate-letter-page .employee-table th,
+.generate-letter-page .employee-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e8edf4;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.generate-letter-page .employee-table th {
+    background: #f2f5fb;
+    color: #3b4960;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.generate-letter-page .employee-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.generate-letter-page .employee-table tbody tr:hover {
+    background: #f8faff;
+}
+
+.generate-letter-page .employee-table .select-column {
+    width: 72px;
+    text-align: center;
+}
+
+.generate-letter-page .employee-table input[type="radio"] {
+    display: inline-block;
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #4055df;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.generate-letter-page .letter-box {
+    margin-top: 10px;
+}
+
+.generate-letter-page .submit-btn {
+    margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+    #main-content.generate-letter-main {
+        padding: 8px !important;
+    }
+
+    .generate-letter-page .reg-w3 {
+        min-height: auto;
+        padding: 10px 4px 18px;
+    }
+
+    .generate-letter-page .refollowup-card {
+        border-width: 2px;
+        border-radius: 12px;
+    }
+
+    .generate-letter-page .refollowup-header {
+        height: auto;
+        min-height: 70px;
+        padding: 12px 10px;
+    }
+
+    .generate-letter-page .refollowup-title h2 {
+        font-size: 19px;
+        line-height: 23px;
+    }
+
+    .generate-letter-page .refollowup-title p {
+        font-size: 12px;
+        line-height: 17px;
+    }
+
+    .generate-letter-page .refollowup-title {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .generate-letter-page .refollowup-title h2,
+    .generate-letter-page .refollowup-title p {
+        text-align: center !important;
+    }
+
+    .generate-letter-page .search-button-group {
+        min-height: auto;
+        align-items: stretch;
+        justify-content: center;
+        
+    }
+
+    .generate-letter-page .search-btn {
+        width: 100%;
+    }
+
+    .generate-letter-page .employee-table {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .generate-letter-page .employee-table th,
+    .generate-letter-page .employee-table td {
+        padding: 8px 5px;
+        font-size: 11px;
+        overflow-wrap: anywhere;
+    }
+
+    .generate-letter-page .employee-table .select-column {
+        width: 48px;
+    }
+
+    .generate-letter-page .employee-table th {
+        font-size: 9px;
+        letter-spacing: 0;
+    }
+}

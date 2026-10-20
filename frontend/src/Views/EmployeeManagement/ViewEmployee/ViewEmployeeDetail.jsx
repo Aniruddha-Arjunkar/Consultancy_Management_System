@@ -270,7 +270,11 @@ const ViewEmployeeDetail = () => {
                             >
                                 ✓&nbsp; View Attendance
                             </button>
-                            <button type="button" className="btn-salary">
+                            <button
+                                type="button"
+                                className="btn-salary"
+                                onClick={() => navigate(`/employee/view-salary/${employeeId}`)}
+                            >
                                 ₹&nbsp; View Salary
                             </button>
                             <button

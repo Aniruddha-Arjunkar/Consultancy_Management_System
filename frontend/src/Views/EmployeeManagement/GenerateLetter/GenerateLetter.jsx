@@ -106,8 +106,8 @@ const GenerateLetter = () => {
     };
 
     return (
-        <section id="main-content">
-            <section className="">
+        <section id="main-content" className="generate-letter-main">
+            <section className="generate-letter-page">
                 <div className="reg-w3">
                     <div className="refollowup-card">
                         <div className="refollowup-header">
@@ -143,14 +143,7 @@ const GenerateLetter = () => {
                                         />
                                     </div>
 
-                                    <div
-                                        className="form-group"
-                                        style={{
-                                            flex: "0 0 150px",
-                                            display: "flex",
-                                            alignItems: "flex-end",
-                                        }}
-                                    >
+                                    <div className="form-group search-button-group">
                                         <button
                                             type="submit"
                                             className="search-btn"
@@ -164,8 +157,7 @@ const GenerateLetter = () => {
 
                             {hasSearched && filteredEmployees.length > 0 && (
                                 <form
-                                    className="refollowup-form"
-                                    style={{ padding: 0, marginTop: 20 }}
+                                    className="refollowup-form generate-letter-results"
                                     onSubmit={handleGenerate}
                                 >
                                     <div className="form-group">

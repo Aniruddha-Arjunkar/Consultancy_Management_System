@@ -204,7 +204,6 @@ function AppRoutes() {
                         <Route path="employee/:employeeId/update-employee" element={<UpdateEmplpoyee />} />
                         <Route path="employee/:employeeId/resignation" element={<EmployeeResignation />} />
                         <Route path="employee/view-salary/:employeeId" element={<ViewSalary />} />
-
                     </Route>
 
                     <Route element={<PermissionRoute module="EMPLOYEE" page="GENERATE_LETTER" />}>

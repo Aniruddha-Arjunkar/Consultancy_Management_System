@@ -60,10 +60,28 @@ const createSalary = async (payload) => {
     return response.json();
 };
 
+
+
+const getEmployeeSalaryHistory = async (employeeId, month) => {
+    const response = await fetch(
+        `${API_BASE_URL}/salaries/employees/${encodeURIComponent(employeeId)}/history?month=${encodeURIComponent(month)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
 const salaryService = {
     getEligibleEmployees,
     previewSalary,
     createSalary,
+    getEmployeeSalaryHistory
 };
 
 export default salaryService;
