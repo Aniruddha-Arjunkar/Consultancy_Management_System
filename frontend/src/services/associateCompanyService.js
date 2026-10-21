@@ -59,8 +59,27 @@ const getAssociateCompanyById = async (associateId) => {
 
     return response.json();
 };
+
+const updateAssociateCompany = async (associateId, formData) => {
+    const response = await fetch(
+        `${API_BASE_URL}/associate-companies/${encodeURIComponent(associateId)}`,
+        {
+            method: "PUT",
+            credentials: "include",
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
 export default {
     createAssociateCompany,
     getAssociateCompanies,
-    getAssociateCompanyById
+    getAssociateCompanyById,
+    updateAssociateCompany
 };
