@@ -1,6 +1,7 @@
 package com.shulventures.consultancymanagement.controller;
 
 import com.shulventures.consultancymanagement.dto.associate.CreateAssociateCompanyRequest;
+import com.shulventures.consultancymanagement.dto.associate.UpdateAssociateCompanyRequest;
 import com.shulventures.consultancymanagement.entity.AssociateCompany;
 import com.shulventures.consultancymanagement.service.AssociateCompanyService;
 import jakarta.validation.Valid;
@@ -84,5 +85,20 @@ public class AssociateCompanyController {
                 .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(new FileSystemResource(documentPath));
+    }
+
+
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'ASSOCIATE_COMPANY_VIEW')"
+    )
+    public AssociateCompanyResponse updateAssociateCompany(
+            @PathVariable Long id,
+            @Valid @ModelAttribute UpdateAssociateCompanyRequest request
+    ) {
+        return associateCompanyService.update(id, request);
     }
 }

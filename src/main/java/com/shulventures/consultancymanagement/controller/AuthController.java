@@ -38,11 +38,8 @@ public class AuthController {
                 );
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-
         context.setAuthentication(authentication);
-
         SecurityContextHolder.setContext(context);
-
         securityContextRepository.saveContext(
                 context,
                 httpRequest,

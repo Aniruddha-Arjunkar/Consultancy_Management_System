@@ -20,6 +20,10 @@ import java.util.UUID;
 import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyResponse;
 import java.util.List;
 
+import com.shulventures.consultancymanagement.dto.associate.UpdateAssociateCompanyRequest;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 @Service
 @RequiredArgsConstructor
 public class AssociateCompanyService {
@@ -248,5 +252,143 @@ public class AssociateCompanyService {
                 company.getInvoiceSendText(),
                 company.getSlaDocument()
         );
+    }
+
+
+    @Transactional
+    public AssociateCompanyResponse update(
+            Long id,
+            UpdateAssociateCompanyRequest request
+    ) {
+        AssociateCompany company = associateCompanyRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Associate company not found.")
+                );
+
+        String slaAgreed = request.getSlaAgreed();
+
+        if (slaAgreed == null || slaAgreed.isBlank()) {
+            slaAgreed = company.getSlaAgreed();
+        }
+
+        slaAgreed = slaAgreed.trim().toUpperCase(Locale.ROOT);
+
+        if (!Set.of("YES", "NO").contains(slaAgreed)) {
+            throw new IllegalArgumentException(
+                    "Select Yes or No for SLA Agreed."
+            );
+        }
+
+        String oldFilename = company.getSlaDocument();
+        Path root = Path.of(slaUploadDirectory)
+                .toAbsolutePath()
+                .normalize();
+
+        Path newFile = null;
+        Path oldFile = null;
+
+        if (oldFilename != null && !oldFilename.isBlank()) {
+            Path resolvedOldFile = root.resolve(oldFilename).normalize();
+
+            if (resolvedOldFile.startsWith(root)) {
+                oldFile = resolvedOldFile;
+            }
+        }
+
+        try {
+            MultipartFile upload = request.getSlaDocument();
+
+            if (upload != null && !upload.isEmpty()) {
+                String extension = StringUtils
+                        .getFilenameExtension(upload.getOriginalFilename());
+
+                extension = extension == null
+                        ? ""
+                        : extension.toLowerCase(Locale.ROOT);
+
+                if (!ALLOWED_EXTENSIONS.contains(extension)) {
+                    throw new IllegalArgumentException(
+                            "Upload PDF, DOC, DOCX, JPG, or PNG files only."
+                    );
+                }
+
+                if (upload.getSize() > MAX_SLA_SIZE) {
+                    throw new IllegalArgumentException(
+                            "The SLA document must be 10 MB or smaller."
+                    );
+                }
+
+                Files.createDirectories(root);
+
+                String newFilename = UUID.randomUUID() + "." + extension;
+                newFile = root.resolve(newFilename).normalize();
+
+                if (!newFile.startsWith(root)) {
+                    throw new IllegalArgumentException(
+                            "Invalid SLA document path."
+                    );
+                }
+
+                upload.transferTo(newFile);
+                company.setSlaDocument(newFilename);
+            }
+
+            company.setCompanyName(request.getCompanyName().trim());
+            company.setLocation(request.getLocation().trim());
+            company.setWorkingDomain(request.getWorkingDomain().trim());
+            company.setWorkingTechnology(request.getWorkingTechnology().trim());
+            company.setNoOfEmployee(request.getNoOfEmployee().trim());
+            company.setContactPerson(request.getContactPerson().trim());
+            company.setPhone(request.getPhone().trim());
+            company.setEmail(request.getEmail().trim());
+            company.setManagerName(blankToNull(request.getManagerName()));
+            company.setManagerPhone(blankToNull(request.getManagerPhone()));
+            company.setManagerEmail(blankToNull(request.getManagerEmail()));
+            company.setPayPackageFresher(
+                    request.getPayPackageFresher().trim()
+            );
+            company.setPayPackageExperienced(
+                    request.getPayPackageExperienced().trim()
+            );
+            company.setSlaAgreed(slaAgreed);
+            company.setPayForFresher(blankToNull(request.getPayForFresher()));
+            company.setPayForExperienced(
+                    blankToNull(request.getPayForExperienced())
+            );
+            company.setInvoiceSendText(
+                    request.getInvoiceSendText() == null
+                            ? ""
+                            : request.getInvoiceSendText().trim()
+            );
+
+            // Keep the existing invoice number; it is not supplied by the update form.
+            AssociateCompany updated = associateCompanyRepository.save(company);
+
+            if (newFile != null
+                    && oldFile != null
+                    && TransactionSynchronizationManager.isSynchronizationActive()) {
+                Path fileToDelete = oldFile;
+
+                TransactionSynchronizationManager.registerSynchronization(
+                        new TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                deleteIfPresent(fileToDelete);
+                            }
+                        }
+                );
+            }
+
+            return toResponse(updated);
+        } catch (IOException exception) {
+            deleteIfPresent(newFile);
+            throw new IllegalStateException(
+                    "Could not update the SLA document.",
+                    exception
+            );
+        } catch (RuntimeException exception) {
+            deleteIfPresent(newFile);
+            throw exception;
+        }
     }
 }
