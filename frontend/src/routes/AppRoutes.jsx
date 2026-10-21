@@ -61,6 +61,9 @@ import UpdateAssociateCompanyProfile from "./../Views/ConsultancyManagement/Asso
 
 import AddCurrentRequirement from "./../Views/ConsultancyManagement/CurrentRequirement/AddCurrentRequirement/AddCurrentRequirement.jsx";
 import ViewRequirement from "./../Views/ConsultancyManagement/CurrentRequirement/ViewRequirements/ViewRequirements.jsx";
+import ViewRequirementDetail from "../Views/ConsultancyManagement/CurrentRequirement/ViewRequirementDetail/ViewRequirementDetail.jsx";
+import UpdateRequirementDetail from "../Views/ConsultancyManagement/CurrentRequirement/UpdateRequirementDetail/UpdateRequirementDetail.jsx";
+
 import ClosedRequirements from "./../Views/ConsultancyManagement/CurrentRequirement/Closed/Close.jsx";
 import AddStudent from "./../Views/ConsultancyManagement/Registration/AddStudent/AddStudent.jsx";
 import ViewStudent from "./../Views/ConsultancyManagement/Registration/ViewStudent/ViewStudent.jsx";
@@ -228,7 +231,7 @@ function AppRoutes() {
                         <Route path="attendance/view-employee-attendance/:employeeId" element={<ViewEmployeeAttendance />} />
                     </Route>
 
-                    {/* Consultancy */}
+                    {/*========================== CONSULTANCY ===========================================*/}
                     <Route element={<PermissionRoute module="CONSULTANCY" page="ASSOCIATE_COMPANY_ADD" />}>
                         <Route path="consultancy/add-associate-company" element={<AddAssociateCompany />} />
                     </Route>
@@ -245,6 +248,8 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_VIEW" />}>
                         <Route path="consultancy/view-requirement" element={<ViewRequirement />} />
+                        <Route path="consultancy/view-requirement-detail/:requirementId" element={<ViewRequirementDetail />}/>
+                        <Route path="consultancy/update-requirement/:requirementId" element={<UpdateRequirementDetail />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_CLOSED" />}>
