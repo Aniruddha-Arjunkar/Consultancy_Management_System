@@ -56,6 +56,7 @@ import PaidTDS from "./../Views/AccountsManagement/TDS/PaidTDS/PaidTDS.jsx";
 //============ Consultancy Management =====================
 import AddAssociateCompany from "./../Views/ConsultancyManagement/AssociateCompanies/AddAssociateCompany/AddAssociateCompany.jsx";
 import ViewAssociateCompany from "./../Views/ConsultancyManagement/AssociateCompanies/ViewAssociateCompany/ViewAssociateCompany.jsx";
+import ViewAssociateDetail from "./../Views/ConsultancyManagement/AssociateCompanies/ViewAssociateDetails/ViewAssociateDetail.jsx";
 import AddCurrentRequirement from "./../Views/ConsultancyManagement/CurrentRequirement/AddCurrentRequirement/AddCurrentRequirement.jsx";
 import ViewRequirement from "./../Views/ConsultancyManagement/CurrentRequirement/ViewRequirements/ViewRequirements.jsx";
 import ClosedRequirements from "./../Views/ConsultancyManagement/CurrentRequirement/Closed/Close.jsx";
@@ -231,6 +232,7 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="ASSOCIATE_COMPANY_VIEW" />}>
                         <Route path="consultancy/view-associate-company" element={<ViewAssociateCompany />} />
+                        <Route path="consultancy/view-associate-details/:associateId" element={<ViewAssociateDetail />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="REQUIREMENT_ADD" />}>

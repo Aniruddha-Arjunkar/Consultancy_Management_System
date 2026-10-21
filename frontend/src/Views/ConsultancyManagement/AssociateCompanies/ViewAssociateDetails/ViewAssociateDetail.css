@@ -1,0 +1,131 @@
+.associate-details-page {
+    width: min(100% - 32px, 1200px);
+    margin: 20px auto;
+}
+
+.associate-details-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 25px;
+    margin-top:-35px !important;
+}
+
+.associate-details-heading h1 {
+    margin: 0;
+    color: #162d4f;
+    font-size: 25px;
+}
+
+.associate-details-heading p {
+    margin: 6px 0 0;
+    color: #71809b;
+}
+
+.associate-back-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 13px;
+    border-radius: 6px;
+    background: #2058d8;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.associate-detail-card {
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid #dfe5ef;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.associate-detail-card h2 {
+    margin: 0;
+    padding: 12px 16px;
+    background: #2058d8;
+    color: #fff;
+    font-size: 16px;
+}
+
+.associate-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.associate-detail-item {
+    display: flex;
+    min-width: 0;
+    min-height: 74px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 15px;
+    border-right: 1px solid #e8edf4;
+    border-bottom: 1px solid #e8edf4;
+}
+
+.associate-detail-item span {
+    color: #71809b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.associate-detail-item strong,
+.associate-document-link {
+    color: #26364d;
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.associate-document-link {
+    color: #2058d8;
+    text-decoration: underline;
+}
+
+.associate-details-state {
+    padding: 24px;
+    border-radius: 8px;
+    background: #fff;
+    color: #526174;
+    text-align: center;
+}
+
+.associate-details-error {
+    color: #b42318;
+}
+
+@media (max-width: 900px) {
+    .associate-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .associate-details-page {
+        width: min(100% - 16px, 1200px);
+        margin: 10px auto;
+    }
+
+    .associate-details-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .associate-details-heading h1 {
+        font-size: 20px;
+    }
+
+    .associate-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
