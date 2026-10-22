@@ -1,3 +1,31 @@
-.all-candidate-page{
-    background-color: rgb(243, 243, 153);
+.all-candidate-page {
+    min-height: calc(100vh - 70px);
+    padding: 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #e5e7f2, #dfe3f0, #e7e9f4);
+}
+
+.candidate-status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.candidate-status-agreed {
+    background: #e5f6eb;
+    color: #18833b;
+}
+
+.candidate-status-not-agreed {
+    background: #fff0f1;
+    color: #c52c3d;
+}
+
+@media (max-width: 768px) {
+    .all-candidate-page {
+        padding: 10px;
+    }
 }

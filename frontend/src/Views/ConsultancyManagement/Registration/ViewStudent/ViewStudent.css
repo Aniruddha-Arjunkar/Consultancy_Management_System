@@ -1,3 +1,17 @@
-.view-student-page{
-    background-color: rgb(218, 232, 245);
+.view-student-page {
+    min-height: calc(100vh - 70px);
+    padding: 20px 30px 25px;
+    box-sizing: border-box;
+    background: linear-gradient(
+        135deg,
+        #e5e7f2 0%,
+        #dfe3f0 50%,
+        #e7e9f4 100%
+    );
+}
+
+@media (max-width: 768px) {
+    .view-student-page {
+        padding: 10px;
+    }
 }

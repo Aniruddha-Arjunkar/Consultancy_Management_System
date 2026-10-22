@@ -1,0 +1,79 @@
+.update-student-detail-page {
+    box-sizing: border-box;
+}
+
+.update-student-detail-page .refollowup-card {
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.update-student-detail-page .refollowup-header {
+    margin: 18px 0 12px;
+}
+
+.update-student-detail-page .refollowup-header:first-child {
+    margin-top: 0;
+}
+
+.update-student-detail-page .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    
+}
+
+.update-student-detail-page .form-group {
+    flex: 1 1 calc(50% - 16px);
+    min-width: 220px;
+}
+
+.update-student-detail-page .form-group.full-width {
+    flex-basis: 100%;
+}
+
+.update-student-detail-page .form-group input,
+.update-student-detail-page .form-group select,
+.update-student-detail-page .form-group textarea {
+    width: 100%;
+}
+
+.update-student-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.update-student-actions button {
+    min-height: 40px;
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.update-student-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.update-student-actions .student-cancel-btn {
+    background: #e8edf5;
+    color: #34435b;
+}
+
+@media (max-width: 600px) {
+    .update-student-detail-page .form-group {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .update-student-actions {
+        flex-direction: column-reverse;
+    }
+
+    .update-student-actions button {
+        width: 100%;
+    }
+}

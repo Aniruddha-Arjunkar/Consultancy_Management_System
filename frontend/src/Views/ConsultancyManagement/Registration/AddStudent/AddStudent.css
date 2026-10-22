@@ -1,3 +1,75 @@
-.add-student-page{
-    background-color:rgb(247, 237, 223);
+.add-student-page {
+    min-height: calc(100vh - 70px);
+    padding: 24px;
+    box-sizing: border-box;
+    background: #eef1fa;
+}
+
+.add-student-page .refollowup-card {
+    max-width: 700px;
+}
+
+.student-section-title {
+    margin: 20px 0 10px;
+    color: #263247;
+    font-size: 16px;
+}
+
+.student-qualification-wrapper {
+    width: 100%;
+    margin-bottom: 16px;
+    overflow-x: auto;
+}
+
+.qualification-table {
+    width: 100%;
+    min-width: 580px;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.qualification-table th,
+.qualification-table td {
+    padding: 9px;
+    border: 1px solid #dbe2ec;
+    text-align: left;
+}
+
+.qualification-table th {
+    background: #2259d9;
+    color: #fff;
+    font-size: 12px;
+}
+
+.qualification-table input {
+    width: 100%;
+    min-width: 100px;
+    height: 34px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border: 1px solid #d3dce8;
+    border-radius: 6px;
+}
+
+.student-submit-btn {
+    width: 100%;
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    background: #2259d9;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.student-submit-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .add-student-page {
+        padding: 14px 8px;
+    }
 }

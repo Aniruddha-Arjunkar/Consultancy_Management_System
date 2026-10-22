@@ -65,8 +65,13 @@ import ViewRequirementDetail from "../Views/ConsultancyManagement/CurrentRequire
 import UpdateRequirementDetail from "../Views/ConsultancyManagement/CurrentRequirement/UpdateRequirementDetail/UpdateRequirementDetail.jsx";
 import ClosedRequirements from "./../Views/ConsultancyManagement/CurrentRequirement/Closed/Close.jsx";
 import CloseRequirementDetail from "./../Views/ConsultancyManagement/CurrentRequirement/CloseRequirementDetail/CloseRequirementDetail.jsx";
+
 import AddStudent from "./../Views/ConsultancyManagement/Registration/AddStudent/AddStudent.jsx";
 import ViewStudent from "./../Views/ConsultancyManagement/Registration/ViewStudent/ViewStudent.jsx";
+import ViewStudentDetail from "./../Views/ConsultancyManagement/Registration/ViewStudentDetail/ViewStudentDetail.jsx";
+import UpdateStudentDetail from "./../Views/ConsultancyManagement/Registration/UpdateStudentDetail/UpdateStudentDetail.jsx";
+import PcaAgreed from "./../Views/ConsultancyManagement/Registration/PCAAgreed/PCAAgreed.jsx";
+
 import AllCandidates from "./../Views/ConsultancyManagement/AllCandidates/AllCandidates.jsx";
 import InterviewScheduled from "./../Views/ConsultancyManagement/InterviewStatus/InterviewScheduled/InterviewScheduled.jsx";
 import PlacedCandidates from "./../Views/ConsultancyManagement/StudentStatus/PlacedCandidates/PlacedCandidates.jsx";
@@ -263,6 +268,9 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="STUDENT_VIEW" />}>
                         <Route path="consultancy/viewStudents" element={<ViewStudent />} />
+                        <Route path="consultancy/view-student-detail/:studentId" element={<ViewStudentDetail />} />
+                        <Route path="consultancy/update-student/:studentId" element={<UpdateStudentDetail />} />
+                        <Route path="consultancy/pca-agreed/:student.id" element={<PcaAgreed />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="CANDIDATES_VIEW" />}>
