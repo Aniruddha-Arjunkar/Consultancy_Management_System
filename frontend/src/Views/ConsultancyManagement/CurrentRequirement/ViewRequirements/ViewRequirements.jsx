@@ -13,6 +13,8 @@ const ViewRequirements = () => {
     const bottomScrollRef = useRef(null);
     const bottomScrollInnerRef = useRef(null);
 
+    const [closingRequirementId, setClosingRequirementId] = useState(null);
+
 
     const navigate = useNavigate();
 
@@ -105,6 +107,33 @@ const ViewRequirements = () => {
             wrapper.removeEventListener("scroll", syncTableToBottom);
         };
     }, [filteredRequirements, loading]);
+
+
+    const handleCloseRequirement = async (requirement) => {
+        const confirmed = window.confirm(
+            `Close the requirement "${requirement.jobProfile}" for ${requirement.companyName}?`
+        );
+
+        if (!confirmed) return;
+
+        setClosingRequirementId(requirement.id);
+
+        try {
+            await currentRequirementService.closeCurrentRequirement(
+                requirement.id
+            );
+
+            setRequirements((current) =>
+                current.filter((item) => item.id !== requirement.id)
+            );
+
+            window.alert("Requirement closed successfully ✅.");
+        } catch (error) {
+            window.alert(error.message || "Could not close requirement ❌.");
+        } finally {
+            setClosingRequirementId(null);
+        }
+    };
 
     return (
         <section id="main-content">
@@ -232,15 +261,16 @@ const ViewRequirements = () => {
                                                                         className="view-client-view-btn"
                                                                         onClick={() =>
                                                                             navigate(`/consultancy/view-requirement-detail/${requirement.id}`)
-                                                                        }
-                                                                    >
+                                                                        }>
                                                                         View
                                                                     </button>
                                                                     <button
                                                                         type="button"
                                                                         className="view-client-defaulter-btn"
+                                                                        onClick={() => handleCloseRequirement(requirement)}
+                                                                        disabled={closingRequirementId === requirement.id}
                                                                     >
-                                                                        Close
+                                                                        {closingRequirementId === requirement.id ? "Closing..." : "Close"}
                                                                     </button>
                                                                 </div>
                                                             </td>

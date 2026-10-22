@@ -117,11 +117,44 @@ const closeCurrentRequirement = async (requirementId) => {
 };
 
 
+const getClosedRequirements = async () => {
+    const response = await fetch(`${API_BASE_URL}/requirements/closed`, {
+        method: "GET",
+        credentials: "include",
+    });
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+
+const getClosedRequirementById = async (requirementId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/requirements/closed/${encodeURIComponent(requirementId)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+
 export default {
     getAssociateCompanyOptions,
     createCurrentRequirement,
     getCurrentRequirements,
     getCurrentRequirementById,
     updateCurrentRequirement,
-    closeCurrentRequirement
+    closeCurrentRequirement,
+    getClosedRequirements,
+    getClosedRequirementById
 };
