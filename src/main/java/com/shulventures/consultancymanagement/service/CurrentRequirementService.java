@@ -1,8 +1,6 @@
 package com.shulventures.consultancymanagement.service;
 
-import com.shulventures.consultancymanagement.dto.requirement.CreateCurrentRequirementRequest;
-import com.shulventures.consultancymanagement.dto.requirement.CurrentRequirementResponse;
-import com.shulventures.consultancymanagement.dto.requirement.UpdateCurrentRequirementRequest;
+import com.shulventures.consultancymanagement.dto.requirement.*;
 import com.shulventures.consultancymanagement.entity.AssociateCompany;
 import com.shulventures.consultancymanagement.entity.ClosedRequirement;
 import com.shulventures.consultancymanagement.entity.CurrentRequirement;
@@ -13,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.shulventures.consultancymanagement.dto.requirement.AssociateCompanyOptionResponse;
 import java.util.List;
 
 import java.util.Locale;
@@ -223,5 +220,56 @@ public class CurrentRequirementService {
 
         closedRequirementRepository.save(closed);
         requirementRepository.delete(requirement);
+    }
+
+
+
+    @Transactional(readOnly = true)
+    public List<ClosedRequirementResponse> getAllClosed() {
+        return closedRequirementRepository.findAllByOrderByIdDesc()
+                .stream()
+                .map(requirement -> new ClosedRequirementResponse(
+                        requirement.getId(),
+                        requirement.getCompanyName(),
+                        requirement.getLocation(),
+                        requirement.getEducation(),
+                        requirement.getJobProfile(),
+                        requirement.getNoOfPositions(),
+                        requirement.getPositionLevel(),
+                        requirement.getYearsOfExperience(),
+                        requirement.getJobDescription(),
+                        requirement.getSkillsRequired(),
+                        requirement.getOpenDate(),
+                        requirement.getCloseDate(),
+                        requirement.getSelectCandidate()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ClosedRequirementResponse getClosedById(Long id) {
+        ClosedRequirement requirement =
+                closedRequirementRepository.findById(id)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Closed requirement not found."
+                                )
+                        );
+
+        return new ClosedRequirementResponse(
+                requirement.getId(),
+                requirement.getCompanyName(),
+                requirement.getLocation(),
+                requirement.getEducation(),
+                requirement.getJobProfile(),
+                requirement.getNoOfPositions(),
+                requirement.getPositionLevel(),
+                requirement.getYearsOfExperience(),
+                requirement.getJobDescription(),
+                requirement.getSkillsRequired(),
+                requirement.getOpenDate(),
+                requirement.getCloseDate(),
+                requirement.getSelectCandidate()
+        );
     }
 }

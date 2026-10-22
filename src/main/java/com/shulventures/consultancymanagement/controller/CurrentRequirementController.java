@@ -1,9 +1,6 @@
 package com.shulventures.consultancymanagement.controller;
 
-import com.shulventures.consultancymanagement.dto.requirement.AssociateCompanyOptionResponse;
-import com.shulventures.consultancymanagement.dto.requirement.CreateCurrentRequirementRequest;
-import com.shulventures.consultancymanagement.dto.requirement.CurrentRequirementResponse;
-import com.shulventures.consultancymanagement.dto.requirement.UpdateCurrentRequirementRequest;
+import com.shulventures.consultancymanagement.dto.requirement.*;
 import com.shulventures.consultancymanagement.service.CurrentRequirementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,61 +18,62 @@ public class CurrentRequirementController {
     private final CurrentRequirementService requirementService;
 
     @GetMapping("/associate-companies")
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_ADD')"
-    )
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_ADD')")
     public List<AssociateCompanyOptionResponse> getAssociateCompanyOptions() {
         return requirementService.getAssociateCompanyOptions();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_ADD')"
-    )
-    public CurrentRequirementResponse createRequirement(
-            @Valid @RequestBody CreateCurrentRequirementRequest request
-    ) {
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_ADD')")
+    public CurrentRequirementResponse createRequirement(@Valid @RequestBody CreateCurrentRequirementRequest request) {
         return requirementService.create(request);
     }
 
     @GetMapping
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')"
-    )
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')")
     public List<CurrentRequirementResponse> getRequirements() {
         return requirementService.getAll();
     }
 
 
     @GetMapping("/{id}")
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')"
-    )
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')")
     public CurrentRequirementResponse getRequirement(@PathVariable Long id) {
         return requirementService.getById(id);
     }
 
 
     @PutMapping("/{id}")
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')"
-    )
-    public CurrentRequirementResponse updateRequirement(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateCurrentRequirementRequest request
-    ) {
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')")
+    public CurrentRequirementResponse updateRequirement(@PathVariable Long id, @Valid @RequestBody UpdateCurrentRequirementRequest request) {
         return requirementService.update(id, request);
     }
 
 
     @PostMapping("/{id}/close")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize(
-            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')"
-    )
+    @PreAuthorize("@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_VIEW')")
     public void closeRequirement(@PathVariable Long id) {
         requirementService.close(id);
+    }
+
+    @GetMapping("/closed")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_CLOSED')"
+    )
+    public List<ClosedRequirementResponse> getClosedRequirements() {
+        return requirementService.getAllClosed();
+    }
+
+    @GetMapping("/closed/{id}")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REQUIREMENT_CLOSED')"
+    )
+    public ClosedRequirementResponse getClosedRequirement(
+            @PathVariable Long id
+    ) {
+        return requirementService.getClosedById(id);
     }
 
 }
