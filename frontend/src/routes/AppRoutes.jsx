@@ -270,7 +270,7 @@ function AppRoutes() {
                         <Route path="consultancy/viewStudents" element={<ViewStudent />} />
                         <Route path="consultancy/view-student-detail/:studentId" element={<ViewStudentDetail />} />
                         <Route path="consultancy/update-student/:studentId" element={<UpdateStudentDetail />} />
-                        <Route path="consultancy/pca-agreed/:student.id" element={<PcaAgreed />} />
+                        <Route path="consultancy/pca-agreed/:studentId" element={<PcaAgreed />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="CANDIDATES_VIEW" />}>

@@ -24,6 +24,12 @@ import com.shulventures.consultancymanagement.dto.registration.StudentRegistrati
 import com.shulventures.consultancymanagement.dto.registration.StudentRequirementOptionResponse;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentRegistrationService {
@@ -282,4 +288,60 @@ public class StudentRegistrationService {
         // Keep the current resume and job profile unchanged.
         return toResponse(registrationRepository.save(student));
     }
+
+    @Transactional
+    public void delete(Long id) {
+        StudentRegistration student = registrationRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Student not found.")
+                );
+
+        Path resumeFile = getResumeFileForDeletion(student.getResume());
+
+        registrationRepository.delete(student);
+
+        if (resumeFile != null) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            try {
+                                Files.deleteIfExists(resumeFile);
+                            } catch (IOException exception) {
+                                log.warn(
+                                        "Student {} was deleted, but resume file {} could not be removed.",
+                                        id,
+                                        resumeFile,
+                                        exception
+                                );
+                            }
+                        }
+                    }
+            );
+        }
+    }
+
+    private Path getResumeFileForDeletion(String resume) {
+        if (resume == null || resume.isBlank()) {
+            return null;
+        }
+
+        Path directory = Path.of(resumeDirectory)
+                .toAbsolutePath()
+                .normalize();
+
+        Path filename = Path.of(resume).getFileName();
+        if (filename == null) {
+            return null;
+        }
+
+        Path file = directory.resolve(filename).normalize();
+
+        if (!file.startsWith(directory)) {
+            throw new IllegalArgumentException("Invalid resume file path.");
+        }
+
+        return file;
+    }
+
 }

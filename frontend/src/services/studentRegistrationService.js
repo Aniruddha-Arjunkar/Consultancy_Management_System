@@ -91,10 +91,27 @@ const updateStudent = async (studentId, payload) => {
     return response.json();
 };
 
+
+
+const deleteStudent = async (studentId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/students/${encodeURIComponent(studentId)}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+};
+
 export default {
     getCurrentRequirements,
     createStudentRegistration,
     getStudents,
     getStudentById,
-    updateStudent
+    updateStudent,
+    deleteStudent
 };

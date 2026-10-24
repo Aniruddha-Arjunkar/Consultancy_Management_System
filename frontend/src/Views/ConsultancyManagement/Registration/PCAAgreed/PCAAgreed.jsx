@@ -71,7 +71,7 @@ const PCAAgreed = () => {
 
     return (
         <section id="main-content">
-            <section className="wrapper pca-agreed-page">
+            <section className=" pca-agreed-page">
                 <div className="reg-w3">
                     <div className="refollowup-card">
                         <div className="refollowup-header">

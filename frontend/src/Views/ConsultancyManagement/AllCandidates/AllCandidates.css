@@ -1,5 +1,4 @@
 .all-candidate-page {
-    min-height: calc(100vh - 70px);
     padding: 20px;
     border-radius: 14px;
     background: linear-gradient(135deg, #e5e7f2, #dfe3f0, #e7e9f4);

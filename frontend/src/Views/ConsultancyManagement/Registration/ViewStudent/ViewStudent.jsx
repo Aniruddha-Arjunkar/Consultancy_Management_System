@@ -10,6 +10,34 @@ const ViewStudent = () => {
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [deletingStudentId, setDeletingStudentId] = useState(null);
+
+
+    const handleDelete = async (student) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to permanently delete ${student.name || "this student"}'s registration?`
+        );
+
+        if (!confirmed) return;
+
+        setDeletingStudentId(student.id);
+
+        try {
+            await studentRegistrationService.deleteStudent(student.id);
+
+            setStudents((currentStudents) =>
+                currentStudents.filter(
+                    (item) => String(item.id) !== String(student.id)
+                )
+            );
+        } catch (deleteError) {
+            window.alert(
+                deleteError.message || "Could not delete the student record."
+            );
+        } finally {
+            setDeletingStudentId(null);
+        }
+    };
 
 
     const navigate = useNavigate();
@@ -91,7 +119,7 @@ const ViewStudent = () => {
 
                     <div className="view-clients-card">
                         <div className="view-clients-filter">
-                            <div className="view-client-search-wrap" style={{marginBottom:'10px'}}>
+                            <div className="view-client-search-wrap" style={{ marginBottom: '10px' }}>
                                 <span className="view-client-search-icon">
                                     🔍
                                 </span>
@@ -166,14 +194,15 @@ const ViewStudent = () => {
                                                                 <button
                                                                     type="button"
                                                                     className="view-client-defaulter-btn"
-                                                                    onClick={""}
-
+                                                                    onClick={() => handleDelete(student)}
+                                                                    disabled={String(deletingStudentId) === String(student.id)}
                                                                 >
-                                                                    Detete
+                                                                    {String(deletingStudentId) === String(student.id)
+                                                                        ? "Deleting..."
+                                                                        : "Delete"}
                                                                 </button>
                                                             </div>
                                                         </td>
-
                                                     </tr>
                                                 )
                                             )

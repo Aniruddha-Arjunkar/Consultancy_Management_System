@@ -115,4 +115,14 @@ public class StudentRegistrationController {
     ) {
         return registrationService.update(id, request);
     }
+
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'STUDENT_VIEW')"
+    )
+    public void deleteStudent(@PathVariable Long id) {
+        registrationService.delete(id);
+    }
 }

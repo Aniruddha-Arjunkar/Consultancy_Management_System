@@ -80,7 +80,7 @@ const AllCandidates = () => {
 
                     <div className="view-clients-card">
                         <div className="view-clients-filter">
-                            <div className="view-client-search-wrap">
+                            <div className="view-client-search-wrap" style={{marginBottom:'10px'}}>
                                 <span className="view-client-search-icon">
                                     🔍
                                 </span>
