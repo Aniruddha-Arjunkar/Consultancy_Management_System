@@ -113,6 +113,7 @@ const AllCandidates = () => {
                                             <th>Job Profile</th>
                                             <th>Agreement Date</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -121,7 +122,7 @@ const AllCandidates = () => {
                                                 (candidate, index) => (
                                                     <tr key={candidate.id}>
                                                         <td>{index + 1}</td>
-                                                        <td className="view-client-name">
+                                                        <td className="view-client-name" style={{fontWeight:700}}>
                                                             {candidate.name || "—"}
                                                         </td>
                                                         <td>
