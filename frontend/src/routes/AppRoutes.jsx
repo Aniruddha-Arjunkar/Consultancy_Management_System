@@ -73,6 +73,9 @@ import UpdateStudentDetail from "./../Views/ConsultancyManagement/Registration/U
 import PcaAgreed from "./../Views/ConsultancyManagement/Registration/PCAAgreed/PCAAgreed.jsx";
 
 import AllCandidates from "./../Views/ConsultancyManagement/AllCandidates/AllCandidates.jsx";
+import ViewCandidateDetail from "./../Views/ConsultancyManagement/AllCandidates/ViewCandidateDetail/ViewCandidateDetail.jsx";
+import UpdateCandidateProfile from "../Views/ConsultancyManagement/AllCandidates/UpdateCandidateDetail/UpdateCandidateDetail.jsx";
+
 import InterviewScheduled from "./../Views/ConsultancyManagement/InterviewStatus/InterviewScheduled/InterviewScheduled.jsx";
 import PlacedCandidates from "./../Views/ConsultancyManagement/StudentStatus/PlacedCandidates/PlacedCandidates.jsx";
 import RejectedCandidates from "./../Views/ConsultancyManagement/StudentStatus/RejectedCandidates/RejectedCandidates.jsx";
@@ -275,6 +278,8 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="CANDIDATES_VIEW" />}>
                         <Route path="consultancy/all-candidates" element={<AllCandidates />} />
+                        <Route path="consultancy/view-candidate-detail/:candidateId" element={<ViewCandidateDetail />}/>
+                         <Route path="consultancy/update-candidate/:candidateId" element={<UpdateCandidateProfile />}/>
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="INTERVIEW_SCHEDULE" />}>

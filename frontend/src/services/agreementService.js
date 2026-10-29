@@ -44,7 +44,80 @@ const getCandidates = async () => {
     return response.json();
 };
 
+
+const getCandidate = async (candidateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+const updateCandidate = async (candidateId, payload) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+const blacklistCandidate = async (candidateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/blacklist`,
+        {
+            method: "PATCH",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+
+const deleteCandidate = async (candidateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+};
+
+const getCandidateResumeUrl = (candidateId) =>
+    `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/resume`;
 export default {
     convertStudent,
     getCandidates,
+    getCandidate,
+    updateCandidate,
+    getCandidateResumeUrl,
+    blacklistCandidate,
+    deleteCandidate
 };

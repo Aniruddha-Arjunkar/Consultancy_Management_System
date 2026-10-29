@@ -1,7 +1,45 @@
-.all-candidate-page {
+/* .all-candidate-page {
     padding: 20px;
     border-radius: 14px;
     background: linear-gradient(135deg, #e5e7f2, #dfe3f0, #e7e9f4);
+} */
+
+.all-candidate-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.all-candidate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.all-candidate-action-btn {
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.all-candidate-action-blacklisted {
+    background: #e95353;
+}
+
+.all-candidate-action-pca {
+    background: green;
+}
+
+.all-candidate-action-non-pca {
+    background: orange;
 }
 
 .candidate-status {
@@ -13,18 +51,57 @@
     white-space: nowrap;
 }
 
+.candidate-status-blacklisted {
+    color: #d21f2b;
+}
+
 .candidate-status-agreed {
-    background: #e5f6eb;
-    color: #18833b;
+    color: blue;
 }
 
 .candidate-status-not-agreed {
-    background: #fff0f1;
-    color: #c52c3d;
+    color: green;
+}
+
+.all-candidate-action-all {
+    background: #2058d8;
+}
+
+.all-candidate-action-btn.is-active {
+    outline: 3px solid rgba(22, 45, 79, 0.2);
+    outline-offset: 2px;
+    /* filter: brightness(0.88); */
 }
 
 @media (max-width: 768px) {
     .all-candidate-page {
         padding: 10px;
+    }
+
+    .all-candidate-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .all-candidate-toolbar .view-client-search-wrap {
+        width: 100%;
+    }
+
+    .all-candidate-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 576px) {
+    .all-candidate-actions {
+        gap: 5px;
+    }
+
+    .all-candidate-action-btn {
+        flex: 1 1 30%;
+        min-width: 0;
+        padding: 8px 5px;
+        font-size: 11px;
+        white-space: normal;
     }
 }

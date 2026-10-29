@@ -29,6 +29,7 @@ body {
         #e7e9f4 100%
     );
     border-radius: 20px;
+    /* border:red solid 1px ; */
 }
 
 
@@ -363,15 +364,16 @@ body {
 .view-clients-page {
     width: 100%;
     max-width: 1280px;
+    /* border: black solid 1px; */
     margin: 0 auto;
-    padding: 20px;
+    /* padding: 10px; */
      background: linear-gradient(
     135deg,
     #e5e7f2 0%,
     #dfe3f0 50%,
     #e7e9f4 100%
   );
-    margin: 17px;
+    /* margin: 17px; */
     border-radius: 16px;
 }
 

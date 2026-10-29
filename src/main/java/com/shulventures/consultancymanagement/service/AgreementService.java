@@ -13,12 +13,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.shulventures.consultancymanagement.dto.agreement.UpdateAgreementRequest;
+import org.springframework.beans.factory.annotation.Value;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.io.IOException;
+
 @Service
 @RequiredArgsConstructor
 public class AgreementService {
 
     private final AgreementRepository agreementRepository;
     private final StudentRegistrationRepository registrationRepository;
+
+    @Value("${app.upload.student-resumes:uploads/student-resumes}")
+    private String resumeDirectory;
 
     @Transactional
     public AgreementResponse convertStudent(
@@ -149,5 +162,159 @@ public class AgreementService {
                 agreement.getResume(),
                 agreement.getJobProfile()
         );
+    }
+
+
+    @Transactional
+    public AgreementResponse updateCandidate(
+            Long id,
+            UpdateAgreementRequest request
+    ) {
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Candidate not found.")
+                );
+
+        agreement.setName(request.name().trim());
+        agreement.setEmail(request.email().trim());
+        agreement.setPhone(request.phone().trim());
+        agreement.setDob(request.dob());
+        agreement.setAgreementDate(request.agreementDate());
+        agreement.setGender(request.gender().trim());
+
+        agreement.setTenTh(textOrEmpty(request.tenTh()));
+        agreement.setTenThPercentage(request.tenThPercentage());
+        agreement.setTenThYearOfPassing(
+                textOrEmpty(request.tenThYearOfPassing())
+        );
+
+        agreement.setTwelveTh(textOrEmpty(request.twelveTh()));
+        agreement.setTwelveThPercentage(request.twelveThPercentage());
+        agreement.setTwelveThYearOfPassing(
+                textOrEmpty(request.twelveThYearOfPassing())
+        );
+
+        agreement.setGraduation(textOrEmpty(request.graduation()));
+        agreement.setGraduationPercentage(request.graduationPercentage());
+        agreement.setGraduationYearOfPassing(
+                textOrEmpty(request.graduationYearOfPassing())
+        );
+
+        agreement.setPostGraduation(textOrEmpty(request.postGraduation()));
+        agreement.setPostGraduationPercentage(
+                request.postGraduationPercentage()
+        );
+        agreement.setPostGraduationYearOfPassing(
+                textOrEmpty(request.postGraduationYearOfPassing())
+        );
+
+        agreement.setAddress(textOrEmpty(request.address()));
+        agreement.setShippingAddress(textOrEmpty(request.shippingAddress()));
+        agreement.setGstNumber(textOrEmpty(request.gstNumber()));
+        agreement.setExperience(textOrEmpty(request.experience()));
+        agreement.setSkills(textOrEmpty(request.skills()));
+        agreement.setExperienceDescription(
+                textOrEmpty(request.experienceDescription())
+        );
+        agreement.setStatus(request.status().trim());
+
+        // Keep the existing resume and job profile.
+        return toResponse(agreementRepository.save(agreement));
+    }
+
+    @Transactional(readOnly = true)
+    public Path getResumePath(Long id) {
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Candidate not found.")
+                );
+
+        if (agreement.getResume() == null || agreement.getResume().isBlank()) {
+            throw new IllegalArgumentException("Resume not found.");
+        }
+
+        Path directory = Path.of(resumeDirectory).toAbsolutePath().normalize();
+        Path filename = Path.of(agreement.getResume()).getFileName();
+
+        if (filename == null) {
+            throw new IllegalArgumentException("Resume file not found.");
+        }
+
+        Path file = directory.resolve(filename).normalize();
+
+        if (!file.startsWith(directory) || !Files.isRegularFile(file)) {
+            throw new IllegalArgumentException("Resume file not found.");
+        }
+
+        return file;
+    }
+
+
+    @Transactional
+    public AgreementResponse blacklistCandidate(Long id) {
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Candidate not found.")
+                );
+
+        if (!"Blacklisted".equals(agreement.getStatus())) {
+            agreement.setStatus("Blacklisted");
+            agreement = agreementRepository.save(agreement);
+        }
+
+        return toResponse(agreement);
+    }
+
+
+    @Transactional
+    public void deleteCandidate(Long id) {
+        Agreement agreement = agreementRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Candidate not found.")
+                );
+
+        Path resumeFile = getResumeFileForDeletion(agreement.getResume());
+
+        agreementRepository.delete(agreement);
+
+        if (resumeFile != null) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            try {
+                                Files.deleteIfExists(resumeFile);
+                            } catch (IOException ignored) {
+                                // The candidate record is deleted; a missing or
+                                // inaccessible resume file does not undo that deletion.
+                            }
+                        }
+                    }
+            );
+        }
+    }
+
+    private Path getResumeFileForDeletion(String resume) {
+        if (resume == null || resume.isBlank()) {
+            return null;
+        }
+
+        Path directory = Path.of(resumeDirectory)
+                .toAbsolutePath()
+                .normalize();
+
+        Path filename = Path.of(resume).getFileName();
+
+        if (filename == null) {
+            return null;
+        }
+
+        Path file = directory.resolve(filename).normalize();
+
+        if (!file.startsWith(directory)) {
+            throw new IllegalArgumentException("Invalid resume file path.");
+        }
+
+        return file;
     }
 }

@@ -1,0 +1,29 @@
+
+"CREATE TABLE `tbl_placement` (
+  `interview_id` bigint(20) NOT NULL,
+  `candidate_id` int(11) NOT NULL,
+  `company_name` text NOT NULL,
+  `position` text NOT NULL,
+  `joining_date` date DEFAULT NULL,
+  `interview_date` date NOT NULL,
+  `interview_time` time NOT NULL,
+  `salary_package` text DEFAULT NULL,
+  `interview_status` enum('Scheduled','Rescheduled','Placed','Rejected','Completed') NOT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `interview_round` int(11) NOT NULL,
+  `remark` text NOT NULL,
+  `hr_name` text NOT NULL,
+  `candidate_name` text DEFAULT NULL,
+  `payment_type` text DEFAULT NULL,
+  `company_pay_amount` decimal(10,2) DEFAULT NULL,
+  `candidate_pay_amount` decimal(10,2) DEFAULT NULL,
+  `company_pay_date` date DEFAULT NULL,
+  `candidate_pay_date` date DEFAULT NULL,
+  `company_gst_amount` decimal(10,2) DEFAULT NULL,
+  `candidate_gst_amount` decimal(10,2) DEFAULT NULL,
+  `pay_remark` text DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+ALTER TABLE `tbl_placement`
+  ADD PRIMARY KEY (`interview_id`);
+ALTER TABLE `tbl_placement`
+  MODIFY `interview_id` bigint(20) NOT NULL AUTO_INCREMENT;"

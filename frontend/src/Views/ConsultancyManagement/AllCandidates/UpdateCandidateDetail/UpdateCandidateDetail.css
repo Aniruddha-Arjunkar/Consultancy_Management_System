@@ -1,0 +1,114 @@
+.update-candidate-detail-page {
+    box-sizing: border-box;
+}
+
+.update-candidate-detail-page .refollowup-card {
+    /* max-width: 900px; */
+    margin: 0 auto;
+}
+
+.update-candidate-detail-page .refollowup-form > .refollowup-header {
+    margin: 22px 0 14px;
+    border-radius: 8px;
+}
+
+.update-candidate-detail-page .refollowup-form > .refollowup-header:first-child {
+    margin-top: 0;
+}
+
+.update-candidate-detail-page .candidate-update-section-header h2 {
+    font-size: 19px;
+}
+
+.update-candidate-detail-page .candidate-update-section-header p {
+    font-size: 12px;
+}
+
+.update-candidate-detail-page .form-row {
+    gap: 12px 15px;
+}
+
+.update-candidate-detail-page .form-group {
+    min-width: 0;
+}
+
+.update-candidate-detail-page .form-group.full-width {
+    grid-column: auto;
+}
+
+.update-candidate-detail-page .form-group input,
+.update-candidate-detail-page .form-group select,
+.update-candidate-detail-page .form-group textarea {
+    width: 100%;
+}
+
+.update-candidate-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.update-candidate-actions .submit-btn {
+    width: auto;
+    min-width: 130px;
+    padding: 0 18px;
+}
+
+.update-candidate-actions .candidate-cancel-btn {
+    min-height: 34px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #e8edf5;
+    color: #34435b;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.update-candidate-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.candidate-update-error {
+    padding: 20px;
+    color: #b4232e;
+}
+
+@media (max-width: 600px) {
+    .update-candidate-detail-page {
+        padding: 15px 10px 30px;
+    }
+
+    .update-candidate-detail-page .refollowup-card {
+        max-width: 100%;
+    }
+
+    .update-candidate-detail-page .refollowup-form {
+        padding: 12px 14px 18px;
+    }
+
+    .update-candidate-detail-page .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .update-candidate-detail-page .form-group.full-width {
+        grid-column: 1;
+    }
+
+    .update-candidate-actions {
+        flex-direction: column-reverse;
+    }
+
+    .update-candidate-actions button {
+        width: 100%;
+    }
+
+    .update-candidate-actions .submit-btn {
+        width: 100%;
+    }
+}
