@@ -117,6 +117,21 @@ const setInterviewDecision = async (interviewId, status) => {
     return response.json();
 };
 
+const savePlacementPayment = async (interviewId, payload) => {
+    const response = await fetch(
+        `${API_BASE_URL}/interviews/${encodeURIComponent(interviewId)}/placement-payment`,
+        {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }
+    );
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
 export default {
     getCurrentRequirements,
     scheduleInterview,
@@ -126,4 +141,5 @@ export default {
     completeInterview,
     scheduleNextRound,
     setInterviewDecision,
+    savePlacementPayment,
 };

@@ -79,6 +79,7 @@ import EnterInterviewScheduleDetail from "./../Views/ConsultancyManagement/AllCa
 
 import InterviewScheduled from "./../Views/ConsultancyManagement/InterviewStatus/InterviewScheduled/InterviewScheduled.jsx";
 import UpdateInterviewSchedule from "./../Views/ConsultancyManagement/InterviewStatus/UpdateInterviewSchedule/UpdateInterviewSchedule.jsx";
+import AddPaymentInfo from "./../Views/ConsultancyManagement/InterviewStatus/AddPaymentInfo/AddPaymentInfo.jsx";
 
 import PlacedCandidates from "./../Views/ConsultancyManagement/StudentStatus/PlacedCandidates/PlacedCandidates.jsx";
 import RejectedCandidates from "./../Views/ConsultancyManagement/StudentStatus/RejectedCandidates/RejectedCandidates.jsx";
@@ -290,6 +291,7 @@ function AppRoutes() {
                         <Route path="consultancy/schedule-interview/:candidateId" element={<EnterInterviewScheduleDetail />}/>
                         <Route path="consultancy/interview-schedule" element={<InterviewScheduled />} />
                         <Route path="consultancy/update-interview/:interviewId" element={<UpdateInterviewSchedule />} />
+                        <Route path="consultancy/add-payment-info/:interviewId" element={<AddPaymentInfo />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="PLACED_CANDIDATES" />}>

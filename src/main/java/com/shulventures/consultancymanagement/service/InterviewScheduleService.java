@@ -15,12 +15,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.shulventures.consultancymanagement.dto.interview.InterviewUpdateDetailsResponse;
 import com.shulventures.consultancymanagement.dto.interview.UpdateInterviewRoundRequest;
+import com.shulventures.consultancymanagement.dto.interview.PlacementPaymentRequest;
+import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
+import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepository;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.List;
+import java.time.LocalDate;
 
 
 @Service
@@ -30,6 +36,7 @@ public class InterviewScheduleService {
     private final InterviewPlacementRepository interviewRepository;
     private final AgreementRepository agreementRepository;
     private final CurrentRequirementRepository requirementRepository;
+    private final ConsultancyPaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     public List<InterviewRequirementOptionResponse> getCurrentRequirements() {
@@ -254,6 +261,93 @@ public class InterviewScheduleService {
         interview.setInterviewStatus(status);
 
         return toResponse(interviewRepository.save(interview));
+    }
+
+    @Transactional
+    public InterviewScheduleResponse savePlacementPayment(
+            Long interviewId,
+            PlacementPaymentRequest request
+    ) {
+        InterviewPlacement placement = findInterview(interviewId);
+        if (!"Placed".equals(placement.getInterviewStatus())) {
+            throw new IllegalArgumentException(
+                    "Payment details can only be saved for a Placed candidate."
+            );
+        }
+
+        boolean companyPays = "Company Pay".equals(request.paymentType())
+                || "Both Pay".equals(request.paymentType());
+        boolean candidatePays = "Candidate Pay".equals(request.paymentType())
+                || "Both Pay".equals(request.paymentType());
+
+        if (companyPays && request.companyPayAmount() == null) {
+            throw new IllegalArgumentException("Enter the company payment amount.");
+        }
+        if (candidatePays && request.candidatePayAmount() == null) {
+            throw new IllegalArgumentException("Enter the candidate payment amount.");
+        }
+
+        placement.setSalaryPackage(request.salaryPackage().trim());
+        placement.setJoiningDate(request.joiningDate());
+        placement.setPaymentType(request.paymentType());
+        placement.setPayRemark(textOrEmpty(request.payRemark()).trim());
+
+        placement.setCompanyPayAmount(companyPays ? money(request.companyPayAmount()) : null);
+        placement.setCompanyPayDate(companyPays ? request.companyPayDate() : null);
+        placement.setCompanyGstAmount(companyPays && request.companyGstApplicable()
+                ? gst(request.companyPayAmount()) : null);
+        placement.setCandidatePayAmount(candidatePays ? money(request.candidatePayAmount()) : null);
+        placement.setCandidatePayDate(candidatePays ? request.candidatePayDate() : null);
+        placement.setCandidateGstAmount(candidatePays && request.candidateGstApplicable()
+                ? gst(request.candidatePayAmount()) : null);
+
+        if (companyPays) {
+            savePaymentRecord(placement, "Company Pay", request.companyPayAmount(),
+                    placement.getCompanyGstAmount(), request.companyPayDate());
+        }
+        if (candidatePays) {
+            savePaymentRecord(placement, "Candidate Pay", request.candidatePayAmount(),
+                    placement.getCandidateGstAmount(), request.candidatePayDate());
+        }
+
+        return toResponse(interviewRepository.save(placement));
+    }
+
+    private void savePaymentRecord(
+            InterviewPlacement placement,
+            String paymentType,
+            BigDecimal baseAmount,
+            BigDecimal gstAmount,
+            LocalDate dueDate
+    ) {
+        BigDecimal total = money(baseAmount)
+                .add(gstAmount == null ? BigDecimal.ZERO : gstAmount)
+                .setScale(2, RoundingMode.HALF_UP);
+        ConsultancyPayment payment = paymentRepository
+                .findByInterviewIdAndPaymentType(placement.getInterviewId(), paymentType)
+                .orElseGet(ConsultancyPayment::new);
+
+        payment.setClientId(String.valueOf(placement.getCandidateId()));
+        payment.setInterviewId(placement.getInterviewId());
+        payment.setPaymentType(paymentType);
+        payment.setTotalAmount(total);
+        payment.setDueDate(dueDate);
+        if (payment.getPaidAmount() == null) payment.setPaidAmount(BigDecimal.ZERO);
+        payment.setDueAmount(total.subtract(payment.getPaidAmount())
+                .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
+        if (payment.getStatus() == null) payment.setStatus("active");
+        if (payment.getTdsAmount() == null) payment.setTdsAmount(BigDecimal.ZERO);
+        if (payment.getTdsPaid() == null) payment.setTdsPaid(false);
+        paymentRepository.save(payment);
+    }
+
+    private BigDecimal money(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal gst(BigDecimal baseAmount) {
+        return baseAmount.multiply(new BigDecimal("0.18"))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private InterviewPlacement findInterview(Long interviewId) {

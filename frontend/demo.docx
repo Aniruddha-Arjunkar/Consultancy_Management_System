@@ -1,1 +1,535 @@
-now the PCA Agrred and PCA Not Agreed Button is implemented Successfully 
+In UpdateInterviewSchedule.jsx as user click on the  interviewStatus became "Placed" and after that new view open (in 
+our project is AddPaymentInfo.jsx) where user enter Payment Related Information . And this information get stored in 
+tbl_Payment(we have not implemnted yet this entity) and tbl_placement (First analyze the Seniors code file then we 
+actully know where and how the data is storing) .we are also handling payment type (candidate pay , company pay and both pay). So We have to implement AddPaymentInfo.jsx .(dont make any 
+changes by yourself , analyze seniors code first and then give me code file.) (in this page we have GST checkbox 
+so we also have to calculate GST 18%) senior code file placed-cadidate.php -----------> "
+<?php 
+session_start(); 
+ 
+// Check if user is logged in 
+if (!isset($_SESSION['email'])) { 
+    $_SESSION['msg'] = "You must log in first"; 
+    header('location:login.php'); 
+    exit(); 
+} 
+ 
+require_once 'db_connect.php'; 
+include 'header.php'; 
+ 
+// Check if id and status are set in GET 
+if (isset($_GET['id']) && isset($_GET['status'])) { 
+    $interview_id = intval($_GET['id']); 
+    $status = mysqli_real_escape_string($conn, $_GET['status']); 
+ 
+    if ($status == 'Placed') { 
+        // If form submitted 
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') { 
+            $candidate_name = mysqli_real_escape_string($conn, $_POST['candidate_name']);
+            $salary_package = mysqli_real_escape_string($conn, $_POST['salary_package']); 
+            $joining_date = mysqli_real_escape_string($conn, $_POST['joining_date']); 
+            $payment_type = mysqli_real_escape_string($conn, $_POST['payment_type']); 
+ 
+            // Base amounts (nullable) 
+            $company_pay_amount = isset($_POST['company_pay_amount']) && $_POST['company_pay_amount'] !== '' 
+                ? floatval($_POST['company_pay_amount']) 
+                : null; 
+ 
+            $company_pay_date = isset($_POST['company_pay_date']) 
+                ? mysqli_real_escape_string($conn, $_POST['company_pay_date']) 
+                : null; 
+ 
+            $company_gst_applicable = isset($_POST['company_gst_applicable']); 
+ 
+            $candidate_pay_amount = isset($_POST['candidate_pay_amount']) && $_POST['candidate_pay_amount'] !== '' 
+                ? floatval($_POST['candidate_pay_amount']) 
+                : null; 
+ 
+            $candidate_pay_date = isset($_POST['candidate_pay_date']) 
+                ? mysqli_real_escape_string($conn, $_POST['candidate_pay_date']) 
+                : null; 
+ 
+            $candidate_gst_applicable = isset($_POST['candidate_gst_applicable']); 
+ 
+            // Calculate GST amounts 
+            $company_gst_amount = ($company_gst_applicable && $company_pay_amount !== null) 
+                ? round($company_pay_amount * 0.18, 2) 
+                : 0; 
+ 
+            $candidate_gst_amount = ($candidate_gst_applicable && $candidate_pay_amount !== null) 
+                ? round($candidate_pay_amount * 0.18, 2) 
+                : 0; 
+ 
+            // Get candidate_id from tbl_placement for this interview 
+            $candidate_query = "SELECT candidate_id, candidate_name FROM tbl_placement WHERE interview_id = $interview_id"; 
+            $candidate_result = mysqli_query($conn, $candidate_query); 
+ 
+            if ($candidate_result && mysqli_num_rows($candidate_result) > 0) { 
+                $candidate_data = mysqli_fetch_assoc($candidate_result); 
+                $candidate_id = $candidate_data['candidate_id']; 
+            } else { 
+                echo "Error: Candidate not found for this interview."; 
+                exit(); 
+            } 
+ 
+            // Update tbl_placement 
+            $update_sql = "UPDATE tbl_placement SET  
+                candidate_name = '$candidate_name',
+                interview_status = '$status',  
+                salary_package = '$salary_package',  
+                joining_date = '$joining_date',  
+                payment_type = '$payment_type',  
+                company_pay_amount = " . ($company_pay_amount !== null ? "'$company_pay_amount'" : "NULL") . ",  
+                company_gst_amount = " . ($company_gst_amount > 0 ? "'$company_gst_amount'" : "NULL") . ",  
+                company_pay_date = " . ($company_pay_date ? "'$company_pay_date'" : "NULL") . ",  
+                candidate_pay_amount = " . ($candidate_pay_amount !== null ? "'$candidate_pay_amount'" : "NULL") . ",  
+                candidate_gst_amount = " . ($candidate_gst_amount > 0 ? "'$candidate_gst_amount'" : "NULL") . ",  
+                candidate_pay_date = " . ($candidate_pay_date ? "'$candidate_pay_date'" : "NULL") . " 
+                WHERE interview_id = $interview_id"; 
+ 
+            if (mysqli_query($conn, $update_sql)) { 
+ 
+                // Insert company payment if applicable 
+                if (($payment_type == 'Company Pay' || $payment_type == 'Both Pay') && $company_pay_amount !== null) { 
+                    $total_company_pay = $company_pay_amount + $company_gst_amount; 
+ 
+                    $sql = "INSERT INTO tbl_payment 
+                        (client_id, interview_id, payment_type, total_amount, due_date) 
+                        VALUES  
+                        ($candidate_id, $interview_id, 'Company Pay', $total_company_pay, " 
+                        . ($company_pay_date ? "'$company_pay_date'" : "NULL") . ")"; 
+ 
+                    mysqli_query($conn, $sql); 
+                } 
+ 
+                // Insert candidate payment if applicable 
+                if (($payment_type == 'Candidate Pay' || $payment_type == 'Both Pay') && $candidate_pay_amount !== null) { 
+                    $total_candidate_pay = $candidate_pay_amount + $candidate_gst_amount; 
+ 
+                    $sql = "INSERT INTO tbl_payment 
+                        (client_id, interview_id, payment_type, total_amount, due_date) 
+                        VALUES  
+                        ($candidate_id, $interview_id, 'Candidate Pay', $total_candidate_pay, " 
+                        . ($candidate_pay_date ? "'$candidate_pay_date'" : "NULL") . ")"; 
+ 
+                    mysqli_query($conn, $sql); 
+                } 
+ 
+                echo "<script>
+                    alert('Candidate placed successfully with GST and payment details.'); 
+                    window.location.href='view-interview-schedule-student.php';
+                </script>"; 
+                exit(); 
+ 
+            } else { 
+                echo "Error updating placement: " . mysqli_error($conn); 
+            } 
+        } 
+ 
+    } else { 
+ 
+        // For other statuses 
+        $sql = "UPDATE tbl_placement SET interview_status = '$status' WHERE interview_id = $interview_id"; 
+ 
+        if (mysqli_query($conn, $sql)) { 
+            echo "<script>
+                alert('Status updated successfully.'); 
+                window.location.href='view-interview-schedule-student.php';
+            </script>"; 
+            exit(); 
+        } else { 
+            echo "Error updating status: " . mysqli_error($conn); 
+        } 
+    } 
+ 
+} else { 
+    echo "Invalid request."; 
+} 
+ 
+mysqli_close($conn); 
+?>
+
+
+<?php if (isset($status) && $status == 'Placed'): ?>
+
+<section id="main-content">
+    <section class="wrapper">
+
+        <div class="reg-w3">
+
+            <div class="refollowup-card">
+
+                <!-- HEADER -->
+                <div class="refollowup-header">
+
+                    <div class="refollowup-title">
+                        <span class="phone-icon">📞</span>
+
+                        <div>
+                            <h2>Placement & Payment Details</h2>
+                            <p>Enter candidate placement and payment details</p>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- FORM -->
+                <form action="" method="post" class="refollowup-form">
+
+                    <!-- PLACEMENT DETAILS -->
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label for="salary_package">
+                                Salary Package
+                            </label>
+
+                            <input
+                                type="text"
+                                id="salary_package"
+                                name="salary_package"
+                                placeholder="Enter salary package"
+                                required
+                            >
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="joining_date">
+                                Joining Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="joining_date"
+                                name="joining_date"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- PAYMENT TYPE -->
+                    <div class="form-row">
+
+                        <div class="form-group full-width">
+
+                            <label for="payment_type">
+                                Payment Type
+                            </label>
+
+                            <select
+                                name="payment_type"
+                                id="payment_type"
+                                required
+                            >
+                                <option value="">Select Pay</option>
+                                <option value="Company Pay">Company Pay</option>
+                                <option value="Candidate Pay">Candidate Pay</option>
+                                <option value="Both Pay">Both Pay</option>
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- COMPANY PAYMENT -->
+                    <div
+                        id="company_pay_fields"
+                        class="form-row"
+                        style="display:none;"
+                    >
+
+                        <div class="form-group">
+
+                            <label for="company_pay_amount">
+                                Company Pay Amount (Base)
+                            </label>
+
+                            <input
+                                type="number"
+                                id="company_pay_amount"
+                                name="company_pay_amount"
+                                min="0"
+                                step="0.01"
+                                placeholder="Enter company amount"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="company_pay_date">
+                                Company Pay Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="company_pay_date"
+                                name="company_pay_date"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group full-width">
+
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    name="company_gst_applicable"
+                                    id="company_gst_applicable"
+                                >
+
+                                Apply GST (18%)
+                            </label>
+
+                        </div>
+
+
+                        <div
+                            id="company_gst_details"
+                            class="form-group full-width"
+                            style="display:none;"
+                        >
+
+                            <div>
+                                GST Amount:
+                                ₹<span id="company_gst_value">0</span>
+                            </div>
+
+                            <div>
+                                Total with GST:
+                                ₹<span id="company_total_value">0</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- CANDIDATE PAYMENT -->
+                    <div
+                        id="candidate_pay_fields"
+                        class="form-row"
+                        style="display:none;"
+                    >
+
+                        <div class="form-group">
+
+                            <label for="candidate_pay_amount">
+                                Candidate Pay Amount (Base)
+                            </label>
+
+                            <input
+                                type="number"
+                                id="candidate_pay_amount"
+                                name="candidate_pay_amount"
+                                min="0"
+                                step="0.01"
+                                placeholder="Enter candidate amount"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="candidate_pay_date">
+                                Candidate Pay Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="candidate_pay_date"
+                                name="candidate_pay_date"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group full-width">
+
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    name="candidate_gst_applicable"
+                                    id="candidate_gst_applicable"
+                                >
+
+                                Apply GST (18%)
+                            </label>
+
+                        </div>
+
+
+                        <div
+                            id="candidate_gst_details"
+                            class="form-group full-width"
+                            style="display:none;"
+                        >
+
+                            <div>
+                                GST Amount:
+                                ₹<span id="candidate_gst_value">0</span>
+                            </div>
+
+                            <div>
+                                Total with GST:
+                                ₹<span id="candidate_total_value">0</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SUBMIT -->
+                    <div class="form-row">
+
+                        <div class="form-group full-width">
+
+                            <button
+                                type="submit"
+                                class="submit-btn"
+                            >
+                                📞 Update Placement Details
+                            </button>
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</section>
+
+<script>
+
+document.getElementById('payment_type').addEventListener('change', function () {
+
+    var val = this.value;
+
+    document.getElementById('company_pay_fields').style.display =
+        (val === 'Company Pay' || val === 'Both Pay')
+            ? 'block'
+            : 'none';
+
+    document.getElementById('candidate_pay_fields').style.display =
+        (val === 'Candidate Pay' || val === 'Both Pay')
+            ? 'block'
+            : 'none';
+});
+
+function calculateGST(base) {
+    const gst = base * 0.18;
+    const total = base + gst;
+    return {
+        gst: gst.toFixed(2),
+        total: total.toFixed(2)
+    };
+}
+
+
+function updateCompanyGST() {
+    const base = parseFloat(document.getElementById('company_pay_amount').value || 0);
+
+    if (document.getElementById('company_gst_applicable').checked &&
+        base > 0) {
+        const result = calculateGST(base);
+        document.getElementById('company_gst_value').innerText =
+            result.gst;
+        document.getElementById('company_total_value').innerText =
+            result.total;
+        document.getElementById('company_gst_details').style.display =
+            'block';
+    } else {
+        document.getElementById('company_gst_details').style.display =
+            'none';
+    }
+}
+
+function updateCandidateGST() {
+
+    const base = parseFloat(document.getElementById('candidate_pay_amount').value || 0);
+
+    if (document.getElementById('candidate_gst_applicable').checked &&
+        base > 0) {
+        const result = calculateGST(base);
+        document.getElementById('candidate_gst_value').innerText =
+            result.gst;
+        document.getElementById('candidate_total_value').innerText =
+            result.total;
+
+        document.getElementById('candidate_gst_details').style.display =
+          'block';
+    } else {
+        document.getElementById('candidate_gst_details').style.display =
+            'none';
+
+    }
+
+}
+
+document.getElementById('company_gst_applicable')
+    .addEventListener('change', updateCompanyGST);
+document.getElementById('company_pay_amount')
+    .addEventListener('input', updateCompanyGST);
+document.getElementById('candidate_gst_applicable')
+    .addEventListener('change', updateCandidateGST);
+document.getElementById('candidate_pay_amount')
+    .addEventListener('input', updateCandidateGST);
+</script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+<script src="js/search.js"></script>
+<?php endif; ?>"
+Seniors database Schema tbl_payment --> "
+CREATE TABLE `tbl_payment` (
+  `Id` bigint(20) UNSIGNED NOT NULL,
+  `client_Id` text NOT NULL,
+  `total_amount` decimal(10,2) NOT NULL,
+  `paid_amount` decimal(10,2) DEFAULT 0.00,
+  `due_amount` decimal(10,2) DEFAULT 0.00,
+  `payment_date` date DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `payment_gateway` text DEFAULT NULL,
+  `interview_id` int(11) DEFAULT NULL,
+  `payment_type` text DEFAULT NULL,
+  `status` enum('active','defaulted') DEFAULT 'active',
+  `defaulter_note` text DEFAULT NULL,
+  `tds_amount` decimal(10,2) DEFAULT 0.00,
+  `tds_paid` tinyint(1) DEFAULT 0
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+ALTER TABLE `tbl_payment`
+  ADD UNIQUE KEY `Id` (`Id`);
+ALTER TABLE `tbl_payment`
+  MODIFY `Id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;"
+
+dont make changes in UI and classNames. 
+
+so lets implement it we will manage payment in Acounts Module in future. 
+
+
+we have got one problem in InterviewSchedule.jsx . As i schedule interview from the  ViewCandidateDetail.jsx interview 
+is scheduled but not appering in InterviewSchedule.jsx table not getting any error's either. Intellij IDE console 
+logs "Hibernate: insert into tbl_placement (candidate_gst_amount,candidate_id,candidate_name,candidate_pay_amount,candidate_pay_date,company_gst_amount,company_name,company_pay_amount,company_pay_date,hr_name,interview_date,interview_round,interview_status,interview_time,joining_date,pay_remark,payment_type,position,rejection_reason,remark,salary_package) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0
+Hibernate: select a1_0.id,a1_0.address,a1_0.agreement_date,a1_0.dob,a1_0.email,a1_0.experience,a1_0.experience_description,a1_0.gender,a1_0.graduation,a1_0.graduation_percentage,a1_0.graduation_year_of_passing,a1_0.gst_number,a1_0.job_profile,a1_0.name,a1_0.phone,a1_0.post_graduation,a1_0.post_graduation_percentage,a1_0.post_graduation_year_of_passing,a1_0.resume,a1_0.shipping_address,a1_0.skills,a1_0.status,a1_0.ten_th,a1_0.ten_th_percentage,a1_0.ten_th_year_of_passing,a1_0.twelve_th,a1_0.twelve_th_percentage,a1_0.twelve_th_year_of_passing from tbl_agreement a1_0 order by a1_0.id desc
+Hibernate: select a1_0.id,a1_0.address,a1_0.agreement_date,a1_0.dob,a1_0.email,a1_0.experience,a1_0.experience_description,a1_0.gender,a1_0.graduation,a1_0.graduation_percentage,a1_0.graduation_year_of_passing,a1_0.gst_number,a1_0.job_profile,a1_0.name,a1_0.phone,a1_0.post_graduation,a1_0.post_graduation_percentage,a1_0.post_graduation_year_of_passing,a1_0.resume,a1_0.shipping_address,a1_0.skills,a1_0.status,a1_0.ten_th,a1_0.ten_th_percentage,a1_0.ten_th_year_of_passing,a1_0.twelve_th,a1_0.twelve_th_percentage,a1_0.twelve_th_year_of_passing from tbl_agreement a1_0 order by a1_0.id desc"
+Dont make any changes in the project by yourself.
+
+this screenshot from the AddPaymentInfo.jsx page , here date pay and Apply GST inputs are taking block width that 
+two inputs should came in same line/level so form look better . Dont make any changes by yourself tell me i will 
+make changes manually 

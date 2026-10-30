@@ -258,5 +258,4 @@ const AllCandidates = () => {
         </section>
     );
 };
-
 export default AllCandidates;

@@ -64,6 +64,7 @@ const InterviewScheduled = () => {
 
     return (
         <section id="main-content">
+             <section className="wrapper">
             <div className="view-clients-page interview-scheduled-page">
                 <div className="view-clients-header">
                     <div className="view-clients-title-wrap">
@@ -171,6 +172,7 @@ const InterviewScheduled = () => {
                     )}
                 </div>
             </div>
+            </section>
         </section>
     );
 };

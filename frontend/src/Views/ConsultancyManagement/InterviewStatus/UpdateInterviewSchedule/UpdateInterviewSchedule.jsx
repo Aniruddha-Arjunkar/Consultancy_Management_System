@@ -118,8 +118,12 @@ const UpdateInterviewSchedule = () => {
                     interviewId,
                     action === "placed" ? "Placed" : "Rejected"
                 );
+                if (action === "placed") {
+                    navigate(`/consultancy/add-payment-info/${interviewId}`);
+                    return;
+                }
                 window.alert(
-                    `Candidate marked as ${action === "placed" ? "Placed" : "Rejected"}.`
+                    "Candidate marked as Rejected."
                 );
             }
 

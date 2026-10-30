@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import com.shulventures.consultancymanagement.dto.interview.InterviewDecisionRequest;
 import com.shulventures.consultancymanagement.dto.interview.InterviewUpdateDetailsResponse;
 import com.shulventures.consultancymanagement.dto.interview.UpdateInterviewRoundRequest;
+import com.shulventures.consultancymanagement.dto.interview.PlacementPaymentRequest;
 
 import java.util.List;
 
@@ -99,5 +100,16 @@ public class InterviewScheduleController {
             @Valid @RequestBody InterviewDecisionRequest request
     ) {
         return interviewScheduleService.setFinalDecision(id, request.status());
+    }
+
+    @PostMapping("/{id}/placement-payment")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'INTERVIEW_SCHEDULE')"
+    )
+    public InterviewScheduleResponse savePlacementPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody PlacementPaymentRequest request
+    ) {
+        return interviewScheduleService.savePlacementPayment(id, request);
     }
 }
