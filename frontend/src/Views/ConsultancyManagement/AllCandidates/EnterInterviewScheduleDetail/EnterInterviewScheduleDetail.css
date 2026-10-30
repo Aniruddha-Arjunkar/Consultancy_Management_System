@@ -1,0 +1,32 @@
+.enter-interview-schedule-page {
+    box-sizing: border-box;
+}
+
+.enter-interview-schedule-page .refollowup-card {
+    max-width: 700px;
+}
+
+.enter-interview-schedule-page .form-group input,
+.enter-interview-schedule-page .form-group select {
+    width: 100%;
+}
+
+.enter-interview-schedule-page .form-group input[readonly] {
+    background: #eef2f8;
+    color: #52627a;
+    cursor: not-allowed;
+}
+
+.enter-interview-schedule-page .submit-btn {
+    margin-top: 8px;
+}
+
+.interview-form-error {
+    color: #b4232e;
+}
+
+@media (max-width: 600px) {
+    .enter-interview-schedule-page .refollowup-card {
+        max-width: 100%;
+    }
+}

@@ -75,8 +75,11 @@ import PcaAgreed from "./../Views/ConsultancyManagement/Registration/PCAAgreed/P
 import AllCandidates from "./../Views/ConsultancyManagement/AllCandidates/AllCandidates.jsx";
 import ViewCandidateDetail from "./../Views/ConsultancyManagement/AllCandidates/ViewCandidateDetail/ViewCandidateDetail.jsx";
 import UpdateCandidateProfile from "../Views/ConsultancyManagement/AllCandidates/UpdateCandidateDetail/UpdateCandidateDetail.jsx";
+import EnterInterviewScheduleDetail from "./../Views/ConsultancyManagement/AllCandidates/EnterInterviewScheduleDetail/EnterInterviewScheduleDetail.jsx";
 
 import InterviewScheduled from "./../Views/ConsultancyManagement/InterviewStatus/InterviewScheduled/InterviewScheduled.jsx";
+import UpdateInterviewSchedule from "./../Views/ConsultancyManagement/InterviewStatus/UpdateInterviewSchedule/UpdateInterviewSchedule.jsx";
+
 import PlacedCandidates from "./../Views/ConsultancyManagement/StudentStatus/PlacedCandidates/PlacedCandidates.jsx";
 import RejectedCandidates from "./../Views/ConsultancyManagement/StudentStatus/RejectedCandidates/RejectedCandidates.jsx";
 
@@ -279,11 +282,14 @@ function AppRoutes() {
                     <Route element={<PermissionRoute module="CONSULTANCY" page="CANDIDATES_VIEW" />}>
                         <Route path="consultancy/all-candidates" element={<AllCandidates />} />
                         <Route path="consultancy/view-candidate-detail/:candidateId" element={<ViewCandidateDetail />}/>
-                         <Route path="consultancy/update-candidate/:candidateId" element={<UpdateCandidateProfile />}/>
+                        <Route path="consultancy/update-candidate/:candidateId" element={<UpdateCandidateProfile />}/>
+                        
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="INTERVIEW_SCHEDULE" />}>
+                        <Route path="consultancy/schedule-interview/:candidateId" element={<EnterInterviewScheduleDetail />}/>
                         <Route path="consultancy/interview-schedule" element={<InterviewScheduled />} />
+                        <Route path="consultancy/update-interview/:interviewId" element={<UpdateInterviewSchedule />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="PLACED_CANDIDATES" />}>

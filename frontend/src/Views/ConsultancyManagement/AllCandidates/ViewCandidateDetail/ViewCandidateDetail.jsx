@@ -318,13 +318,13 @@ const ViewCandidateDetail = () => {
                                 No payment details available for this candidate.
                             </p>
                         </section>
-
                         {candidate.status !== "Blacklisted" && (
                             <div className="candidate-detail-schedule">
                                 <button
                                     type="button"
                                     className="candidate-detail-schedule-btn"
-                                >
+                                    onClick={() =>
+                                        navigate(`/consultancy/schedule-interview/${candidate.id}`)}>
                                     Schedule Interview
                                 </button>
                             </div>
@@ -335,5 +335,4 @@ const ViewCandidateDetail = () => {
         </section>
     );
 };
-
 export default ViewCandidateDetail;

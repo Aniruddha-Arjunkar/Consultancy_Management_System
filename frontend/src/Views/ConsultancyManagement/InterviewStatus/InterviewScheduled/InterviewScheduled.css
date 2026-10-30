@@ -1,3 +1,11 @@
-.inter-view-scheduled-page{
-    background-color: linen;
+.interview-scheduled-page {
+    box-sizing: border-box;
+}
+
+.interview-scheduled-page .view-clients-filter {
+    margin-bottom: 16px;
+}
+
+.interview-scheduled-page .view-client-search-wrap {
+    width: min(100%, 320px);
 }

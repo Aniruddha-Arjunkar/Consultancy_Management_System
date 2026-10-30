@@ -1,29 +1,2305 @@
+now lets implement InterviewScheduled.jsx > Action Column > update button (we have UpdateInterviewSchedule.jsx which is placeholder) . Here we Update the 
+interview Status ('Scheduled','Rescheduled','Placed','Rejected','Completed') , Data - time , Remarks and other information regarding interview and keep some imformation
+Candidate name  , Company name , Job profile remain same for that individual candidate . we have to implement every single functionality preserving seniors UI and
+ Same classNames . Don't make any changes by youself , first analyze seniors code and  give me code file .Seniors code file update-interview.php ----> "<?php
+session_start();
 
-"CREATE TABLE `tbl_placement` (
-  `interview_id` bigint(20) NOT NULL,
-  `candidate_id` int(11) NOT NULL,
-  `company_name` text NOT NULL,
-  `position` text NOT NULL,
-  `joining_date` date DEFAULT NULL,
-  `interview_date` date NOT NULL,
-  `interview_time` time NOT NULL,
-  `salary_package` text DEFAULT NULL,
-  `interview_status` enum('Scheduled','Rescheduled','Placed','Rejected','Completed') NOT NULL,
-  `rejection_reason` text DEFAULT NULL,
-  `interview_round` int(11) NOT NULL,
-  `remark` text NOT NULL,
-  `hr_name` text NOT NULL,
-  `candidate_name` text DEFAULT NULL,
-  `payment_type` text DEFAULT NULL,
-  `company_pay_amount` decimal(10,2) DEFAULT NULL,
-  `candidate_pay_amount` decimal(10,2) DEFAULT NULL,
-  `company_pay_date` date DEFAULT NULL,
-  `candidate_pay_date` date DEFAULT NULL,
-  `company_gst_amount` decimal(10,2) DEFAULT NULL,
-  `candidate_gst_amount` decimal(10,2) DEFAULT NULL,
-  `pay_remark` text DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-ALTER TABLE `tbl_placement`
-  ADD PRIMARY KEY (`interview_id`);
-ALTER TABLE `tbl_placement`
-  MODIFY `interview_id` bigint(20) NOT NULL AUTO_INCREMENT;"
+if (!isset($_SESSION['email'])) {
+    $_SESSION['msg'] = "You must log in first";
+    header('location:login.php');
+    exit();
+}
+
+require_once 'db_connect.php';
+
+if (!isset($_GET['id'])) {
+    die("Invalid interview ID.");
+}
+
+$interview_id = (int)$_GET['id'];
+
+
+/*
+|--------------------------------------------------------------------------
+| Fetch Current Interview
+|--------------------------------------------------------------------------
+*/
+
+$sql = "
+    SELECT p.*, a.name AS candidate_name
+    FROM tbl_placement p
+    LEFT JOIN tbl_agreement a
+        ON p.candidate_id = a.Id
+    WHERE p.interview_id = ?
+";
+
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param("i", $interview_id);
+$stmt->execute();
+
+$result = $stmt->get_result();
+
+$current = $result->fetch_assoc();
+
+$stmt->close();
+
+if (!$current) {
+    die("Interview not found.");
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Current Round + Status
+|--------------------------------------------------------------------------
+*/
+
+$current_round = (int)($current['interview_round'] ?? 1);
+
+if ($current_round < 1) {
+    $current_round = 1;
+}
+
+$current_status = trim(
+    $current['interview_status'] ?? 'Scheduled'
+);
+
+$next_round = $current_round + 1;
+
+
+/*
+|--------------------------------------------------------------------------
+| Handle POST Actions
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $action = $_POST['action'] ?? '';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESCHEDULE SAME ROUND
+    |--------------------------------------------------------------------------
+    */
+
+    if ($action === 'reschedule') {
+
+        $interview_date = trim(
+            $_POST['interview_date'] ?? ''
+        );
+
+        $interview_time = trim(
+            $_POST['interview_time'] ?? ''
+        );
+
+        $hr_name = trim(
+            $_POST['hr_name'] ?? ''
+        );
+
+        $remark = trim(
+            $_POST['remark'] ?? ''
+        );
+
+
+        if (
+            $interview_date === '' ||
+            $interview_time === '' ||
+            $hr_name === ''
+        ) {
+
+            echo "
+            <script>
+                alert('Please enter Interview Date, Time and HR Name.');
+                window.history.back();
+            </script>
+            ";
+
+            exit();
+        }
+
+
+        $conn->begin_transaction();
+
+        try {
+
+            $update_sql = "
+                UPDATE tbl_placement
+                SET
+                    interview_date = ?,
+                    interview_time = ?,
+                    hr_name = ?,
+                    remark = ?,
+                    interview_status = 'Rescheduled'
+                WHERE interview_id = ?
+            ";
+
+            $update_stmt = $conn->prepare($update_sql);
+
+            if (!$update_stmt) {
+                throw new Exception(
+                    "Reschedule prepare failed: " .
+                    $conn->error
+                );
+            }
+
+            $update_stmt->bind_param(
+                "ssssi",
+                $interview_date,
+                $interview_time,
+                $hr_name,
+                $remark,
+                $interview_id
+            );
+
+            if (!$update_stmt->execute()) {
+                throw new Exception(
+                    "Reschedule failed: " .
+                    $update_stmt->error
+                );
+            }
+
+            $update_stmt->close();
+
+            $conn->commit();
+
+
+            echo "
+            <script>
+                alert(
+                    'Round {$current_round} rescheduled successfully.'
+                );
+
+                window.location.href =
+                    'view-interview-schedule-student.php';
+            </script>
+            ";
+
+            exit();
+
+        } catch (Exception $e) {
+
+            $conn->rollback();
+
+            die(
+                "Error: " .
+                htmlspecialchars($e->getMessage())
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | COMPLETE SAME ROUND
+    |--------------------------------------------------------------------------
+    */
+
+    if ($action === 'complete') {
+
+        $conn->begin_transaction();
+
+        try {
+
+            $complete_sql = "
+                UPDATE tbl_placement
+                SET interview_status = 'Completed'
+                WHERE interview_id = ?
+            ";
+
+            $complete_stmt = $conn->prepare(
+                $complete_sql
+            );
+
+            if (!$complete_stmt) {
+                throw new Exception(
+                    "Complete prepare failed: " .
+                    $conn->error
+                );
+            }
+
+            $complete_stmt->bind_param(
+                "i",
+                $interview_id
+            );
+
+            if (!$complete_stmt->execute()) {
+                throw new Exception(
+                    "Complete failed: " .
+                    $complete_stmt->error
+                );
+            }
+
+            $complete_stmt->close();
+
+            $conn->commit();
+
+
+            echo "
+            <script>
+
+                alert(
+                    'Round {$current_round} marked as Completed.'
+                );
+
+                window.location.href =
+                    'view-interview-schedule-student.php';
+
+            </script>
+            ";
+
+            exit();
+
+        } catch (Exception $e) {
+
+            $conn->rollback();
+
+            die(
+                "Error: " .
+                htmlspecialchars($e->getMessage())
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SCHEDULE NEXT ROUND
+    |--------------------------------------------------------------------------
+    */
+
+    if ($action === 'schedule_next') {
+
+        /*
+        |--------------------------------------------------------------
+        | IMPORTANT:
+        | Calculate next round from database/current row.
+        | Never trust posted round.
+        |--------------------------------------------------------------
+        */
+
+        $new_round = $current_round + 1;
+
+
+        /*
+        |--------------------------------------------------------------
+        | Current round MUST be completed first
+        |--------------------------------------------------------------
+        */
+
+        if ($current_status !== 'Completed') {
+
+            echo "
+            <script>
+
+                alert(
+                    'Round {$current_round} is still in process. Please Reschedule or Complete it first.'
+                );
+
+                window.location.href =
+                    'view-interview-schedule-student.php';
+
+            </script>
+            ";
+
+            exit();
+        }
+
+
+        $position = trim(
+            $_POST['position'] ?? ''
+        );
+
+        $interview_date = trim(
+            $_POST['interview_date'] ?? ''
+        );
+
+        $interview_time = trim(
+            $_POST['interview_time'] ?? ''
+        );
+
+        $hr_name = trim(
+            $_POST['hr_name'] ?? ''
+        );
+
+        $remark = trim(
+            $_POST['remark'] ?? ''
+        );
+
+
+        if (
+            $position === '' ||
+            $interview_date === '' ||
+            $interview_time === '' ||
+            $hr_name === ''
+        ) {
+
+            echo "
+            <script>
+
+                alert(
+                    'Please fill Position, Date, Time and HR Name.'
+                );
+
+                window.history.back();
+
+            </script>
+            ";
+
+            exit();
+        }
+
+
+        $conn->begin_transaction();
+
+        try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Insert NEW Round
+            |--------------------------------------------------------------------------
+            */
+
+            $insert_sql = "
+                INSERT INTO tbl_placement
+                (
+                    candidate_id,
+                    company_name,
+                    position,
+                    interview_date,
+                    interview_time,
+                    hr_name,
+                    remark,
+                    interview_status,
+                    interview_round
+                )
+                VALUES
+                (
+                    ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?
+                )
+            ";
+
+            $insert_stmt = $conn->prepare(
+                $insert_sql
+            );
+
+            if (!$insert_stmt) {
+                throw new Exception(
+                    "Next round prepare failed: " .
+                    $conn->error
+                );
+            }
+
+
+            $insert_stmt->bind_param(
+                "issssssi",
+                $current['candidate_id'],
+                $current['company_name'],
+                $position,
+                $interview_date,
+                $interview_time,
+                $hr_name,
+                $remark,
+                $new_round
+            );
+
+
+            if (!$insert_stmt->execute()) {
+
+                throw new Exception(
+                    "Next round insert failed: " .
+                    $insert_stmt->error
+                );
+            }
+
+            $insert_stmt->close();
+
+
+            $conn->commit();
+
+
+            echo "
+            <script>
+
+                alert(
+                    'Round {$new_round} scheduled successfully.'
+                );
+
+                window.location.href =
+                    'view-interview-schedule-student.php';
+
+            </script>
+            ";
+
+            exit();
+
+
+        } catch (Exception $e) {
+
+            $conn->rollback();
+
+            die(
+                "Error: " .
+                htmlspecialchars($e->getMessage())
+            );
+        }
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Fetch ALL Interview Rounds
+|--------------------------------------------------------------------------
+*/
+
+$all_rounds = [];
+
+$round_sql = "
+    SELECT p.*, a.name AS candidate_name
+    FROM tbl_placement p
+    LEFT JOIN tbl_agreement a
+        ON p.candidate_id = a.Id
+    WHERE p.candidate_id = ?
+      AND p.company_name = ?
+    ORDER BY
+        p.interview_round ASC,
+        p.interview_id ASC
+";
+
+$round_stmt = $conn->prepare($round_sql);
+
+if (!$round_stmt) {
+    die(
+        "Round prepare failed: " .
+        $conn->error
+    );
+}
+
+$round_stmt->bind_param(
+    "is",
+    $current['candidate_id'],
+    $current['company_name']
+);
+
+$round_stmt->execute();
+
+$round_result = $round_stmt->get_result();
+
+while ($row = $round_result->fetch_assoc()) {
+    $all_rounds[] = $row;
+}
+
+$round_stmt->close();
+
+
+include 'header.php';
+?>
+
+
+<section id="main-content">
+
+
+<div class="next-round-page">
+
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+
+<div class="next-round-header">
+
+    <h1>
+        Schedule Next Interview Round
+    </h1>
+
+    <span>
+        Consultancy Management
+    </span>
+
+    <strong class="candidate-name">
+
+        <?= htmlspecialchars(
+            $current['candidate_name'] ?? 'N/A'
+        ); ?>
+
+    </strong>
+
+</div>
+
+
+<!-- =========================================================
+     CURRENT ROUND
+========================================================= -->
+
+<div class="current-round">
+
+
+    <!-- INTERVIEW ROUND BUTTONS -->
+
+    <div class="round-buttons">
+
+        <?php foreach ($all_rounds as $index => $round): ?>
+
+            <button
+                type="button"
+                class="round-small-btn"
+                onclick="openRoundDetails(
+                    <?= $index; ?>
+                )"
+            >
+
+                Round
+                <?= (int)$round['interview_round']; ?>
+
+            </button>
+
+        <?php endforeach; ?>
+
+    </div>
+
+
+    <!-- CURRENT / NEXT ROUND + STATUS -->
+
+    <div class="round-info-row">
+
+
+        <!-- ROUND -->
+
+        <div class="round-info next-round-info">
+
+            <span>
+
+                <?php
+
+                if ($current_status === 'Completed') {
+
+                    echo 'NEXT ROUND';
+
+                } else {
+
+                    echo 'CURRENT ROUND';
+
+                }
+
+                ?>
+
+            </span>
+
+
+            <strong>
+
+                <?php
+
+                if ($current_status === 'Completed') {
+
+                    echo 'Round ' . $next_round;
+
+                } else {
+
+                    echo 'Round ' . $current_round;
+
+                }
+
+                ?>
+
+            </strong>
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <div class="round-info">
+
+            <span>
+                STATUS
+            </span>
+
+
+            <strong>
+
+                <?php
+
+                if (
+                    $current_status === 'Scheduled' ||
+                    $current_status === 'Rescheduled'
+                ) {
+
+                    echo 'In Process';
+
+                } elseif (
+                    $current_status === 'Completed'
+                ) {
+
+                    echo 'Ready for Next Round';
+
+                } else {
+
+                    echo htmlspecialchars(
+                        $current_status
+                    );
+
+                }
+
+                ?>
+
+            </strong>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ROUNDS MODAL
+========================================================= -->
+
+<div
+    id="roundsModal"
+    class="rounds-modal"
+>
+
+
+    <div class="rounds-modal-content">
+
+
+        <div class="rounds-modal-header">
+
+            <h3>
+                Interview Rounds
+            </h3>
+
+
+            <button
+                type="button"
+                onclick="closeRounds()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="round-details">
+
+
+            <?php foreach (
+                $all_rounds
+                as $index => $round
+            ): ?>
+
+
+                <div
+                    class="round-detail"
+                    id="round-<?php echo $index; ?>"
+                >
+
+
+                    <div class="round-detail-title">
+
+                        <h4>
+
+                            Interview
+                            <?=
+                            (int)$round['interview_round'];
+                            ?>
+
+                        </h4>
+
+
+                        <span class="round-status">
+
+                            <?=
+                            htmlspecialchars(
+                                $round['interview_status']
+                                ?? 'N/A'
+                            );
+                            ?>
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="round-detail-grid">
+
+
+                        <div class="round-box">
+
+                            <span>
+                                Candidate
+                            </span>
+
+                            <strong>
+
+                                <?=
+                                htmlspecialchars(
+                                    $round['candidate_name']
+                                    ?? 'N/A'
+                                );
+                                ?>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="round-box">
+
+                            <span>
+                                Company
+                            </span>
+
+                            <strong>
+
+                                <?=
+                                htmlspecialchars(
+                                    $round['company_name']
+                                    ?? 'N/A'
+                                );
+                                ?>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="round-box">
+
+                            <span>
+                                Position
+                            </span>
+
+                            <strong>
+
+                                <?=
+                                htmlspecialchars(
+                                    $round['position']
+                                    ?? 'N/A'
+                                );
+                                ?>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="round-box">
+
+                            <span>
+                                Interview Round
+                            </span>
+
+                            <strong>
+
+                                Interview
+                                <?=
+                                (int)$round['interview_round'];
+                                ?>
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="round-box">
+
+                            <span>
+                                Interview Date
+                            </span>
+
+                            <strong>
+                                <?=
+                                htmlspecialchars(
+                                    $round['interview_date']
+                                    ?? 'N/A'
+                                ); ?>
+                            </strong>
+                        </div>
+
+                        <div class="round-box">
+                            <span>
+                                Interview Time
+                            </span>
+
+                            <strong>
+                                <?=
+                                htmlspecialchars(
+                                    $round['interview_time']
+                                    ?? 'N/A'
+                                );
+                                ?>
+                            </strong>
+
+                        </div>
+
+                        <div class="round-box">
+                            <span>
+                                Managed By / HR
+                            </span>
+
+                            <strong>
+                                <?=
+                                htmlspecialchars($round['hr_name'] ?? 'N/A');?>
+                            </strong>
+                        </div>
+
+                        <div class="round-box">
+                            <span>
+                                Remark
+                            </span>
+                            <strong>
+                                <?=
+                                htmlspecialchars($round['remark'] ?? 'N/A');?>
+                            </strong>
+                        </div>
+
+                        <div class="round-box">
+                            <span>
+                                Status
+                            </span>
+                            <strong>
+
+                                <?=
+                                htmlspecialchars($round['interview_status'] ?? 'N/A');?>
+                            </strong>
+                        </div>
+                        <div class="round-box">
+                            <span>
+                                Next Round
+                            </span>
+                            <strong>
+                                <?php
+
+                                echo isset($round['interview_round'])
+                                    ? 'Interview ' .
+                                      (
+                                        (int)$round['interview_round'] + 1) : 'N/A';?>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+
+<!-- =========================================================
+     MAIN FORM
+========================================================= -->
+
+<form method="POST">
+
+    <!-- ACTION -->
+    <input
+        type="hidden"
+        name="action"
+        id="interviewAction"
+        value=""
+    >
+
+    <!-- COMPANY -->
+    <label>
+        Company Name:
+    </label>
+
+    <input
+        type="text"
+        name="company_name"
+        class="refollowup-input"
+        value="<?= htmlspecialchars($current['company_name']);?>"
+        readonly
+        required>
+
+
+    <!-- POSITION -->
+    <label>
+        Position:
+    </label>
+
+    <input
+        type="text"
+        name="position"
+        class="refollowup-input"
+        value="<?=
+            htmlspecialchars($current['position']);?>"
+        required>
+
+
+    <!-- ROUND -->
+    <label>
+        Interview Round:
+    </label>
+
+    <input
+        type="text"
+        class="refollowup-input"
+        value="<?php
+
+            if ($current_status === 'Completed') {
+                echo 'Round ' . $next_round;
+            } else {
+                echo 'Round ' . $current_round;
+            }
+
+        ?>" readonly>
+
+    <!-- DATE + TIME -->
+    <div class="date-time-row">
+        <div class="form-group-small">
+
+            <label>
+                Interview Date
+            </label>
+
+            <input
+                type="date"
+                name="interview_date"
+                class="refollowup-input"
+                value="<?php
+                    if ($current_status !== 'Completed') {
+                        echo htmlspecialchars(
+                            $current['interview_date']
+                            ?? '');}?>"
+                required>
+        </div>
+        <div class="form-group-small">
+            <label>
+                Interview Time
+            </label>
+
+            <input
+                type="time"
+                name="interview_time"
+                class="refollowup-input"
+                value="<?php
+                    if ($current_status !== 'Completed') {
+                        echo htmlspecialchars(
+                            $current['interview_time']
+                            ?? '');}?>"
+                required
+            >
+        </div>
+    </div>
+
+
+    <!-- HR -->
+    <label>
+        Managed By / HR Name:
+    </label>
+
+    <input
+        type="text"
+        name="hr_name"
+        class="refollowup-input"
+        value="<?php
+
+            if ($current_status !== 'Completed') {
+                echo htmlspecialchars(
+                    $current['hr_name']
+                    ?? ''
+                );}?>"
+        required
+    >
+    <!-- REMARK -->
+
+    <label>
+        Remark:
+    </label>
+    <textarea
+        name="remark"
+        class="refollowup-input"
+        rows="3"
+    ><?php
+        if ($current_status !== 'Completed') {
+            echo htmlspecialchars(
+                $current['remark']
+                ?? ''
+            );
+        }
+    ?></textarea>
+    <!-- =====================================================
+         SCHEDULE DROPDOWN
+    ====================================================== -->
+    <div class="schedule-dropdown-wrapper">
+        <button
+            type="button"
+            class="refollowup-search-btn schedule-dropdown-btn"
+            onclick="toggleScheduleDropdown(event)"
+        >
+            <i class="fa fa-calendar"></i>
+            <?php if (
+                $current_status === 'Completed'
+            ): ?>
+
+                Schedule Round
+                <?= $next_round; ?>
+
+            <?php else: ?>
+
+                Schedule
+
+            <?php endif; ?>
+
+
+            <span class="schedule-arrow">
+                ▼
+            </span>
+
+        </button>
+
+
+        <div
+            id="scheduleDropdown"
+            class="schedule-dropdown-menu"
+        >
+
+
+            <?php if (
+                $current_status === 'Completed'
+            ): ?>
+
+
+                <!-- SCHEDULE NEXT ROUND -->
+
+                <button
+                    type="button"
+                    class="schedule-dropdown-item"
+                    onclick="submitInterviewAction(
+                        'schedule_next'
+                    )"
+                >
+
+                    <i class="fa fa-calendar"></i>
+
+                    Schedule Round
+                    <?= $next_round; ?>
+
+                </button>
+
+
+            <?php else: ?>
+
+
+                <!-- RESCHEDULE -->
+
+                <button
+                    type="button"
+                    class="schedule-dropdown-item reschedule-option"
+                    onclick="submitInterviewAction(
+                        'reschedule'
+                    )"
+                >
+
+                    <i class="fa fa-refresh"></i>
+
+                    Reschedule
+
+                </button>
+
+
+                <!-- COMPLETED -->
+
+                <button
+                    type="button"
+                    class="schedule-dropdown-item complete-option"
+                    onclick="submitInterviewAction(
+                        'complete'
+                    )">
+                    <i class="fa fa-check-circle"></i>
+                    Completed
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <!-- CANCEL -->
+    <a
+        href="view-interview-schedule-student.php"
+        class="refollowup-clear-btn"
+    >
+        Cancel
+    </a>
+
+    <br><br>
+    <!-- FINAL DECISION -->
+    <div class="final-decision">
+        <h4>
+            Candidate Final Decision
+        </h4>
+        <a
+            href="placed-candidate.php?id=<?=
+                (int)$current['interview_id'];
+            ?>&status=Placed"
+            class="btn btn-success"
+            onclick="
+                return confirm(
+                    'Are you sure you want to mark this candidate as Placed?'
+                );">
+            <i class="fa fa-check-circle"></i>
+            Placed
+        </a>
+
+        <a
+            href="rejected-candidate.php?id=<?=
+                (int)$current['interview_id'];
+            ?>&status=Rejected"
+            class="btn btn-danger"
+            onclick="return confirm('Are you sure you want to mark this candidate as Rejected?');">
+            <i class="fa fa-times-circle"></i>
+            Rejected
+        </a>
+    </div>
+</form>
+</div>
+</section>
+<style>
+
+/* =========================================================
+   SCHEDULE NEXT INTERVIEW ROUND
+========================================================= */
+
+.next-round-page {
+    width: 600px;
+    max-width: calc(100% - 30px);
+    margin: 30px auto;
+    background: #fff;
+    border: 5px solid #3376e4;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.next-round-header {
+    min-height: 72px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1557d6, #6366f1);
+    color: #fff;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.next-round-header h1 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 25px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.next-round-header .candidate-name {
+    margin-top: 6px;
+    color: #fff;
+    font-size: 15px;
+    line-height: 19px;
+    font-weight: 700;
+}
+
+.next-round-header span {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+    color: #eef2ff;
+}
+
+
+/* =========================================================
+   FORM CONTENT
+========================================================= */
+
+.next-round-page form {
+    padding: 22px 24px 25px;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   CURRENT ROUND
+========================================================= */
+
+.next-round-page .current-round {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin: 0 0 20px;
+    background: #f8fafc;
+    border: 2px solid #3376e4;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   INTERVIEW ROUND BUTTONS
+========================================================= */
+
+.round-buttons {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+}
+
+.round-small-btn {
+    height: 30px;
+    padding: 0 11px;
+    border: 1px solid #c7d2fe;
+    border-radius: 6px;
+    background: #6366f1;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    transition:
+        background .2s ease,
+        transform .15s ease;
+}
+
+.round-small-btn:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.round-small-btn:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   NEXT ROUND + STATUS
+========================================================= */
+
+.round-info-row {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+
+.next-round-page .round-info {
+    flex: 1;
+    min-width: 0;
+    min-height: 62px;
+    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.next-round-page .round-info:hover {
+    border-color: #c7d2fe;
+    box-shadow:
+        0 3px 10px rgba(99, 102, 241, .08);
+}
+
+.next-round-page .round-info > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.next-round-page .round-info > strong {
+    display: block;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+
+.next-round-page .next-round-info {
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+
+.next-round-page .next-round-info > span,
+.next-round-page .next-round-info > strong {
+    color: #ea580c;
+}
+
+
+/* =========================================================
+   FORM GROUPS
+========================================================= */
+
+.next-round-page .form-group,
+.next-round-page .form-group-small {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 15px;
+}
+
+
+/* =========================================================
+   LABELS
+========================================================= */
+
+.next-round-page label {
+    display: block;
+    margin: 0 0 7px;
+    color: #334155;
+    font-size: 14px;
+    line-height: 18px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+.next-round-page .refollowup-input {
+    width: 100%;
+    height: 42px;
+    margin: 0 0 10px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid #d5deeb;
+    border-radius: 7px;
+    background: #fff;
+    color: #334155;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    outline: none;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.next-round-page .refollowup-input:focus {
+    border-color: #6366f1;
+    box-shadow:
+        0 0 0 3px rgba(99, 102, 241, .10);
+}
+
+
+/* =========================================================
+   DATE + TIME
+========================================================= */
+
+.next-round-page .date-time-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+.next-round-page .date-time-row .form-group-small {
+    margin-bottom: 15px;
+}
+
+.next-round-page .form-group-small .refollowup-input {
+    width: 100%;
+    height: 42px;
+    padding-left: 10px;
+    padding-right: 8px;
+}
+
+
+/* =========================================================
+   TEXTAREA
+========================================================= */
+
+.next-round-page textarea.refollowup-input {
+    width: 100%;
+    height: 100px;
+    min-height: 100px;
+    padding: 10px 12px;
+    resize: vertical;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+.next-round-page .refollowup-input[name="remark"] {
+    height: 100px;
+    min-height: 100px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+
+/* =========================================================
+   SCHEDULE BUTTON
+========================================================= */
+
+.next-round-page .refollowup-search-btn {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 7px;
+    background: #f59e0b;
+    color: #fff !important;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+        background .2s ease,
+        transform .15s ease;
+}
+
+.next-round-page .refollowup-search-btn:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+}
+
+.next-round-page .refollowup-search-btn:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   SCHEDULE DROPDOWN
+========================================================= */
+
+.schedule-dropdown-wrapper {
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.schedule-dropdown-btn {
+    gap: 8px;
+    margin: 0 !important;
+    position: relative;
+}
+
+.schedule-arrow {
+    font-size: 9px;
+    margin-left: 2px;
+    transition: transform .2s ease;
+}
+
+.schedule-dropdown-wrapper.open .schedule-arrow {
+    transform: rotate(180deg);
+}
+
+.schedule-dropdown-menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    min-width: 175px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow:
+        0 10px 25px rgba(15, 23, 42, .16);
+    z-index: 99999;
+    box-sizing: border-box;
+}
+
+.schedule-dropdown-wrapper.open
+.schedule-dropdown-menu {
+    display: block;
+}
+
+.schedule-dropdown-item {
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 11px;
+    border: none;
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.schedule-dropdown-item:hover {
+    background: #f1f5f9;
+}
+
+.schedule-dropdown-item i {
+    width: 15px;
+    text-align: center;
+}
+
+
+/* RESCHEDULE */
+
+.schedule-dropdown-item.reschedule-option {
+    color: #d97706;
+}
+
+.schedule-dropdown-item.reschedule-option:hover {
+    background: #fff7ed;
+}
+
+
+/* COMPLETED */
+
+.schedule-dropdown-item.complete-option {
+    color: #16a34a;
+}
+
+.schedule-dropdown-item.complete-option:hover {
+    background: #f0fdf4;
+}
+
+
+/* =========================================================
+   CANCEL
+========================================================= */
+
+.next-round-page .refollowup-clear-btn {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 17px;
+    margin-left: 0;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: #fee2e2;
+    color: #dc2626 !important;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+        background .2s ease,
+        transform .15s ease;
+}
+
+.next-round-page .refollowup-clear-btn:hover {
+    background: #fecaca;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   FINAL DECISION
+========================================================= */
+
+.next-round-page .final-decision {
+    margin-top: 20px;
+    padding: 16px 0 0;
+    border-top: 1px solid #e2e8f0;
+}
+
+.next-round-page .final-decision h4 {
+    margin: 0 0 15px;
+    color: #111827;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 700;
+}
+
+.next-round-page .final-decision .btn {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 7px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+        background .2s ease,
+        transform .15s ease;
+}
+
+.next-round-page .final-decision
+.placed-btn,
+.next-round-page .final-decision
+.btn-success {
+    min-width: 80px;
+    background: #16a34a;
+    color: #fff !important;
+}
+
+.next-round-page .final-decision
+.placed-btn:hover,
+.next-round-page .final-decision
+.btn-success:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+}
+
+.next-round-page .final-decision
+.rejected-btn,
+.next-round-page .final-decision
+.btn-danger {
+    min-width: 92px;
+    background: #dc2626;
+    color: #fff !important;
+}
+
+.next-round-page .final-decision
+.rejected-btn:hover,
+.next-round-page .final-decision
+.btn-danger:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   ROUNDS MODAL
+========================================================= */
+
+.rounds-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, .72);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    backdrop-filter: blur(3px);
+}
+
+.rounds-modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 850px;
+    max-height: 88vh;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+        0 25px 60px rgba(15, 23, 42, .30),
+        0 5px 20px rgba(15, 23, 42, .15);
+    animation: roundsModalOpen .22s ease-out;
+    box-sizing: border-box;
+}
+
+@keyframes roundsModalOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+.rounds-modal-header {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.rounds-modal-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    line-height: 23px;
+    font-weight: 700;
+}
+
+.rounds-modal-header button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    font-size: 25px;
+    line-height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background .2s ease,
+        transform .15s ease;
+}
+
+.rounds-modal-header button:hover {
+    background: rgba(255, 255, 255, .30);
+    transform: rotate(90deg);
+}
+
+.round-details {
+    padding: 20px;
+    max-height: calc(88vh - 64px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.round-details::-webkit-scrollbar {
+    width: 7px;
+}
+
+.round-details::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.round-details::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.round-detail {
+    display: none;
+    animation: roundFade .18s ease;
+}
+
+@keyframes roundFade {
+
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+.round-detail-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.round-detail-title h4 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 700;
+}
+
+.round-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.round-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.round-box {
+    min-width: 0;
+    min-height: 70px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    box-sizing: border-box;
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.round-box:hover {
+    background: #fff;
+    border-color: #c7d2fe;
+    box-shadow:
+        0 3px 10px rgba(15, 23, 42, .06);
+}
+
+.round-box span {
+    display: block;
+    margin-bottom: 5px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.round-box strong {
+    display: block;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.round-box:first-child {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.round-box:first-child span {
+    color: #4f46e5;
+}
+
+.round-box:first-child strong {
+    color: #312e81;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .next-round-page {
+        width: calc(100% - 20px);
+        max-width: 600px;
+        margin: 20px auto;
+        border-radius: 10px;
+    }
+
+    .next-round-header {
+        min-height: 68px;
+        padding: 10px 14px;
+    }
+
+    .next-round-header h1 {
+        font-size: 18px;
+        line-height: 23px;
+    }
+
+    .next-round-header span {
+        font-size: 10px;
+    }
+
+    .next-round-page form {
+        padding: 18px 16px 20px;
+    }
+
+    .next-round-page .current-round {
+        gap: 8px;
+        padding: 9px;
+    }
+
+    .round-buttons {
+        gap: 6px;
+    }
+
+    .round-small-btn {
+        height: 29px;
+        padding: 0 10px;
+        font-size: 10px;
+    }
+
+    .round-info-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .next-round-page .round-info {
+        min-height: 55px;
+    }
+
+    .next-round-page .date-time-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .next-round-page label {
+        font-size: 13px;
+    }
+
+    .next-round-page .refollowup-input {
+        height: 42px;
+        font-size: 13px;
+    }
+
+    .next-round-page textarea.refollowup-input {
+        height: 100px;
+    }
+
+    .schedule-dropdown-wrapper {
+        width: auto;
+    }
+
+    .schedule-dropdown-menu {
+        min-width: 165px;
+    }
+
+    .rounds-modal {
+        padding: 10px;
+    }
+
+    .rounds-modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 13px;
+    }
+
+    .rounds-modal-header {
+        min-height: 58px;
+        padding: 12px 15px;
+    }
+
+    .rounds-modal-header h3 {
+        font-size: 16px;
+    }
+
+    .rounds-modal-header button {
+        width: 32px;
+        height: 32px;
+        font-size: 23px;
+    }
+
+    .round-details {
+        padding: 15px;
+        max-height: calc(92vh - 58px);
+    }
+
+    .round-detail-title {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        margin-bottom: 14px;
+    }
+
+    .round-detail-title h4 {
+        font-size: 16px;
+    }
+
+    .round-status {
+        min-height: 28px;
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+
+    .round-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 9px;
+    }
+
+    .round-box {
+        min-height: 62px;
+        padding: 11px 12px;
+    }
+
+    .round-box strong {
+        font-size: 13px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 380px) {
+
+    .next-round-page {
+        width: calc(100% - 12px);
+    }
+
+    .next-round-page form {
+        padding: 15px 12px 18px;
+    }
+
+    .next-round-header h1 {
+        font-size: 16px;
+    }
+
+    .next-round-page .refollowup-input {
+        font-size: 12px;
+    }
+
+    .next-round-page label {
+        font-size: 12px;
+    }
+
+    .next-round-page .refollowup-search-btn,
+    .next-round-page .refollowup-clear-btn {
+        font-size: 12px;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .next-round-page .final-decision .btn {
+        font-size: 12px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .rounds-modal {
+        padding: 6px;
+    }
+
+    .rounds-modal-content {
+        border-radius: 10px;
+    }
+
+    .rounds-modal-header {
+        padding: 10px 12px;
+    }
+
+    .round-details {
+        padding: 12px;
+    }
+
+    .round-box {
+        padding: 10px;
+    }
+
+    .round-small-btn {
+        height: 28px;
+        padding: 0 9px;
+        font-size: 10px;
+    }
+
+}
+</style>
+<script>
+
+/* =========================================================
+   ROUND MODAL
+========================================================= */
+
+function openRoundDetails(index) {
+    const modal = document.getElementById("roundsModal");
+    modal.style.display = "flex";
+    showRound(index);
+}
+
+function closeRounds() {
+    const modal = document.getElementById("roundsModal");
+    modal.style.display = "none";
+}
+
+function showRound(index) {
+    const rounds = document.querySelectorAll(".round-detail");
+    rounds.forEach(function(round) {
+        round.style.display = "none";
+    });
+
+    if (rounds[index]) {
+        rounds[index].style.display = "block";
+    }
+}
+
+window.addEventListener("click", function(event) {
+    const modal = document.getElementById("roundsModal");
+    if (event.target === modal) {
+        closeRounds();
+    }
+});
+
+/* =========================================================
+   SCHEDULE DROPDOWN
+========================================================= */
+
+function toggleScheduleDropdown(event) {
+    event.stopPropagation();
+    const wrapper =
+        document.querySelector(
+            ".schedule-dropdown-wrapper"
+        );
+    if (!wrapper) {
+        return;
+    }
+    wrapper.classList.toggle("open");
+}
+
+/* =========================================================
+   CLOSE DROPDOWN OUTSIDE CLICK
+========================================================= */
+document.addEventListener(
+    "click",
+    function(event) {
+        const wrapper =
+            document.querySelector(
+                ".schedule-dropdown-wrapper"
+            );
+        if (!wrapper) {
+            return;
+        }
+        if (!wrapper.contains(event.target)) {
+            wrapper.classList.remove("open");
+        }
+    }
+);
+
+/* =========================================================
+   SUBMIT INTERVIEW ACTION
+========================================================= */
+
+function submitInterviewAction(action) {
+
+    const form =
+        document.querySelector(
+            ".next-round-page form"
+        );
+
+    const actionInput =
+        document.getElementById(
+            "interviewAction"
+        );
+
+    if (!form || !actionInput) {
+        return;
+    }
+
+    /* -----------------------------------------
+       COMPLETE CONFIRMATION
+    ----------------------------------------- */
+
+    if (action === "complete") {
+
+        const confirmComplete = confirm(
+            "Are you sure you want to mark this interview as Completed?"
+        );
+
+        if (!confirmComplete) {
+            return;
+        }
+
+    }
+
+    /* -----------------------------------------
+       RESCHEDULE CONFIRMATION
+    ----------------------------------------- */
+
+    if (action === "reschedule") {
+
+        const confirmReschedule = confirm(
+            "Are you sure you want to Reschedule this interview?"
+        );
+
+        if (!confirmReschedule) {
+            return;
+        }
+
+    }
+    /* -----------------------------------------
+       NEXT ROUND CONFIRMATION
+    ----------------------------------------- */
+    if (action === "schedule_next") {
+
+        const confirmNextRound = confirm(
+            "Schedule the next interview round?"
+        );
+        if (!confirmNextRound) {
+            return;
+        }
+    }
+    /* -----------------------------------------
+       Set Action
+    ----------------------------------------- */
+    actionInput.value = action;
+    /* -----------------------------------------
+       Submit
+    ----------------------------------------- */
+    form.submit();
+}
+</script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+</body>
+</html>
+<?php
+mysqli_close($conn);
+?>
+" 
+
+Update interview is working perfectly but there is one problem as we schedule next round after completing previous (example 1 round and 2ns is Schedule) , in 
+interview scheduled page two records of the same candidate are apperring (Attaching Screenshot). But this not happening in Seniors even thought we schedule next round the same candidate 
+record is updating .     
