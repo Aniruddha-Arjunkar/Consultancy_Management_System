@@ -765,6 +765,84 @@
 }
 
 
+.rejection-modal-content {
+    max-width: 520px;
+}
+
+.rejection-modal-body {
+    padding: 22px;
+}
+
+.rejection-modal-body > p:first-child {
+    margin: 0 0 18px;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.rejection-modal-body > label {
+    display: block;
+    margin-bottom: 7px;
+    color: #1f2937;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.rejection-reason-input {
+    width: 100%;
+    min-height: 120px;
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.rejection-reason-count {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 11px;
+    text-align: right;
+}
+
+.rejection-modal-error {
+    margin: 10px 0 0;
+    color: #dc2626;
+    font-size: 13px;
+}
+
+.rejection-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.rejection-modal-actions .refollowup-clear-btn {
+    margin: 0;
+}
+
+.rejection-modal-actions .reject-confirm-btn {
+    min-height: 36px;
+    padding: 0 17px;
+    border: none;
+    border-radius: 7px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rejection-modal-actions .reject-confirm-btn:hover:not(:disabled) {
+    background: #b91c1c;
+}
+
+.rejection-modal-actions .reject-confirm-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* =========================================================
    MOBILE
 ========================================================= */

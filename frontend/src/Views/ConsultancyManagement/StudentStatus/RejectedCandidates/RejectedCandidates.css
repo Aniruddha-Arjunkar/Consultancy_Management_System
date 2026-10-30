@@ -1,3 +1,11 @@
-.rejected-candidate-page{
-    background-color: rgb(196, 247, 196);
+.Rejected-candidate-reschedule-btn{
+    background-color:  #fda000 !important;
+    border: none;
+    border-radius: 7px;
+    color: #fff;
+    padding : 8px 20px;
+    font-size: 14px;
+    display: inline-block;
+    margin-top: 10px;
 }
+

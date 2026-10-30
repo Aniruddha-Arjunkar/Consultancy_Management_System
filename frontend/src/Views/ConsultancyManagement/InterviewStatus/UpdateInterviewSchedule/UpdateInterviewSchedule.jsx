@@ -20,6 +20,10 @@ const UpdateInterviewSchedule = () => {
     const [roundsModalOpen, setRoundsModalOpen] = useState(false);
     const [selectedRoundIndex, setSelectedRoundIndex] = useState(0);
 
+    const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
+    const [rejectionError, setRejectionError] = useState("");
+
     useEffect(() => {
         let active = true;
 
@@ -68,11 +72,11 @@ const UpdateInterviewSchedule = () => {
 
     const interviewStatusLabel =
         current?.interviewStatus === "Scheduled" ||
-        current?.interviewStatus === "Rescheduled"
+            current?.interviewStatus === "Rescheduled"
             ? "In Process"
             : isCompleted
-              ? "Ready for Next Round"
-              : current?.interviewStatus;
+                ? "Ready for Next Round"
+                : current?.interviewStatus;
 
     const requestPayload = () => ({
         interviewDate,
@@ -80,6 +84,36 @@ const UpdateInterviewSchedule = () => {
         hrName: hrName.trim(),
         remark: remark.trim(),
     });
+
+    const submitRejection = async () => {
+        if (saving) return;
+
+        const reason = rejectionReason.trim();
+        if (!reason) {
+            setRejectionError("Enter a reason for rejecting this candidate.");
+            return;
+        }
+
+        setSaving(true);
+        setRejectionError("");
+
+        try {
+            await interviewScheduleService.setInterviewDecision(
+                interviewId,
+                "Rejected",
+                reason
+            );
+
+            window.alert("Candidate marked as Rejected.");
+            navigate("/consultancy/interview-schedule");
+        } catch (actionError) {
+            setRejectionError(
+                actionError.message || "Could not reject this candidate."
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handleAction = async (action) => {
         if (saving) return;
@@ -91,6 +125,13 @@ const UpdateInterviewSchedule = () => {
             placed: "Are you sure you want to mark this candidate as Placed?",
             rejected: "Are you sure you want to mark this candidate as Rejected?",
         };
+
+        if (action === "rejected") {
+            setRejectionReason("");
+            setRejectionError("");
+            setRejectionModalOpen(true);
+            return;
+        }
 
         if (!window.confirm(messages[action])) return;
 
@@ -113,18 +154,13 @@ const UpdateInterviewSchedule = () => {
                     requestPayload()
                 );
                 window.alert(`Round ${nextRound} scheduled successfully.`);
-            } else if (action === "placed" || action === "rejected") {
+            } else if (action === "placed") {
                 await interviewScheduleService.setInterviewDecision(
                     interviewId,
-                    action === "placed" ? "Placed" : "Rejected"
+                    "Placed"
                 );
-                if (action === "placed") {
-                    navigate(`/consultancy/add-payment-info/${interviewId}`);
-                    return;
-                }
-                window.alert(
-                    "Candidate marked as Rejected."
-                );
+                navigate(`/consultancy/add-payment-info/${interviewId}`);
+                return;
             }
 
             navigate("/consultancy/interview-schedule");
@@ -208,6 +244,94 @@ const UpdateInterviewSchedule = () => {
                         </div>
                     </div>
                 </div>
+
+                {rejectionModalOpen && (
+                    <div
+                        className="rounds-modal rejection-modal"
+                        style={{ display: "flex" }}
+                        onClick={(event) => {
+                            if (
+                                event.target === event.currentTarget &&
+                                !saving
+                            ) {
+                                setRejectionModalOpen(false);
+                            }
+                        }}
+                    >
+                        <div
+                            className="rounds-modal-content rejection-modal-content"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="rejection-modal-title"
+                        >
+                            <div className="rounds-modal-header">
+                                <h3 id="rejection-modal-title">Reject Candidate</h3>
+                                <button
+                                    type="button"
+                                    aria-label="Close rejection dialog"
+                                    disabled={saving}
+                                    onClick={() => setRejectionModalOpen(false)}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="rejection-modal-body">
+                                <p>
+                                    Enter the reason for rejecting{" "}
+                                    <strong>{current.candidateName || "this candidate"}</strong>.
+                                </p>
+
+                                <label htmlFor="rejectionReason">
+                                    Rejection Reason
+                                </label>
+                                <textarea
+                                    id="rejectionReason"
+                                    className="refollowup-input rejection-reason-input"
+                                    value={rejectionReason}
+                                    onChange={(event) => {
+                                        setRejectionReason(event.target.value);
+                                        setRejectionError("");
+                                    }}
+                                    maxLength={1000}
+                                    rows={4}
+                                    placeholder="Enter reason for rejection"
+                                    autoFocus
+                                    required
+                                />
+
+                                <div className="rejection-reason-count">
+                                    {rejectionReason.length}/1000
+                                </div>
+
+                                {rejectionError && (
+                                    <p className="rejection-modal-error" role="alert">
+                                        {rejectionError}
+                                    </p>
+                                )}
+
+                                <div className="rejection-modal-actions">
+                                    <button
+                                        type="button"
+                                        className="refollowup-clear-btn"
+                                        disabled={saving}
+                                        onClick={() => setRejectionModalOpen(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="reject-confirm-btn"
+                                        disabled={saving || !rejectionReason.trim()}
+                                        onClick={submitRejection}
+                                    >
+                                        {saving ? "Rejecting..." : "Reject Candidate"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {roundsModalOpen && (
                     <div
@@ -386,9 +510,8 @@ const UpdateInterviewSchedule = () => {
                     {!isFinal && (
                         <>
                             <div
-                                className={`schedule-dropdown-wrapper ${
-                                    scheduleMenuOpen ? "open" : ""
-                                }`}
+                                className={`schedule-dropdown-wrapper ${scheduleMenuOpen ? "open" : ""
+                                    }`}
                             >
                                 <button
                                     type="button"

@@ -102,14 +102,18 @@ const scheduleNextRound = async (interviewId, payload) => {
     return response.json();
 };
 
-const setInterviewDecision = async (interviewId, status) => {
+const setInterviewDecision = async (
+    interviewId,
+    status,
+    rejectionReason
+) => {
     const response = await fetch(
         `${API_BASE_URL}/interviews/${encodeURIComponent(interviewId)}/decision`,
         {
             method: "PATCH",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
+            body: JSON.stringify({ status, rejectionReason }),
         }
     );
 
@@ -132,6 +136,33 @@ const savePlacementPayment = async (interviewId, payload) => {
     return response.json();
 };
 
+
+const getPlacedCandidates = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/interviews/placed-candidates`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
+const getRejectedCandidates = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/interviews/rejected-candidates`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
 export default {
     getCurrentRequirements,
     scheduleInterview,
@@ -142,4 +173,6 @@ export default {
     scheduleNextRound,
     setInterviewDecision,
     savePlacementPayment,
+    getPlacedCandidates,
+    getRejectedCandidates
 };

@@ -1,18 +1,12 @@
 package com.shulventures.consultancymanagement.controller;
 
-import com.shulventures.consultancymanagement.dto.interview.CreateInterviewScheduleRequest;
-import com.shulventures.consultancymanagement.dto.interview.InterviewRequirementOptionResponse;
-import com.shulventures.consultancymanagement.dto.interview.InterviewScheduleResponse;
+import com.shulventures.consultancymanagement.dto.interview.*;
 import com.shulventures.consultancymanagement.service.InterviewScheduleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.shulventures.consultancymanagement.dto.interview.InterviewDecisionRequest;
-import com.shulventures.consultancymanagement.dto.interview.InterviewUpdateDetailsResponse;
-import com.shulventures.consultancymanagement.dto.interview.UpdateInterviewRoundRequest;
-import com.shulventures.consultancymanagement.dto.interview.PlacementPaymentRequest;
 
 import java.util.List;
 
@@ -99,7 +93,7 @@ public class InterviewScheduleController {
             @PathVariable Long id,
             @Valid @RequestBody InterviewDecisionRequest request
     ) {
-        return interviewScheduleService.setFinalDecision(id, request.status());
+        return interviewScheduleService.setFinalDecision(id, request.status() , request.rejectionReason());
     }
 
     @PostMapping("/{id}/placement-payment")
@@ -111,5 +105,21 @@ public class InterviewScheduleController {
             @Valid @RequestBody PlacementPaymentRequest request
     ) {
         return interviewScheduleService.savePlacementPayment(id, request);
+    }
+
+    @GetMapping("/placed-candidates")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'PLACED_CANDIDATES')"
+    )
+    public List<PlacedCandidateResponse> getPlacedCandidates() {
+        return interviewScheduleService.getPlacedCandidates();
+    }
+
+    @GetMapping("/rejected-candidates")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REJECTED_CANDIDATES')"
+    )
+    public List<RejectedCandidateResponse> getRejectedCandidates() {
+        return interviewScheduleService.getRejectedCandidates();
     }
 }

@@ -18,7 +18,8 @@ import com.shulventures.consultancymanagement.dto.interview.UpdateInterviewRound
 import com.shulventures.consultancymanagement.dto.interview.PlacementPaymentRequest;
 import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
 import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepository;
-
+import com.shulventures.consultancymanagement.dto.interview.PlacedCandidateResponse;
+import com.shulventures.consultancymanagement.dto.interview.RejectedCandidateResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
@@ -249,19 +250,29 @@ public class InterviewScheduleService {
     @Transactional
     public InterviewScheduleResponse setFinalDecision(
             Long interviewId,
-            String status
+            String status,
+            String rejectionReason
     ) {
         if (!"Placed".equals(status) && !"Rejected".equals(status)) {
             throw new IllegalArgumentException(
                     "Interview status must be Placed or Rejected."
             );
         }
-
         InterviewPlacement interview = findInterview(interviewId);
+        if ("Rejected".equals(status)) {
+            if (rejectionReason == null || rejectionReason.isBlank()) {
+                throw new IllegalArgumentException(
+                        "A rejection reason is required."
+                );
+            }
+            interview.setRejectionReason(rejectionReason.trim());
+        } else {
+            interview.setRejectionReason(null);
+        }
         interview.setInterviewStatus(status);
-
         return toResponse(interviewRepository.save(interview));
     }
+
 
     @Transactional
     public InterviewScheduleResponse savePlacementPayment(
@@ -368,5 +379,87 @@ public class InterviewScheduleService {
 
     private String textOrEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlacedCandidateResponse> getPlacedCandidates() {
+        List<InterviewPlacement> placements =
+                interviewRepository.findByInterviewStatusOrderByInterviewIdDesc(
+                        "Placed"
+                );
+
+        List<Long> candidateIds = placements.stream()
+                .map(InterviewPlacement::getCandidateId)
+                .distinct()
+                .toList();
+
+        Map<Long, Agreement> candidatesById = new HashMap<>();
+        agreementRepository.findAllById(candidateIds)
+                .forEach(candidate ->
+                        candidatesById.put(candidate.getId(), candidate)
+                );
+
+        List<PlacedCandidateResponse> result = new java.util.ArrayList<>();
+
+        for (InterviewPlacement placement : placements) {
+            Agreement candidate = candidatesById.get(placement.getCandidateId());
+
+            // The senior PHP uses an inner join, so skip placements with no candidate.
+            if (candidate == null) continue;
+
+            result.add(new PlacedCandidateResponse(
+                    placement.getInterviewId(),
+                    candidate.getName(),
+                    candidate.getPhone(),
+                    candidate.getEmail(),
+                    placement.getCompanyName(),
+                    placement.getPosition(),
+                    placement.getJoiningDate(),
+                    placement.getSalaryPackage(),
+                    candidate.getStatus()
+            ));
+        }
+
+        return result;
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<RejectedCandidateResponse> getRejectedCandidates() {
+        List<InterviewPlacement> placements =
+                interviewRepository.findByInterviewStatusOrderByInterviewIdDesc(
+                        "Rejected"
+                );
+
+        List<Long> candidateIds = placements.stream()
+                .map(InterviewPlacement::getCandidateId)
+                .distinct()
+                .toList();
+
+        Map<Long, Agreement> candidatesById = new HashMap<>();
+        agreementRepository.findAllById(candidateIds)
+                .forEach(candidate ->
+                        candidatesById.put(candidate.getId(), candidate)
+                );
+
+        List<RejectedCandidateResponse> result = new java.util.ArrayList<>();
+
+        for (InterviewPlacement placement : placements) {
+            Agreement candidate = candidatesById.get(placement.getCandidateId());
+            if (candidate == null) continue;
+
+            result.add(new RejectedCandidateResponse(
+                    placement.getInterviewId(),
+                    candidate.getName(),
+                    candidate.getEmail(),
+                    candidate.getPhone(),
+                    placement.getInterviewDate(),
+                    placement.getPosition(),
+                    placement.getRejectionReason(),
+                    placement.getInterviewStatus()
+            ));
+        }
+
+        return result;
     }
 }

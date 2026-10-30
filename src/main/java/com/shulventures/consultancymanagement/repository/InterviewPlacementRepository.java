@@ -9,13 +9,14 @@ public interface InterviewPlacementRepository
         extends JpaRepository<InterviewPlacement, Long> {
 
     List<InterviewPlacement>
-    findByInterviewStatusInOrderByInterviewDateAscInterviewTimeAsc(
-            List<String> statuses
-    );
+    findByInterviewStatusInOrderByInterviewDateAscInterviewTimeAsc(List<String> statuses);
 
     List<InterviewPlacement>
     findByCandidateIdAndCompanyNameOrderByInterviewRoundAscInterviewIdAsc(
             Long candidateId,
             String companyName
     );
+
+    List<InterviewPlacement>
+    findByInterviewStatusOrderByInterviewIdDesc(String interviewStatus);
 }
