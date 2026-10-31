@@ -110,6 +110,22 @@ const deleteCandidate = async (candidateId) => {
     }
 };
 
+const getCandidateInterviews = async (candidateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/interviews`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
 const getCandidateResumeUrl = (candidateId) =>
     `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/resume`;
 export default {
@@ -119,5 +135,6 @@ export default {
     updateCandidate,
     getCandidateResumeUrl,
     blacklistCandidate,
-    deleteCandidate
+    deleteCandidate,
+    getCandidateInterviews
 };

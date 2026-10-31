@@ -325,7 +325,407 @@ mysqli_close($conn);
                             </select>
                         </div>
 
-   now 
+   now Reschedule interview Rejected Candidate is working perfectly . In ViewCandidateDetails.jsx we have "Interview
+   and Placement Details" which is not implemented yet . In this section Interview round and result will be shown 
+   of that candidate . So we have to implement is before moving to next module (Acounts Module).  Dont make any changes 
+   by yourself give me code i will add it manualy . for referance seniors
+   code file view-agreement-detail.php -------> "<?php
+session_start();
+
+// Check if the user is logged in
+if (!isset($_SESSION['email'])) {
+    $_SESSION['msg'] = "You must log in first";
+    header('location:login.php');
+    exit();
+}
+
+// Handle logout
+if (isset($_GET['logout'])) {
+    session_destroy();
+    unset($_SESSION['email']);
+    header('location:login.php');
+    exit();
+}
+
+// Include database connection
+require_once 'db_connect.php';
+include 'header.php';
+
+ this.shouldHave("AllCandidateInterviewDetail")
+ 
+// Check if 'id' is set in the URL and is numeric
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $id = $_GET['id'];
+
+    // Fetch the agreement details from the database
+    $sql = "SELECT * FROM tbl_agreement WHERE Id = $id";
+    $result = mysqli_query($conn, $sql);
+
+    if (!$result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    if (mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+    } else {
+        echo "<p>No agreement found with the given ID.</p>";
+        exit();
+    }
+
+    // Fetch placement details based on candidate_id
+    $placement_sql = "SELECT * FROM tbl_placement WHERE candidate_id = $id";
+    $placement_result = mysqli_query($conn, $placement_sql);
+
+    if (!$placement_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Fetch interview details based on interview_id from tbl_placement
+    $interview_sql = "SELECT * FROM tbl_interview WHERE interview_id IN (SELECT interview_id FROM tbl_placement WHERE candidate_id = $id)";
+    $interview_result = mysqli_query($conn, $interview_sql);
+
+    if (!$interview_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Step 1: Check if the candidate ever had a "Company Pay" payment
+    $check_company_pay_sql = "SELECT 1 FROM tbl_payment WHERE client_Id = $id AND payment_type = 'Company Pay' LIMIT 1";
+    $check_company_pay_result = mysqli_query($conn, $check_company_pay_sql);
+
+    if (!$check_company_pay_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Step 2: Set flag if the candidate has "Company Pay" history
+    $had_company_pay = mysqli_num_rows($check_company_pay_result) > 0;
+
+    // Step 3: Fetch payment records (exclude "Company Pay" if the candidate had one)
+    if ($had_company_pay) {
+        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id AND payment_type != 'Company Pay'";
+    } else {
+        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id ";
+    }
+    
+    $payment_result = mysqli_query($conn, $payment_sql);
+
+    if (!$payment_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Calculate the total paid amount
+    $total_paid_amount = 0;
+    while ($payment = mysqli_fetch_assoc($payment_result)) {
+        $total_paid_amount += (float)$payment['paid_amount'];
+    }
+
+    // Reset the pointer to the start of the result set for displaying the payment details
+    mysqli_data_seek($payment_result, 0);  // Rewind the result set pointer
+} else {
+    echo "<p>Invalid ID provided.</p>";
+    exit();
+}
+?>
+
+<body>
+<!-- Main content start -->
+<section id="main-content">
+    <section class="wrapper">
+       <div class="form-w3layouts">
+          <div style="margin-top: 10px; text-align: right;">
+    <div class="btn-group">
+
+        <a href="delete_candidate.php?id=<?= $id; ?>" 
+           class="btn btn-danger"
+           onclick="return confirm('Are you sure you want to permanently delete this candidate?');">
+            Delete Candidate
+        </a>
+
+        <a href="edit_agreement.php?id=<?= $id; ?>" 
+           class="btn btn-warning">
+            Edit & Update Details
+        </a>
+
+        <?php if ($row['status'] != 'Blacklisted'): ?>
+
+            <a href="blacklist_candidate.php?id=<?= $id; ?>" 
+               class="btn btn-danger"
+               onclick="return confirm('Are you sure you want to blacklist this candidate?');">
+                Blacklist Candidate
+            </a>
+
+        <?php else: ?>
+
+            <span class="btn btn-danger">Already Blacklisted</span>
+
+        <?php endif; ?>
+
+    </div>
+</div>
+<br>
+            <!-- Personal Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Personal Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Mobile No.</th>
+                                    <th>Email</th>
+                                    <th>Date of Birth</th>
+                                    <th>Address</th>
+                                    <th>Gender</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["name"]); ?></td>
+                                    <td><?= htmlspecialchars($row["phone"]); ?></td>
+                                    <td><?= htmlspecialchars($row["email"]); ?></td>
+                                    <td><?= htmlspecialchars($row["dob"]); ?></td>
+                                    <td><?= htmlspecialchars($row["address"]); ?></td>
+                                    <td><?= htmlspecialchars($row["gender"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Education Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Education Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Qualification</th>
+                                    <th>Year Of Passing</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["ten_th"]); ?></td>
+                                    <td><?= htmlspecialchars($row["ten_th_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["ten_th_percentage"]); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["twelve_th"]); ?></td>
+                                    <td><?= htmlspecialchars($row["twelve_th_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["twelve_th_percentage"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Graduation Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Graduation Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Qualification</th>
+                                    <th>Year Of Passing</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["graduation"]); ?></td>
+                                    <td><?= htmlspecialchars($row["graduation_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["graduation_percentage"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Experience and Skills -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Experience/Skills
+                        </header>
+                        <br>
+
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Experience</th>
+                                    <th>Skills</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["experience"]); ?></td>
+                                    <td><?= htmlspecialchars($row["skills"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Interview and Placement Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Interview and Placement Details
+                        </header>
+                        <BR>
+                        <?php if (mysqli_num_rows($placement_result) > 0): ?>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Company</th>
+                                        <th>Position</th>
+                                        <th>Interview Date</th>
+                                        <th>Interview Round</th>
+                                        <th>Remark</th>
+                                        <th>Interview Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($placement = mysqli_fetch_assoc($placement_result)): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($placement["company_name"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["position"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_date"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_round"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["remark"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_status"]); ?></td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                            <p>No interview or placement details available for this candidate.</p>
+                        <?php endif; ?>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Payment Details
+                        </header>
+                        <br>
+                        <?php if (mysqli_num_rows($payment_result) > 0): ?>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Total Amount</th>
+                                        <th>Paid Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Gateway</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                              <tbody>
+<?php while ($payment = mysqli_fetch_assoc($payment_result)): ?>
+    <?php
+        $paid = (float)$payment["paid_amount"];
+        $total = (float)$payment["total_amount"];
+
+      
+
+        // Calculate payment status
+        if ($paid >= $total) {
+            $status = "Paid";
+        } elseif ($paid > 0 && $paid < $total) {
+            $status = "Partial";
+        } else {
+            $status = "Unpaid";
+        }
+    ?>
+    <tr>
+        <td><?= number_format($total, 2); ?></td>
+        <td><?= number_format($paid, 2); ?></td>
+        <td><?= htmlspecialchars($payment["payment_date"] ?? ''); ?></td>
+        <td><?= htmlspecialchars($payment["payment_gateway"] ?? ''); ?></td>
+        <td><strong><?= $status; ?></strong></td>
+        <td>
+           <a href="update-candidate-payment.php?payment_id=<?= $payment['Id']; ?>" class="btn-warning">
+    Update Payment
+</a>
+        </td>
+    </tr>
+<?php endwhile; ?>
+</tbody>
+
+                            </table>
+                            <!-- Total Paid Amount -->
+                            <div class="panel-footer">
+                                <strong>Total Paid Amount: </strong>
+                                <?= number_format($total_paid_amount, 2); ?>
+                            </div>
+                        <?php else: ?>
+                            <p>No payment details available for this candidate.</p>
+                        <?php endif; ?>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Schedule Placement Button -->
+           <div class="row"> 
+    <div class="col-lg-12"> 
+        <section class="panel"> 
+            <div class="panel-body" style="text-align: center;"> 
+                <?php if($row['status'] != 'Blacklisted'): ?> 
+                    <a href="interview-schedule.php?id=<?= $id; ?>" 
+                       class="btn-primary">
+                        Schedule Placement
+                    </a>
+                <?php endif; ?> 
+            </div> 
+        </section> 
+    </div> 
+</div>
+    </section>
+</section>
+
+<!-- JS Scripts -->
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+
+</body>
+</html>
+
+<?php
+// Close the connection
+mysqli_close($conn);
+?>"
+
+
+
+
                         <div class="form-group">
                             <label for="interview_date">
                                 Interview Date

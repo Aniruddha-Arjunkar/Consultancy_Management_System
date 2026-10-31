@@ -19,6 +19,9 @@ const ViewCandidateDetail = () => {
     const [error, setError] = useState("");
     const [blacklisting, setBlacklisting] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [interviews, setInterviews] = useState([]);
+    const [interviewsLoading, setInterviewsLoading] = useState(true);
+    const [interviewError, setInterviewError] = useState("");
 
     useEffect(() => {
         let active = true;
@@ -42,6 +45,40 @@ const ViewCandidateDetail = () => {
         };
 
         loadCandidate();
+
+        return () => {
+            active = false;
+        };
+    }, [candidateId]);
+
+
+    useEffect(() => {
+        let active = true;
+
+        const loadInterviews = async () => {
+            setInterviewsLoading(true);
+            setInterviewError("");
+
+            try {
+                const data =
+                    await agreementService.getCandidateInterviews(candidateId);
+
+                if (active) {
+                    setInterviews(Array.isArray(data) ? data : []);
+                }
+            } catch (loadError) {
+                if (active) {
+                    setInterviewError(
+                        loadError.message ||
+                        "Could not load interview and placement details."
+                    );
+                }
+            } finally {
+                if (active) setInterviewsLoading(false);
+            }
+        };
+
+        loadInterviews();
 
         return () => {
             active = false;
@@ -306,10 +343,47 @@ const ViewCandidateDetail = () => {
 
                         <section className="candidate-detail-section">
                             <h2>📋 Interview and Placement Details</h2>
-                            <p className="candidate-detail-empty">
-                                No interview or placement details available for
-                                this candidate.
-                            </p>
+
+                            {interviewsLoading ? (
+                                <p className="candidate-detail-empty">
+                                    Loading interview and placement details...
+                                </p>
+                            ) : interviewError ? (
+                                <p className="candidate-detail-empty" role="alert">
+                                    {interviewError}
+                                </p>
+                            ) : interviews.length > 0 ? (
+                                <div className="view-clients-table-wrapper">
+                                    <table className="view-clients-table candidate-detail-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Company</th>
+                                                <th>Position</th>
+                                                <th>Interview Date</th>
+                                                <th>Interview Round</th>
+                                                <th>Remark</th>
+                                                <th>Interview Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {interviews.map((interview) => (
+                                                <tr key={interview.interviewId}>
+                                                    <td>{display(interview.companyName)}</td>
+                                                    <td>{display(interview.position)}</td>
+                                                    <td>{display(interview.interviewDate)}</td>
+                                                    <td>{display(interview.interviewRound)}</td>
+                                                    <td>{display(interview.remark)}</td>
+                                                    <td>{display(interview.interviewStatus)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="candidate-detail-empty">
+                                    No interview or placement details available for this candidate.
+                                </p>
+                            )}
                         </section>
 
                         <section className="candidate-detail-section">

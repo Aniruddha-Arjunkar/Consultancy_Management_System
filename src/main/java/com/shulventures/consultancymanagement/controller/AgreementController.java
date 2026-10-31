@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.springframework.http.HttpStatus;
 
+import com.shulventures.consultancymanagement.dto.agreement.CandidateInterviewDetailResponse;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -126,5 +128,17 @@ public class AgreementController {
     )
     public void deleteCandidate(@PathVariable Long id) {
         agreementService.deleteCandidate(id);
+    }
+
+
+
+    @GetMapping("/agreements/{id}/interviews")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'CANDIDATES_VIEW')"
+    )
+    public List<CandidateInterviewDetailResponse> getCandidateInterviews(
+            @PathVariable Long id
+    ) {
+        return agreementService.getCandidateInterviews(id);
     }
 }

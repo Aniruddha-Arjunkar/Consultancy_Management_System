@@ -19,4 +19,7 @@ public interface InterviewPlacementRepository
 
     List<InterviewPlacement>
     findByInterviewStatusOrderByInterviewIdDesc(String interviewStatus);
+
+    List<InterviewPlacement>
+    findByCandidateIdOrderByInterviewRoundAscInterviewIdAsc(Long candidateId);
 }

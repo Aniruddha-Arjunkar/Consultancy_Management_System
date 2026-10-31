@@ -10,6 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.shulventures.consultancymanagement.dto.agreement.CandidateInterviewDetailResponse;
+import com.shulventures.consultancymanagement.entity.InterviewPlacement;
+import com.shulventures.consultancymanagement.repository.InterviewPlacementRepository;
 
 import java.util.List;
 
@@ -29,6 +32,7 @@ public class AgreementService {
 
     private final AgreementRepository agreementRepository;
     private final StudentRegistrationRepository registrationRepository;
+    private final InterviewPlacementRepository interviewPlacementRepository;
 
     @Value("${app.upload.student-resumes:uploads/student-resumes}")
     private String resumeDirectory;
@@ -316,5 +320,30 @@ public class AgreementService {
         }
 
         return file;
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<CandidateInterviewDetailResponse> getCandidateInterviews(
+            Long candidateId
+    ) {
+        agreementRepository.findById(candidateId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Candidate not found.")
+                );
+
+        return interviewPlacementRepository
+                .findByCandidateIdOrderByInterviewRoundAscInterviewIdAsc(candidateId)
+                .stream()
+                .map(interview -> new CandidateInterviewDetailResponse(
+                        interview.getInterviewId(),
+                        interview.getCompanyName(),
+                        interview.getPosition(),
+                        interview.getInterviewDate(),
+                        interview.getInterviewRound(),
+                        interview.getRemark(),
+                        interview.getInterviewStatus()
+                ))
+                .toList();
     }
 }
