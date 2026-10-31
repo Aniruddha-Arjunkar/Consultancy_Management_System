@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.List;
 
 @RestController
@@ -121,5 +122,26 @@ public class InterviewScheduleController {
     )
     public List<RejectedCandidateResponse> getRejectedCandidates() {
         return interviewScheduleService.getRejectedCandidates();
+    }
+
+
+    @PatchMapping("/{id}/reschedule-rejected")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REJECTED_CANDIDATES')"
+    )
+    public InterviewScheduleResponse rescheduleRejectedCandidate(
+            @PathVariable Long id,
+            @Valid @RequestBody RescheduleRejectedInterviewRequest request
+    ) {
+        return interviewScheduleService.rescheduleRejectedCandidate(id, request);
+    }
+
+    @GetMapping("/rejected-reschedule-requirements")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'REJECTED_CANDIDATES')"
+    )
+    public List<InterviewRequirementOptionResponse>
+    getRejectedRescheduleRequirements() {
+        return interviewScheduleService.getCurrentRequirements();
     }
 }

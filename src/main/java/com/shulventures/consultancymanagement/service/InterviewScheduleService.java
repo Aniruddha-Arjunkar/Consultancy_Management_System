@@ -20,6 +20,7 @@ import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
 import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepository;
 import com.shulventures.consultancymanagement.dto.interview.PlacedCandidateResponse;
 import com.shulventures.consultancymanagement.dto.interview.RejectedCandidateResponse;
+import com.shulventures.consultancymanagement.dto.interview.RescheduleRejectedInterviewRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
@@ -461,5 +462,41 @@ public class InterviewScheduleService {
         }
 
         return result;
+    }
+
+
+    @Transactional
+    public InterviewScheduleResponse rescheduleRejectedCandidate(
+            Long interviewId,
+            RescheduleRejectedInterviewRequest request
+    ) {
+        InterviewPlacement interview = findInterview(interviewId);
+
+        if (!"Rejected".equals(interview.getInterviewStatus())) {
+            throw new IllegalArgumentException(
+                    "Only a rejected interview can be rescheduled from this page."
+            );
+        }
+
+        CurrentRequirement requirement =
+                requirementRepository.findById(request.requirementId())
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Current requirement not found."
+                                )
+                        );
+
+        interview.setCompanyName(
+                requirement.getAssociateCompany().getCompanyName()
+        );
+        interview.setPosition(requirement.getJobProfile());
+        interview.setInterviewRound(request.interviewRound());
+        interview.setInterviewDate(request.interviewDate());
+        interview.setInterviewTime(request.interviewTime());
+        interview.setHrName(request.hrName().trim());
+        interview.setRemark(request.remark().trim());
+        interview.setInterviewStatus("Rescheduled");
+
+        return toResponse(interviewRepository.save(interview));
     }
 }

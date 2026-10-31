@@ -163,6 +163,38 @@ const getRejectedCandidates = async () => {
     return response.json();
 };
 
+
+const rescheduleRejectedCandidateInterview = async (
+    interviewId,
+    payload
+) => {
+    const response = await fetch(
+        `${API_BASE_URL}/interviews/${encodeURIComponent(interviewId)}/reschedule-rejected`,
+        {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }
+    );
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
+const getRejectedRescheduleRequirements = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/interviews/rejected-reschedule-requirements`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
 export default {
     getCurrentRequirements,
     scheduleInterview,
@@ -174,5 +206,7 @@ export default {
     setInterviewDecision,
     savePlacementPayment,
     getPlacedCandidates,
-    getRejectedCandidates
+    getRejectedCandidates,
+    rescheduleRejectedCandidateInterview,
+    getRejectedRescheduleRequirements
 };

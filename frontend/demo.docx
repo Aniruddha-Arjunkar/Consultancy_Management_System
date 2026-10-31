@@ -144,7 +144,278 @@ include 'footer.php'; // Assuming footer.php contains your footer section
                     }
                 }
             }
+
+As the User clicks on the Reschedule Interview it will redirect to the ReScheduleRejectedCandidateInterview.jsx . 
+the page will behave as same as Schedule interview page (EnterInterviewScheduleDetail.jsx). Here we reschedule 
+interview , start schedule process from the start . We have already EnterInterviewScheduleDetail.jsx whose does the 
+same job so tried to use it by navigating to EnterInterviewScheduleDetail.jsx but Due to module wise authorization
+i cant use it . What should we do either create seperate .jsx file or use EnterInterviewScheduleDetail.jsx will
+would be easy and less complecated. don't make any changes by yourself.
+
+
+No you getting it wrong Rescheduling doesn't mean we are going to Rescheduled interview where candidate get Rejected.
+Scheduling candidate interview from the Start , Adding company name , job profile interview date , time from round 1.
+For refernce in seniors project as user click on the Reschedule Interview button it redirect to reschedule-interview.php
+----> "<?php 
+session_start(); 
+
+if (!isset($_SESSION['email'])) { 
+    $_SESSION['msg'] = "You must log in first"; 
+    header('location:login.php'); 
+    exit(); 
+} 
+ 
+require_once 'db_connect.php'; 
+include 'header.php'; 
+ 
+ 
+// Check if an ID and status are provided 
+if (isset($_GET['id']) && isset($_GET['status'])) { 
+    $interview_id = intval($_GET['id']); 
+    $status = mysqli_real_escape_string($conn, $_GET['status']); 
+ 
+    // If the status is "Rescheduled", we need to display the form to update interview details 
+    if ($status == 'Rescheduled') { 
+        
+        // Check if the form has been submitted for rescheduling 
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') { 
             
+            // Get the updated details from the form 
+            $company_name = mysqli_real_escape_string($conn, $_POST['company_name']); 
+            $position = mysqli_real_escape_string($conn, $_POST['position']); 
+            $interview_round = intval($_POST['interview_round']); 
+            $interview_date = mysqli_real_escape_string($conn, $_POST['interview_date']); 
+            $interview_time = mysqli_real_escape_string($conn, $_POST['interview_time']); 
+            $remark = mysqli_real_escape_string($conn, $_POST['remark']); 
+            $hr_name = mysqli_real_escape_string($conn, $_POST['hr_name']); 
+            $interview_status = 'Rescheduled'; 
+
+            // Update the interview details with the new information 
+            $sql = "UPDATE tbl_placement  
+                    SET company_name = '$company_name',  
+                        position = '$position',  
+                        interview_round = $interview_round,  
+                        interview_date = '$interview_date',  
+                        interview_time = '$interview_time',  
+                        remark = '$remark',  
+                        hr_name = '$hr_name',  
+                        interview_status = '$interview_status' 
+                    WHERE interview_id = $interview_id"; 
+ 
+            if (mysqli_query($conn, $sql)) { 
+                echo "<script>
+                    alert('Interview rescheduled successfully.'); 
+                    window.location.href='view-interview-schedule-student.php';
+                </script>"; 
+            } else { 
+                echo "Error updating interview details: " . mysqli_error($conn); 
+            } 
+        } 
+        
+    } else { 
+        
+        // For other statuses update the status 
+        $sql = "UPDATE tbl_placement 
+                SET interview_status = '$status' 
+                WHERE interview_id = $interview_id"; 
+ 
+        if (mysqli_query($conn, $sql)) { 
+            echo "<script>
+                alert('Status updated successfully.'); 
+                window.location.href='view-interview-schedule-student.php';
+            </script>"; 
+        } else { 
+            echo "Error updating status: " . mysqli_error($conn); 
+        } 
+    } 
+} 
+ 
+mysqli_close($conn); 
+?> 
+
+
+<!-- Form for rescheduling the interview -->
+
+<?php if (isset($status) && $status == 'Rescheduled'): ?>
+
+<section id="main-content">
+    <section class="wrapper">
+
+        <div class="reg-w3">
+
+            <div class="refollowup-card">
+
+                <!-- HEADER -->
+                <div class="refollowup-header">
+
+                    <div class="refollowup-title">
+
+                        <span class="phone-icon">📞</span>
+
+                        <div>
+                            <h2>Reschedule Interview</h2>
+                            <p>Update interview details</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FORM -->
+                <form action="" method="post" class="refollowup-form">
+
+                    <!-- ROW 1 -->
+                    <div class="form-row">
+
+                        <div class="form-group">
+                            <label for="company_name">
+                                Company Name
+                            </label>
+
+                            <input 
+                                type="text" 
+                                id="company_name" 
+                                name="company_name" 
+                                placeholder="Enter company name" 
+                                required
+                            >
+                        </div>
+
+
+    In ReScheduleRejectedCandidateInterview.jsx in company name There should be drop down showing Current reqrirement 
+    company name and in Job profile avalible in that company same we implemnt in EnterInterviewScheduleDetail.jsx .
+    dont make any changes by yourself give me code.
+
+
+                        <div class="form-group">
+                            <label for="position">
+                                Position
+                            </label>
+
+                            <input 
+                                type="text" 
+                                id="position" 
+                                name="position" 
+                                placeholder="Enter position" 
+                                required
+                            >
+                        </div>
+
+                    </div>
+
+
+                    <!-- ROW 2 -->
+                    <div class="form-row">
+
+                        <div class="form-group">
+                            <label for="interview_round">
+                                Interview Round
+                            </label>
+
+                            <select 
+                                id="interview_round" 
+                                name="interview_round" 
+                                required
+                            >
+                                <option value="1">Round 1</option>
+                                <option value="2">Round 2</option>
+                                <option value="3">Round 3</option>
+                                <option value="4">Round 4</option>
+                            </select>
+                        </div>
+
+   now 
+                        <div class="form-group">
+                            <label for="interview_date">
+                                Interview Date
+                            </label>
+
+                            <input 
+                                type="date" 
+                                id="interview_date" 
+                                name="interview_date" 
+                                required
+                            >
+                        </div>
+                    </div>
+
+
+                    <!-- ROW 3 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="interview_time">
+                                Interview Time
+                            </label>
+                            <input 
+                                type="time" 
+                                id="interview_time" 
+                                name="interview_time" 
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="hr_name">
+                                Managed By
+                            </label>
+                            <input 
+                                type="text" 
+                                id="hr_name" 
+                                name="hr_name" 
+                                placeholder="Enter HR name" 
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- ROW 4 -->
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="remark">
+                                Remark
+                            </label>
+                            <input 
+                                type="text" 
+                                id="remark" 
+                                name="remark" 
+                                placeholder="Enter remark" 
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- SUBMIT -->
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <button 
+                                type="submit" 
+                                name="submit" 
+                                class="submit-btn"
+                            >
+                                📅 Reschedule Interview
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</section>
+<?php endif; ?>
+<!-- Footer -->
+<script src="js/bootstrap.js"></script> 
+<script src="js/jquery.dcjqaccordion.2.7.js"></script> 
+<script src="js/scripts.js"></script> 
+<script src="js/jquery.slimscroll.js"></script> 
+<script src="js/jquery.nicescroll.js"></script> 
+<script src="js/jquery.scrollTo.js"></script> 
+</body> 
+</html>"
+
+
+
+
             // Show or hide the row based on whether a match was found
             if (rowMatches) {
                 tr[i].style.display = "";
@@ -167,4 +438,4 @@ include 'footer.php'; // Assuming footer.php contains your footer section
 don't make any changes by your self 
 
 i have followed the process till adding getRejectedCandidates in interviewscheduleService.js and not go on further
-steps .  
+steps.  

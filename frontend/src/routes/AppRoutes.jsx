@@ -83,7 +83,7 @@ import AddPaymentInfo from "./../Views/ConsultancyManagement/InterviewStatus/Add
 
 import PlacedCandidates from "./../Views/ConsultancyManagement/StudentStatus/PlacedCandidates/PlacedCandidates.jsx";
 import RejectedCandidates from "./../Views/ConsultancyManagement/StudentStatus/RejectedCandidates/RejectedCandidates.jsx";
-
+import ReScheduleRejectedCandidateInterview from "../Views/ConsultancyManagement/StudentStatus/RescheduleRejectedCandidateInterview/RescheduleRejectedCandidateInterview.jsx";
 
 function DashboardHome() {
     const { user } = useAuth();
@@ -300,6 +300,7 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="CONSULTANCY" page="REJECTED_CANDIDATES" />}>
                         <Route path="consultancy/rejected-candidates" element={<RejectedCandidates />} />
+                        <Route path="consultancy/reschedule-rejected-interview/:interviewId" element={<ReScheduleRejectedCandidateInterview />}/>
                     </Route>
 
                     {/* Users: Super Admin only */}
