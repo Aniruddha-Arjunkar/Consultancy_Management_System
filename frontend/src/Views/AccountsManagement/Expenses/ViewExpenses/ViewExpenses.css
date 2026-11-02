@@ -1,3 +1,114 @@
-.viewExpenses-page{
-    background-color: #9baeac;
+.view-expenses-page .view-clients-table {
+    width: 100% !important;
+    min-width: 900px !important;
+    table-layout: fixed !important;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(1),
+.view-expenses-page .view-clients-table td:nth-child(1) {
+    width: 10% !important;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(2),
+.view-expenses-page .view-clients-table td:nth-child(2) {
+    width: 12% !important;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(3),
+.view-expenses-page .view-clients-table td:nth-child(3) {
+    width: 20% !important;
+    font-weight: 700;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(4),
+.view-expenses-page .view-clients-table td:nth-child(4) {
+    width: 21% !important;
+    font-weight: 500;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(5),
+.view-expenses-page .view-clients-table td:nth-child(5) {
+    width: 12% !important;
+    font-weight: 500;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(6),
+.view-expenses-page .view-clients-table td:nth-child(6) {
+    width: 16% !important;
+}
+
+.view-expenses-page .view-clients-table th:nth-child(7),
+.view-expenses-page .view-clients-table td:nth-child(7) {
+    width: 15% !important;
+}
+
+.view-expenses-page .view-clients-table th,
+.view-expenses-page .view-clients-table td {
+    text-align: center !important;
+    vertical-align: middle !important;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.view-client-branch {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.branch-nagpur {
+    color: #1149cc;
+    background: #e8efff;
+}
+
+.branch-bramhapuri {
+    color: #16a34a;
+    background: #eaf8ef;
+}
+
+.branch-chandrapur {
+    color: #dc2626;
+    background: #feecec;
+}
+
+.view-expenses-error {
+    color: #b4232e;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .view-expenses-page,
+    .view-expenses-page * {
+        visibility: visible;
+    }
+
+    .view-expenses-page {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    .view-expenses-page .view-clients-header,
+    .view-expenses-page .view-clients-filter,
+    .view-expenses-page .view-expenses-error {
+        display: none !important;
+    }
+
+    .view-expenses-page .view-clients-card {
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .view-expenses-page .view-clients-table-wrapper {
+        max-height: none;
+        overflow: visible;
+    }
 }

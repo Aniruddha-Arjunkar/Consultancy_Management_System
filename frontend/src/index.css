@@ -636,6 +636,37 @@ body {
     .view-client-bottom-scroll-inner {
         width: 1150px;
     }
+
+      .view-clients-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+}
+
+.view-client-search-btn {
+    height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #2058d8;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow:
+        0 4px 10px rgba(32, 88, 216, .18);
+    transition:
+        background .2s ease,
+        transform .2s ease;
+}
+
+.view-client-search-btn:hover {
+    background: #1748c7;
+
+    transform: translateY(-1px);
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
@@ -652,6 +683,17 @@ body {
     border-spacing: 0;
     font-size: 12px;
 }
+
+.view-clients-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+
 
 /* =========================================================
    TABLE HEADER
