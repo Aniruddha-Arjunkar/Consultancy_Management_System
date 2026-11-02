@@ -1,841 +1,911 @@
-now we can move to implement Rejected Candidate page . seniors code file view-Rejected-candidates.php ----> "
-<?php
+now the view payment is working perfectly perpectly lets now implement view defaulter page . we have to implement  
+every functionality Action column Reactive button that record status again change to active and remove branch 
+and service column . senior code file view-defaulter.php ------> "<?php
 session_start();
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
     header('location:login.php');
     exit();
 }
 
-require_once 'db_connect.php'; // Assuming connect.php contains your database connection
-include 'header.php'; // Assuming header.php contains your navigation and basic layout structure
-
-// Fetch all rejected candidates from tbl_agreement and tbl_placement
-$sql = "SELECT 
-            a.name, 
-            a.email, 
-            a.phone, 
-            p.interview_date, 
-            p.position,
-            p.rejection_reason, 
-            p.interview_status,
-            p.interview_id
-        FROM tbl_agreement a
-        JOIN tbl_placement p ON a.id = p.candidate_id  -- Ensure these column names are correct
-        WHERE p.interview_status = 'Rejected' ORDER BY Id DESC";  // Modify the status condition if needed
-
-$result = mysqli_query($conn, $sql);
-
-if (!$result) {
-    die("Query failed: " . mysqli_error($conn));
-}
-?>
-<body>
-<section id="main-content">
-
-    <div class="view-clients-page">
-
-        <div class="view-clients-header">
-            <div class="view-clients-title-wrap">
-                <h1 class="view-clients-title">
-                    Rejected Candidate List
-                </h1>
-
-               
-            </div>
-        </div>
-
-        <div class="view-clients-card">
-               <div class="view-client-search-wrap">
-    <span class="view-client-search-icon">🔍</span>
-
-    <input type="text"
-           id="txt_searchall"
-           class="view-client-search"
-           placeholder="Search"
-           onkeyup="searchTable()">
-</div>
-
-<BR>
-
-                
-                <?php if (mysqli_num_rows($result) > 0): ?>            
-                   
-                        <div class="view-clients-table-wrapper">
-    <table class="view-clients-table" id="rejectedCandidatesTable">
-                            <thead>
-                                <tr>
-                <th style="min-width: 150px;">Name</th>
-<th style="min-width: 250px;">Email</th>
-<th style="min-width: 150px;">Phone</th>
-<th style="min-width: 50px;">Interview Date</th>
-<th style="min-width: 150px;">Position</th>
-<th style="min-width: 220px;">Rejection Reason</th>
-<th style="min-width: 100px;">Interview Status</th>
-<th style="min-width: 200px;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($candidate = mysqli_fetch_assoc($result)): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($candidate['name']) ?></td>
-<td><?= htmlspecialchars($candidate['email']) ?></td>
-<td><?= htmlspecialchars($candidate['phone']) ?></td>
-                                        <td><?= htmlspecialchars($candidate['interview_date']) ?></td>
-                                        <td><?= htmlspecialchars($candidate['position']) ?></td>
-                                        <td><?= htmlspecialchars($candidate['rejection_reason']) ?></td>
-                                        <td><?= htmlspecialchars($candidate['interview_status']) ?></td>
-                                        <td>
-                                            <!-- Button to Reschedule Interview or other actions -->
-                                         <a href="reschedule-interview.php?id=<?= $candidate['interview_id'] ?>&status=Rescheduled"
-   class="btn btn-warning view-client-excel-btn">
-    Reschedule Interview
-</a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    </div>
-                <?php else: ?>
-                 <p class="view-client-no-data">
-    No rejected candidates found.
-</p>
-                <?php endif; ?>
-            </div>
-        </div>
-    </section>
-</section>
-
-<?php
-mysqli_close($conn);
-include 'footer.php'; // Assuming footer.php contains your footer section
-?>
-
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/footable@3.1.6/dist/footable.all.min.js"></script>
-
-<script>
-    // Initialize Footable for sorting, pagination, and filtering
-    $(document).ready(function() {
-        $('#rejectedCandidatesTable').footable();
-    });
-
-    // Custom search functionality (filter rows based on search input)
-    function searchTable() {
-        var input, filter, table, tr, td, i, txtValue;
-        input = document.getElementById('txt_searchall');
-        filter = input.value.toLowerCase();
-        table = document.getElementById('rejectedCandidatesTable');
-        tr = table.getElementsByTagName('tr');
-        
-        // Loop through all rows and hide those that don't match the search
-        for (i = 1; i < tr.length; i++) { // Start from 1 to skip the header row
-            td = tr[i].getElementsByTagName('td');
-            var rowMatches = false;
-            
-            // Check each cell in the row to see if it matches the search query
-            for (var j = 0; j < td.length; j++) {
-                if (td[j]) {
-                    txtValue = td[j].textContent || td[j].innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rowMatches = true;
-                    }
-                }
-            }
-
-As the User clicks on the Reschedule Interview it will redirect to the ReScheduleRejectedCandidateInterview.jsx . 
-the page will behave as same as Schedule interview page (EnterInterviewScheduleDetail.jsx). Here we reschedule 
-interview , start schedule process from the start . We have already EnterInterviewScheduleDetail.jsx whose does the 
-same job so tried to use it by navigating to EnterInterviewScheduleDetail.jsx but Due to module wise authorization
-i cant use it . What should we do either create seperate .jsx file or use EnterInterviewScheduleDetail.jsx will
-would be easy and less complecated. don't make any changes by yourself.
-
-
-No you getting it wrong Rescheduling doesn't mean we are going to Rescheduled interview where candidate get Rejected.
-Scheduling candidate interview from the Start , Adding company name , job profile interview date , time from round 1.
-For refernce in seniors project as user click on the Reschedule Interview button it redirect to reschedule-interview.php
-----> "<?php 
-session_start(); 
-
-if (!isset($_SESSION['email'])) { 
-    $_SESSION['msg'] = "You must log in first"; 
-    header('location:login.php'); 
-    exit(); 
-} 
- 
-require_once 'db_connect.php'; 
-include 'header.php'; 
- 
- 
-// Check if an ID and status are provided 
-if (isset($_GET['id']) && isset($_GET['status'])) { 
-    $interview_id = intval($_GET['id']); 
-    $status = mysqli_real_escape_string($conn, $_GET['status']); 
- 
-    // If the status is "Rescheduled", we need to display the form to update interview details 
-    if ($status == 'Rescheduled') { 
-        
-        // Check if the form has been submitted for rescheduling 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') { 
-            
-            // Get the updated details from the form 
-            $company_name = mysqli_real_escape_string($conn, $_POST['company_name']); 
-            $position = mysqli_real_escape_string($conn, $_POST['position']); 
-            $interview_round = intval($_POST['interview_round']); 
-            $interview_date = mysqli_real_escape_string($conn, $_POST['interview_date']); 
-            $interview_time = mysqli_real_escape_string($conn, $_POST['interview_time']); 
-            $remark = mysqli_real_escape_string($conn, $_POST['remark']); 
-            $hr_name = mysqli_real_escape_string($conn, $_POST['hr_name']); 
-            $interview_status = 'Rescheduled'; 
-
-            // Update the interview details with the new information 
-            $sql = "UPDATE tbl_placement  
-                    SET company_name = '$company_name',  
-                        position = '$position',  
-                        interview_round = $interview_round,  
-                        interview_date = '$interview_date',  
-                        interview_time = '$interview_time',  
-                        remark = '$remark',  
-                        hr_name = '$hr_name',  
-                        interview_status = '$interview_status' 
-                    WHERE interview_id = $interview_id"; 
- 
-            if (mysqli_query($conn, $sql)) { 
-                echo "<script>
-                    alert('Interview rescheduled successfully.'); 
-                    window.location.href='view-interview-schedule-student.php';
-                </script>"; 
-            } else { 
-                echo "Error updating interview details: " . mysqli_error($conn); 
-            } 
-        } 
-        
-    } else { 
-        
-        // For other statuses update the status 
-        $sql = "UPDATE tbl_placement 
-                SET interview_status = '$status' 
-                WHERE interview_id = $interview_id"; 
- 
-        if (mysqli_query($conn, $sql)) { 
-            echo "<script>
-                alert('Status updated successfully.'); 
-                window.location.href='view-interview-schedule-student.php';
-            </script>"; 
-        } else { 
-            echo "Error updating status: " . mysqli_error($conn); 
-        } 
-    } 
-} 
- 
-mysqli_close($conn); 
-?> 
-
-
-<!-- Form for rescheduling the interview -->
-
-<?php if (isset($status) && $status == 'Rescheduled'): ?>
-
-<section id="main-content">
-    <section class="wrapper">
-
-        <div class="reg-w3">
-
-            <div class="refollowup-card">
-
-                <!-- HEADER -->
-                <div class="refollowup-header">
-
-                    <div class="refollowup-title">
-
-                        <span class="phone-icon">📞</span>
-
-                        <div>
-                            <h2>Reschedule Interview</h2>
-                            <p>Update interview details</p>
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- FORM -->
-                <form action="" method="post" class="refollowup-form">
-
-                    <!-- ROW 1 -->
-                    <div class="form-row">
-
-                        <div class="form-group">
-                            <label for="company_name">
-                                Company Name
-                            </label>
-
-                            <input 
-                                type="text" 
-                                id="company_name" 
-                                name="company_name" 
-                                placeholder="Enter company name" 
-                                required
-                            >
-                        </div>
-
-
-    In ReScheduleRejectedCandidateInterview.jsx in company name There should be drop down showing Current reqrirement 
-    company name and in Job profile avalible in that company same we implemnt in EnterInterviewScheduleDetail.jsx .
-    dont make any changes by yourself give me code.
-
-
-                        <div class="form-group">
-                            <label for="position">
-                                Position
-                            </label>
-
-                            <input 
-                                type="text" 
-                                id="position" 
-                                name="position" 
-                                placeholder="Enter position" 
-                                required
-                            >
-                        </div>
-
-                    </div>
-
-
-                    <!-- ROW 2 -->
-                    <div class="form-row">
-
-                        <div class="form-group">
-                            <label for="interview_round">
-                                Interview Round
-                            </label>
-
-                            <select 
-                                id="interview_round" 
-                                name="interview_round" 
-                                required
-                            >
-                                <option value="1">Round 1</option>
-                                <option value="2">Round 2</option>
-                                <option value="3">Round 3</option>
-                                <option value="4">Round 4</option>
-                            </select>
-                        </div>
-
-   now Reschedule interview Rejected Candidate is working perfectly . In ViewCandidateDetails.jsx we have "Interview
-   and Placement Details" which is not implemented yet . In this section Interview round and result will be shown 
-   of that candidate . So we have to implement is before moving to next module (Acounts Module).  Dont make any changes 
-   by yourself give me code i will add it manualy . for referance seniors
-   code file view-agreement-detail.php -------> "<?php
-session_start();
-
-// Check if the user is logged in
-if (!isset($_SESSION['email'])) {
-    $_SESSION['msg'] = "You must log in first";
-    header('location:login.php');
-    exit();
-}
-
-// Handle logout
-if (isset($_GET['logout'])) {
-    session_destroy();
-    unset($_SESSION['email']);
-    header('location:login.php');
-    exit();
-}
-
-// Include database connection
 require_once 'db_connect.php';
 include 'header.php';
 
- this.shouldHave("AllCandidateInterviewDetail")
- 
-// Check if 'id' is set in the URL and is numeric
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $id = $_GET['id'];
-
-    // Fetch the agreement details from the database
-    $sql = "SELECT * FROM tbl_agreement WHERE Id = $id";
-    $result = mysqli_query($conn, $sql);
-
-    if (!$result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-    } else {
-        echo "<p>No agreement found with the given ID.</p>";
-        exit();
-    }
-
-    // Fetch placement details based on candidate_id
-    $placement_sql = "SELECT * FROM tbl_placement WHERE candidate_id = $id";
-    $placement_result = mysqli_query($conn, $placement_sql);
-
-    if (!$placement_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Fetch interview details based on interview_id from tbl_placement
-    $interview_sql = "SELECT * FROM tbl_interview WHERE interview_id IN (SELECT interview_id FROM tbl_placement WHERE candidate_id = $id)";
-    $interview_result = mysqli_query($conn, $interview_sql);
-
-    if (!$interview_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Step 1: Check if the candidate ever had a "Company Pay" payment
-    $check_company_pay_sql = "SELECT 1 FROM tbl_payment WHERE client_Id = $id AND payment_type = 'Company Pay' LIMIT 1";
-    $check_company_pay_result = mysqli_query($conn, $check_company_pay_sql);
-
-    if (!$check_company_pay_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Step 2: Set flag if the candidate has "Company Pay" history
-    $had_company_pay = mysqli_num_rows($check_company_pay_result) > 0;
-
-    // Step 3: Fetch payment records (exclude "Company Pay" if the candidate had one)
-    if ($had_company_pay) {
-        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id AND payment_type != 'Company Pay'";
-    } else {
-        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id ";
-    }
-    
-    $payment_result = mysqli_query($conn, $payment_sql);
-
-    if (!$payment_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Calculate the total paid amount
-    $total_paid_amount = 0;
-    while ($payment = mysqli_fetch_assoc($payment_result)) {
-        $total_paid_amount += (float)$payment['paid_amount'];
-    }
-
-    // Reset the pointer to the start of the result set for displaying the payment details
-    mysqli_data_seek($payment_result, 0);  // Rewind the result set pointer
-} else {
-    echo "<p>Invalid ID provided.</p>";
-    exit();
-}
+// Initialize variable to hold total due amount
+$total_due_amount = 0;
 ?>
 
-<body>
-<!-- Main content start -->
+
+
+
+<!-- =========================================================
+     MAIN CONTENT
+========================================================= -->
+
 <section id="main-content">
+
     <section class="wrapper">
-       <div class="form-w3layouts">
-          <div style="margin-top: 10px; text-align: right;">
-    <div class="btn-group">
 
-        <a href="delete_candidate.php?id=<?= $id; ?>" 
-           class="btn btn-danger"
-           onclick="return confirm('Are you sure you want to permanently delete this candidate?');">
-            Delete Candidate
-        </a>
+        <div class="view-clients-page">
 
-        <a href="edit_agreement.php?id=<?= $id; ?>" 
-           class="btn btn-warning">
-            Edit & Update Details
-        </a>
 
-        <?php if ($row['status'] != 'Blacklisted'): ?>
+            <!-- =================================================
+                 PAGE HEADER
+            ================================================== -->
 
-            <a href="blacklist_candidate.php?id=<?= $id; ?>" 
-               class="btn btn-danger"
-               onclick="return confirm('Are you sure you want to blacklist this candidate?');">
-                Blacklist Candidate
-            </a>
+            <div class="view-clients-header">
 
-        <?php else: ?>
+                <div class="view-clients-title-wrap">
 
-            <span class="btn btn-danger">Already Blacklisted</span>
+                    <h1 class="view-clients-title">
 
-        <?php endif; ?>
+                        <span class="view-clients-title-icon">
+                            💰
+                        </span>
 
-    </div>
-</div>
-<br>
-            <!-- Personal Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Personal Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Mobile No.</th>
-                                    <th>Email</th>
-                                    <th>Date of Birth</th>
-                                    <th>Address</th>
-                                    <th>Gender</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["name"]); ?></td>
-                                    <td><?= htmlspecialchars($row["phone"]); ?></td>
-                                    <td><?= htmlspecialchars($row["email"]); ?></td>
-                                    <td><?= htmlspecialchars($row["dob"]); ?></td>
-                                    <td><?= htmlspecialchars($row["address"]); ?></td>
-                                    <td><?= htmlspecialchars($row["gender"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
+                        Defaulters Payments
+
+                    </h1>
+
+                    <p class="view-clients-subtitle">
+                        View and manage defaulted payment records
+                    </p>
+
                 </div>
+
             </div>
 
-            <!-- Education Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Education Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Qualification</th>
-                                    <th>Year Of Passing</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["ten_th"]); ?></td>
-                                    <td><?= htmlspecialchars($row["ten_th_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["ten_th_percentage"]); ?></td>
-                                </tr>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["twelve_th"]); ?></td>
-                                    <td><?= htmlspecialchars($row["twelve_th_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["twelve_th_percentage"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
+
+            <!-- =================================================
+                 CARD
+            ================================================== -->
+
+            <div class="view-clients-card">
+
+
+                <!-- =================================================
+                     SEARCH
+                ================================================== -->
+
+                <div class="view-clients-filter">
+
+                    <div class="view-client-search-wrap">
+
+                        <span class="view-client-search-icon">
+                            🔍
+                        </span>
+
+                        <input
+                            type="text"
+                            id="txt_searchall"
+                            class="view-client-search"
+                            placeholder="Search by Name or Branch"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
                 </div>
-            </div>
 
-            <!-- Graduation Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Graduation Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Qualification</th>
-                                    <th>Year Of Passing</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["graduation"]); ?></td>
-                                    <td><?= htmlspecialchars($row["graduation_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["graduation_percentage"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
 
-            <!-- Experience and Skills -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Experience/Skills
-                        </header>
-                        <br>
+                <!-- =================================================
+                     TABLE
+                ================================================== -->
 
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Experience</th>
-                                    <th>Skills</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["experience"]); ?></td>
-                                    <td><?= htmlspecialchars($row["skills"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
+                <div
+                    class="view-clients-table-wrapper"
+                    id="scrollable-content"
+                >
 
-            <!-- Interview and Placement Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Interview and Placement Details
-                        </header>
-                        <BR>
-                        <?php if (mysqli_num_rows($placement_result) > 0): ?>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Company</th>
-                                        <th>Position</th>
-                                        <th>Interview Date</th>
-                                        <th>Interview Round</th>
-                                        <th>Remark</th>
-                                        <th>Interview Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php while ($placement = mysqli_fetch_assoc($placement_result)): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($placement["company_name"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["position"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_date"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_round"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["remark"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_status"]); ?></td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        <?php else: ?>
-                            <p>No interview or placement details available for this candidate.</p>
-                        <?php endif; ?>
-                    </section>
-                </div>
-            </div>
+                    <table
+                        class="view-clients-table"
+                        id="payments-table"
+                    >
 
-            <!-- Payment Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Payment Details
-                        </header>
-                        <br>
-                        <?php if (mysqli_num_rows($payment_result) > 0): ?>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Total Amount</th>
-                                        <th>Paid Amount</th>
-                                        <th>Payment Date</th>
-                                        <th>Gateway</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                              <tbody>
-<?php while ($payment = mysqli_fetch_assoc($payment_result)): ?>
-    <?php
-        $paid = (float)$payment["paid_amount"];
-        $total = (float)$payment["total_amount"];
+                        <thead>
 
-      
+                            <tr>
 
-        // Calculate payment status
-        if ($paid >= $total) {
-            $status = "Paid";
-        } elseif ($paid > 0 && $paid < $total) {
-            $status = "Partial";
-        } else {
-            $status = "Unpaid";
-        }
-    ?>
-    <tr>
-        <td><?= number_format($total, 2); ?></td>
-        <td><?= number_format($paid, 2); ?></td>
-        <td><?= htmlspecialchars($payment["payment_date"] ?? ''); ?></td>
-        <td><?= htmlspecialchars($payment["payment_gateway"] ?? ''); ?></td>
-        <td><strong><?= $status; ?></strong></td>
-        <td>
-           <a href="update-candidate-payment.php?payment_id=<?= $payment['Id']; ?>" class="btn-warning">
-    Update Payment
-</a>
-        </td>
-    </tr>
-<?php endwhile; ?>
-</tbody>
+                                <th>
+                                    Branch
+                                </th>
 
-                            </table>
-                            <!-- Total Paid Amount -->
-                            <div class="panel-footer">
-                                <strong>Total Paid Amount: </strong>
-                                <?= number_format($total_paid_amount, 2); ?>
-                            </div>
-                        <?php else: ?>
-                            <p>No payment details available for this candidate.</p>
-                        <?php endif; ?>
-                    </section>
-                </div>
-            </div>
+                                <th>
+                                    Service
+                                </th>
 
-            <!-- Schedule Placement Button -->
-           <div class="row"> 
-    <div class="col-lg-12"> 
-        <section class="panel"> 
-            <div class="panel-body" style="text-align: center;"> 
-                <?php if($row['status'] != 'Blacklisted'): ?> 
-                    <a href="interview-schedule.php?id=<?= $id; ?>" 
-                       class="btn-primary">
-                        Schedule Placement
-                    </a>
-                <?php endif; ?> 
-            </div> 
-        </section> 
-    </div> 
-</div>
-    </section>
-</section>
+                                <th>
+                                    Name
+                                </th>
 
-<!-- JS Scripts -->
-<script src="js/bootstrap.js"></script>
-<script src="js/jquery.dcjqaccordion.2.7.js"></script>
-<script src="js/scripts.js"></script>
-<script src="js/jquery.slimscroll.js"></script>
-<script src="js/jquery.nicescroll.js"></script>
-<script src="js/jquery.scrollTo.js"></script>
+                                <th>
+                                    Total Amount
+                                </th>
 
-</body>
-</html>
+                                <th>
+                                    Paid Amount
+                                </th>
+
+                                <th>
+                                    Due Amount
+                                </th>
+
+                                <th>
+                                    Due Date
+                                </th>
+
+                                <th>
+                                    Reasons
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
 
 <?php
-// Close the connection
-mysqli_close($conn);
-?>"
+
+// Fetch due payments from the database
+$sql = "
+
+
+SELECT p.client_Id,
+'Nagpur' AS branch,
+'Consultancy' AS services,
+IF(
+    p.payment_type = 'Company Pay',
+    pl.company_name,
+    pl.candidate_name
+) AS cust_name,
+
+p.total_amount,
+SUM(p.paid_amount) AS total_paid,
+(p.total_amount - SUM(p.paid_amount)) AS due_amount,
+MAX(p.due_date) AS due_date,
+p.defaulter_note
+
+FROM tbl_payment p
+
+LEFT JOIN tbl_placement pl
+ON p.interview_id = pl.interview_id
+
+WHERE p.status = 'defaulted'
+
+GROUP BY p.client_Id,p.total_amount
+
+HAVING due_amount > 0
 
 
 
 
-                        <div class="form-group">
-                            <label for="interview_date">
-                                Interview Date
-                            </label>
-
-                            <input 
-                                type="date" 
-                                id="interview_date" 
-                                name="interview_date" 
-                                required
-                            >
-                        </div>
-                    </div>
+ORDER BY due_date ASC";
 
 
-                    <!-- ROW 3 -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="interview_time">
-                                Interview Time
-                            </label>
-                            <input 
-                                type="time" 
-                                id="interview_time" 
-                                name="interview_time" 
-                                required
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="hr_name">
-                                Managed By
-                            </label>
-                            <input 
-                                type="text" 
-                                id="hr_name" 
-                                name="hr_name" 
-                                placeholder="Enter HR name" 
-                                required
-                            >
-                        </div>
-                    </div>
-
-                    <!-- ROW 4 -->
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="remark">
-                                Remark
-                            </label>
-                            <input 
-                                type="text" 
-                                id="remark" 
-                                name="remark" 
-                                placeholder="Enter remark" 
-                                required
-                            >
-                        </div>
-                    </div>
-
-                    <!-- SUBMIT -->
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <button 
-                                type="submit" 
-                                name="submit" 
-                                class="submit-btn"
-                            >
-                                📅 Reschedule Interview
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </section>
-</section>
-<?php endif; ?>
-<!-- Footer -->
-<script src="js/bootstrap.js"></script> 
-<script src="js/jquery.dcjqaccordion.2.7.js"></script> 
-<script src="js/scripts.js"></script> 
-<script src="js/jquery.slimscroll.js"></script> 
-<script src="js/jquery.nicescroll.js"></script> 
-<script src="js/jquery.scrollTo.js"></script> 
-</body> 
-</html>"
+$result = mysqli_query($conn, $sql);
 
 
+if (!$result) {
+
+    echo '
+
+    <tr>
+
+        <td
+            colspan="9"
+            class="view-client-no-data"
+        >
+
+            Error:
+            ' .
+            htmlspecialchars(
+                mysqli_error($conn),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+            . '
+
+        </td>
+
+    </tr>
+
+    ';
+
+}
+
+elseif (mysqli_num_rows($result) > 0) {
+
+    while ($row = mysqli_fetch_assoc($result)) {
 
 
-            // Show or hide the row based on whether a match was found
-            if (rowMatches) {
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
+        // Skip rows with null or empty customer name
+        if (empty($row['cust_name'])) {
+            continue;
         }
+
+
+        $total_due_amount +=
+            (float)($row["due_amount"] ?? 0);
+
+
+        $dueDate = null;
+
+        if (!empty($row["due_date"])) {
+
+            try {
+
+                $dueDate =
+                    new DateTime(
+                        $row["due_date"]
+                    );
+
+            } catch (Exception $e) {
+
+                $dueDate = null;
+
+            }
+
+        }
+
+
+        /* =================================================
+           BRANCH COLOR
+        ================================================= */
+
+        $branchClass = 'blue';
+
+        $branchLower =
+            strtolower(
+                trim(
+                    $row['branch'] ?? ''
+                )
+            );
+
+
+        if ($branchLower === 'nagpur') {
+
+            $branchClass = 'blue';
+
+        }
+
+        elseif ($branchLower === 'bramhapuri') {
+
+            $branchClass = 'green';
+
+        }
+
+        elseif (
+            $branchLower === 'chandrapur'
+            ||
+            $branchLower === 'chandreapur'
+        ) {
+
+            $branchClass = 'orange';
+
+        }
+
+        else {
+
+            $branchClass = 'blue';
+
+        }
+
+?>
+
+<tr>
+
+
+    <!-- =================================================
+         BRANCH
+    ================================================== -->
+
+    <td>
+
+        <span
+            class="
+                view-client-branch
+                <?= $branchClass; ?>
+            "
+        >
+
+            <?= htmlspecialchars(
+                $row["branch"] ?? '',
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>
+
+        </span>
+
+    </td>
+
+
+    <!-- =================================================
+         SERVICE
+    ================================================== -->
+
+    <td class="view-client-service">
+
+        <?= htmlspecialchars(
+            $row["services"] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         NAME
+    ================================================== -->
+
+    <td class="view-client-name">
+
+        <?= htmlspecialchars(
+            $row["cust_name"] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         TOTAL AMOUNT
+    ================================================== -->
+
+    <td class="view-client-total-amount">
+
+        ₹
+
+        <?= htmlspecialchars(
+            number_format(
+                (float)(
+                    $row["total_amount"] ?? 0
+                ),
+                2
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         PAID AMOUNT
+    ================================================== -->
+
+    <td class="view-client-paid-amount">
+
+        ₹
+
+        <?= htmlspecialchars(
+            number_format(
+                (float)(
+                    $row["total_paid"] ?? 0
+                ),
+                2
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         DUE AMOUNT
+    ================================================== -->
+
+    <td class="view-client-due-amount">
+
+        ₹
+
+        <?= htmlspecialchars(
+            number_format(
+                (float)(
+                    $row["due_amount"] ?? 0
+                ),
+                2
+            ),
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         DUE DATE
+    ================================================== -->
+
+    <td class="view-client-date-cell">
+
+        <span
+            class="due-date"
+            data-due-date="<?= $dueDate
+                ? $dueDate->format('Y-m-d')
+                : ''
+            ?>"
+        >
+
+            <?= htmlspecialchars(
+                $row["due_date"] ?? '',
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>
+
+        </span>
+
+    </td>
+
+
+    <!-- =================================================
+         REASON
+    ================================================== -->
+
+    <td class="view-client-reason">
+
+        <?= htmlspecialchars(
+            $row["defaulter_note"] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        ); ?>
+
+    </td>
+
+
+    <!-- =================================================
+         ACTION
+    ================================================== -->
+
+    <td class="view-client-action">
+
+        <a
+            href="reactivate-client.php?Id=<?= urlencode(
+                $row['client_Id']
+            ); ?>"
+            class="view-client-action-btn"
+            onclick="return confirm(
+                'Are you sure you want to reactivate this client?'
+            );"
+        >
+
+            Reactivate
+
+        </a>
+
+    </td>
+
+
+</tr>
+
+<?php
+
     }
-</script>
+
+}
+
+else {
+
+?>
+
+<tr>
+
+    <td
+        colspan="9"
+        class="view-client-no-data"
+    >
+
+        No results found
+
+    </td>
+
+</tr>
+
+<?php
+
+}
+
+?>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- =================================================
+                     BOTTOM HORIZONTAL SCROLL
+                ================================================== -->
+
+                <div
+                    class="view-client-bottom-scroll"
+                    id="viewClientBottomScroll"
+                >
+
+                    <div
+                        class="view-client-bottom-scroll-inner"
+                        id="viewClientBottomScrollInner"
+                    ></div>
+
+                </div>
+
+
+                <!-- =================================================
+                     TOTAL DUE
+                ================================================== -->
+
+                <section id="total-due-amount">
+
+                    <h4>
+
+                        Total Due Amount (INR):
+
+                        <span id="total-due">
+
+                            <?= htmlspecialchars(
+                                number_format(
+                                    $total_due_amount,
+                                    2
+                                ),
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ); ?>
+
+                        </span>
+
+                    </h4>
+
+                </section>
+
+
+            </div>
+
+        </div>
+
+    </section>
+
+</section>
+
+
+<!-- =========================================================
+     EXISTING JS
+========================================================= -->
+
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
 <script src="js/jquery.slimscroll.js"></script>
 <script src="js/jquery.nicescroll.js"></script>
-<!--[if lte IE 8]><script language="javascript" type="text/javascript" src="js/flot-chart/excanvas.min.js"></script><![endif]-->
 <script src="js/jquery.scrollTo.js"></script>
-<script src="js/search.js"></script>
+
+
+<script>
+
+/* =========================================================
+   TOTAL DUE
+========================================================= */
+
+function calculateTotalDue() {
+
+    let totalDue = 0;
+
+    document
+        .querySelectorAll(
+            '#payments-table tbody tr'
+        )
+        .forEach(function(row) {
+
+            if (
+                row.style.display !== 'none'
+                &&
+                !row.querySelector(
+                    '.view-client-no-data'
+                )
+            ) {
+
+                const dueCell =
+                    row.querySelector(
+                        '.view-client-due-amount'
+                    );
+
+                if (!dueCell) {
+                    return;
+                }
+
+                const dueAmount =
+                    parseFloat(
+                        dueCell.textContent
+                            .replace(/,/g, '')
+                            .replace(/₹/g, '')
+                            .trim()
+                    ) || 0;
+
+                totalDue += dueAmount;
+
+            }
+
+        });
+
+
+    const totalElement =
+        document.getElementById(
+            'total-due'
+        );
+
+    if (totalElement) {
+
+        totalElement.textContent =
+            totalDue.toFixed(2);
+
+    }
+
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+function searchPayments() {
+
+    const input =
+        document.getElementById(
+            'txt_searchall'
+        );
+
+    if (!input) {
+        return;
+    }
+
+    const query =
+        input.value
+            .toLowerCase()
+            .trim();
+
+
+    const rows =
+        document.querySelectorAll(
+            '#payments-table tbody tr'
+        );
+
+
+    rows.forEach(function(row) {
+
+        const noData =
+            row.querySelector(
+                '.view-client-no-data'
+            );
+
+        if (noData) {
+            return;
+        }
+
+
+        const name =
+            row.querySelector(
+                '.view-client-name'
+            )
+            ?.textContent
+            .toLowerCase() || '';
+
+
+        const branch =
+            row.querySelector(
+                '.view-client-branch'
+            )
+            ?.textContent
+            .toLowerCase() || '';
+
+
+        const service =
+            row.querySelector(
+                '.view-client-service'
+            )
+            ?.textContent
+            .toLowerCase() || '';
+
+
+        if (
+            query === ''
+            ||
+            name.includes(query)
+            ||
+            branch.includes(query)
+            ||
+            service.includes(query)
+        ) {
+
+            row.style.display = '';
+
+        }
+
+        else {
+
+            row.style.display = 'none';
+
+        }
+
+    });
+
+
+    calculateTotalDue();
+
+}
+
+
+/* =========================================================
+   SEARCH EVENT
+========================================================= */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function() {
+
+        const searchInput =
+            document.getElementById(
+                'txt_searchall'
+            );
+
+        if (searchInput) {
+
+            searchInput.addEventListener(
+                'input',
+                searchPayments
+            );
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   DUE DATE HIGHLIGHT
+========================================================= */
+
+function highlightDueDates() {
+
+    const now = new Date();
+
+    const today =
+        new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
+
+
+    document
+        .querySelectorAll(
+            '.due-date'
+        )
+        .forEach(function(span) {
+
+            const dueDateValue =
+                span.getAttribute(
+                    'data-due-date'
+                );
+
+
+            if (!dueDateValue) {
+                return;
+            }
+
+
+            const parts =
+                dueDateValue.split('-');
+
+
+            if (parts.length !== 3) {
+                return;
+            }
+
+
+            const dueDate =
+                new Date(
+                    parseInt(parts[0]),
+                    parseInt(parts[1]) - 1,
+                    parseInt(parts[2])
+                );
+
+
+            if (dueDate <= today) {
+
+                span.classList.add(
+                    'highlight-today'
+                );
+
+            }
+
+        });
+
+}
+
+
+/* =========================================================
+   BOTTOM SCROLLBAR SYNC
+========================================================= */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function() {
+
+        const bottomScroll =
+            document.getElementById(
+                'viewClientBottomScroll'
+            );
+        const bottomInner =
+            document.getElementById(
+                'viewClientBottomScrollInner'
+            );
+        const tableWrapper =
+            document.querySelector(
+                '.view-clients-table-wrapper'
+            );
+        if (
+            !bottomScroll
+            ||
+            !bottomInner
+            ||
+            !tableWrapper
+        ) {
+            return;
+        }
+        function updateScrollWidth() {
+
+            bottomInner.style.width =
+                tableWrapper.scrollWidth
+                + 'px';
+
+        }
+
+        updateScrollWidth();
+        window.addEventListener(
+            'resize',
+            updateScrollWidth
+        );
+        bottomScroll.addEventListener(
+            'scroll',
+            function() {
+                tableWrapper.scrollLeft =
+                    bottomScroll.scrollLeft;
+            }
+        );
+        tableWrapper.addEventListener(
+            'scroll',
+            function() {
+                bottomScroll.scrollLeft =
+                    tableWrapper.scrollLeft;
+            }
+        );
+    }
+);
+
+
+/* =========================================================
+   PAGE LOAD
+========================================================= */
+
+window.addEventListener(
+    'load',
+    function() {
+        calculateTotalDue();
+        highlightDueDates();
+    }
+);
+</script>
 </body>
 </html>"
-don't make any changes by your self 
-
-i have followed the process till adding getRejectedCandidates in interviewscheduleService.js and not go on further
-steps.  

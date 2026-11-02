@@ -39,12 +39,18 @@ import AddAttendance from "./../Views/AttendanceManagement/AddAttendance/AddAtte
 import ViewAttendance from "./../Views/AttendanceManagement/ViewAttendance/ViewAttendance.jsx";
 import ViewEmployeeAttendance from "../Views/AttendanceManagement/ViewAttendance/ViewEmployeeAttendance.jsx";
 
+
+
 //============= Acounts Managements ===================
+
 import DuePayments from "./../Views/AccountsManagement/Payments/DuePayments/DuePayment.jsx";
+import UpdateDuePayment from "./../Views/AccountsManagement/Payments/DuePayments/UpdateDuePayment/UpdateDuePayment.jsx";
 import ViewPayments from "./../Views/AccountsManagement/Payments/ViewPayments/ViewPayment.jsx";
 import DefaulterPayments from "./../Views/AccountsManagement/Payments/DefaulterPayments/DefaulterPayments.jsx";
+
 import GenerateInvoice from "./../Views/AccountsManagement/GSTBills/GenerateInvoice/GenerateInvoice.jsx";
 import GSTInvoices from "./../Views/AccountsManagement/GSTBills/GSTInvoices/GSTInvoices.jsx";
+
 import AddExpenses from "./../Views/AccountsManagement/Expenses/AddExpenses/AddExpenses.jsx";
 import ViewExpenses from "./../Views/AccountsManagement/Expenses/ViewExpenses/ViewExpenses.jsx";
 
@@ -168,6 +174,7 @@ function AppRoutes() {
                     {/* Accounts */}
                     <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_DUE" />}>
                         <Route path="accounts/due-payment" element={<DuePayments />} />
+                        <Route path="accounts/due-payment/update/:paymentId" element={<UpdateDuePayment />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="PAYMENTS_VIEW" />}>
