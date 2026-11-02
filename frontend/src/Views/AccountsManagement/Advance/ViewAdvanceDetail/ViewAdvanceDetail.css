@@ -1,0 +1,245 @@
+.advance-detail-page {
+    width: 100%;
+}
+
+.advance-detail-page .view-clients-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.advance-detail-page .view-clients-title-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.advance-detail-page .view-clients-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.advance-detail-page .view-clients-title-icon {
+    margin-right: 8px;
+}
+
+.advance-detail-page .view-clients-subtitle {
+    margin: 6px 0 0;
+    color: #777;
+    font-size: 14px;
+}
+
+.advance-detail-page .view-clients-count {
+    background: #2c3e50;
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.advance-detail-page .view-clients-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.advance-detail-page .view-clients-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.advance-detail-page .view-client-date {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    color: #333;
+    background: #fff;
+}
+
+.advance-detail-page .view-client-search-btn {
+    height: 42px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 6px;
+    background: #2c3e50;
+    color: #fff;
+    cursor: pointer;
+}
+
+.advance-detail-page .view-client-back-btn {
+    min-height: 42px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 6px;
+    background: #6c757d;
+    color: #fff !important;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.advance-detail-page .view-client-info-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 18px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: #f4f8fb;
+    border: 1px solid #dce6ed;
+}
+
+.advance-detail-page .view-client-info-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.advance-detail-page .view-client-info-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.advance-detail-page .view-client-section-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 22px 0 12px;
+}
+
+.advance-detail-page .view-clients-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.advance-detail-page .view-clients-table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    background: #fff;
+}
+
+.advance-detail-page .view-clients-table thead tr {
+    background: linear-gradient(to right, #2c3e50, #4ca1af);
+    color: #fff;
+}
+
+.advance-detail-page .view-clients-table th,
+.advance-detail-page .view-clients-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.advance-detail-page .view-clients-table tbody tr:nth-child(even) td {
+    background: #f3f6f9;
+}
+
+.advance-detail-page .view-clients-table tbody td {
+    color: #000 !important;
+    background: #fff;
+}
+
+.advance-detail-page .view-client-sr {
+    width: 70px;
+}
+
+.advance-detail-page .view-client-date-cell {
+    white-space: nowrap;
+}
+
+.advance-detail-page .view-client-amount {
+    font-weight: 600;
+}
+
+.advance-detail-page .view-client-no-data {
+    text-align: center !important;
+    color: #777 !important;
+    padding: 20px !important;
+}
+
+.advance-detail-page .view-client-total-row td {
+    font-weight: bold;
+    background: #e8eef2 !important;
+    color: #2c3e50 !important;
+}
+
+.advance-detail-page .view-client-pending-box {
+    margin-top: 20px;
+    padding: 16px 20px;
+    text-align: right;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+}
+
+.advance-detail-page .view-client-pending-label {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.advance-detail-page .view-client-pending-value {
+    font-size: 21px;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.advance-detail-page .pending-red {
+    color: red;
+}
+
+.advance-detail-page .pending-green {
+    color: green;
+}
+
+.advance-detail-page .advance-detail-error {
+    color: #b4232e;
+}
+
+@media (max-width: 768px) {
+    .advance-detail-page .view-clients-header {
+        align-items: flex-start;
+        gap: 10px;
+        flex-direction: column;
+    }
+
+    .advance-detail-page .view-clients-title {
+        font-size: 22px;
+    }
+
+    .advance-detail-page .view-clients-card {
+        padding: 12px;
+    }
+
+    .advance-detail-page .view-clients-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .advance-detail-page .view-client-date,
+    .advance-detail-page .view-client-search-btn,
+    .advance-detail-page .view-client-back-btn {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    .advance-detail-page .view-client-info-box {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .advance-detail-page .view-client-pending-box {
+        text-align: left;
+    }
+}

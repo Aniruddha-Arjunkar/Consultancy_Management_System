@@ -1,3 +1,62 @@
-.addAdvance-page{
-    background-color: #d8d7d7;
+.add-advance-page {
+    box-sizing: border-box;
+}
+
+.add-advance-page .refollowup-card {
+    max-width: 550px;
+}
+
+.add-advance-page .form-group select,
+.add-advance-page .form-group input,
+.add-advance-page .form-group textarea {
+    width: 100%;
+}
+
+.add-advance-page .form-group textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.add-advance-page .submit-btn {
+    margin-top: 5px;
+}
+
+.advance-message {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.advance-message-success {
+    border: 1px solid #a7e3bc;
+    background: #eaf8ef;
+    color: #166534;
+}
+
+.advance-message-error {
+    border: 1px solid #f3b4b4;
+    background: #fff0f0;
+    color: #b4232e;
+}
+
+.advance-no-employees {
+    display: block;
+    margin-top: 6px;
+    color: #b4232e;
+    font-size: 11px;
+}
+
+@media (max-width: 600px) {
+    .add-advance-page {
+        padding: 15px 10px 30px;
+    }
+
+    .add-advance-page .refollowup-card {
+        max-width: 100%;
+    }
+
+    .add-advance-page .refollowup-form {
+        padding: 12px 14px 18px;
+    }
 }

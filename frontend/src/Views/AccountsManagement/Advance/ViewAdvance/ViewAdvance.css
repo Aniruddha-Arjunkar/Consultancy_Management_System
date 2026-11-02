@@ -1,3 +1,32 @@
-.viewAdvance-page{
-    background-color: #efdada;
+.view-advance-page .view-clients-table {
+    min-width: 700px;
+}
+
+.view-advance-page .view-clients-table th,
+.view-advance-page .view-clients-table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.view-advance-page .view-client-pending {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.view-advance-page .view-client-action {
+    white-space: nowrap;
+}
+
+.view-advance-page .view-client-view-btn {
+    cursor: default;
+}
+
+.view-advance-page .view-advance-error {
+    color: #b4232e;
+}
+
+@media (max-width: 600px) {
+    .view-advance-page .view-clients-table {
+        min-width: 700px;
+    }
 }

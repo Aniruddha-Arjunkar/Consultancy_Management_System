@@ -47,8 +47,11 @@ import GenerateInvoice from "./../Views/AccountsManagement/GSTBills/GenerateInvo
 import GSTInvoices from "./../Views/AccountsManagement/GSTBills/GSTInvoices/GSTInvoices.jsx";
 import AddExpenses from "./../Views/AccountsManagement/Expenses/AddExpenses/AddExpenses.jsx";
 import ViewExpenses from "./../Views/AccountsManagement/Expenses/ViewExpenses/ViewExpenses.jsx";
+
 import AddAdvance from "./../Views/AccountsManagement/Advance/AddAdvance/AddAdvance.jsx";
 import ViewAdvance from "./../Views/AccountsManagement/Advance/ViewAdvance/ViewAdvance.jsx";
+import ViewAdvanceDetail from "./../Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx";
+
 import DueTDS from "./../Views/AccountsManagement/TDS/DueTDS/DueTDS.jsx";
 import PaidTDS from "./../Views/AccountsManagement/TDS/PaidTDS/PaidTDS.jsx";
 
@@ -197,6 +200,7 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="ADVANCE_VIEW" />}>
                         <Route path="accounts/view-advance" element={<ViewAdvance />} />
+                        <Route path="accounts/view-advance/:employeeId" element={<ViewAdvanceDetail />}/>
                     </Route>
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="TDS_DUE" />}>
