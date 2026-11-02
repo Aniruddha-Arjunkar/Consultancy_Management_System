@@ -10,8 +10,8 @@ import java.time.LocalDate;
 
 public record DuePaymentUpdateRequest(
         @NotNull
-        @DecimalMin("0.00")
-        BigDecimal paidAmount,
+        @DecimalMin("0.01")
+        BigDecimal paymentAmount,
 
         @NotNull
         LocalDate paymentDate,

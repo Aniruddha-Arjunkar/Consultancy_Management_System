@@ -7,7 +7,8 @@ import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepos
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.shulventures.consultancymanagement.entity.ConsultancyPaymentTransaction;
+import com.shulventures.consultancymanagement.repository.ConsultancyPaymentTransactionRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.List;
 public class PaymentManagementService {
 
     private final ConsultancyPaymentRepository paymentRepository;
+    private final ConsultancyPaymentTransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
     public DuePaymentDetailResponse getPayment(Long paymentId) {
@@ -37,14 +39,9 @@ public class PaymentManagementService {
         }
 
         BigDecimal total = zeroIfNull(payment.getTotalAmount());
-        BigDecimal paid = request.paidAmount()
+        BigDecimal previousPaid = zeroIfNull(payment.getPaidAmount());
+        BigDecimal paymentAmount = request.paymentAmount()
                 .setScale(2, RoundingMode.HALF_UP);
-
-        if (paid.compareTo(total) > 0) {
-            throw new IllegalArgumentException(
-                    "Paid amount cannot exceed the total amount."
-            );
-        }
 
         String gateway = request.paymentGateway().trim();
         if ("Other".equalsIgnoreCase(gateway)) {
@@ -58,20 +55,46 @@ public class PaymentManagementService {
         boolean tdsPaid = Boolean.TRUE.equals(request.tdsPaid());
 
         BigDecimal tdsCredit = tdsPaid ? BigDecimal.ZERO : tds;
-        BigDecimal due = total.subtract(paid)
+        BigDecimal currentDue = total
+                .subtract(previousPaid)
                 .subtract(tdsCredit)
                 .max(BigDecimal.ZERO)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        payment.setPaidAmount(paid);
+        if (paymentAmount.compareTo(currentDue) > 0) {
+            throw new IllegalArgumentException(
+                    "Payment amount cannot exceed the current due amount."
+            );
+        }
+
+        BigDecimal newPaidTotal = previousPaid.add(paymentAmount)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal newDue = total
+                .subtract(newPaidTotal)
+                .subtract(tdsCredit)
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        payment.setPaidAmount(newPaidTotal);
         payment.setTdsAmount(tds);
         payment.setTdsPaid(tdsPaid);
-        payment.setDueAmount(due);
+        payment.setDueAmount(newDue);
         payment.setPaymentDate(request.paymentDate());
         payment.setDueDate(request.dueDate());
         payment.setPaymentGateway(gateway);
 
-        return toResponse(paymentRepository.save(payment));
+        ConsultancyPaymentTransaction transaction =
+                new ConsultancyPaymentTransaction();
+        transaction.setPaymentId(payment.getId());
+        transaction.setAmount(paymentAmount);
+        transaction.setPaymentDate(request.paymentDate());
+        transaction.setPaymentGateway(gateway);
+
+        transactionRepository.save(transaction);
+        paymentRepository.save(payment);
+
+        return toResponse(payment);
     }
 
     @Transactional

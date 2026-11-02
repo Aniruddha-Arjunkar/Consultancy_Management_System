@@ -4,9 +4,11 @@ package com.shulventures.consultancymanagement.service;
 import com.shulventures.consultancymanagement.dto.payment.PaymentHistoryResponse;
 import com.shulventures.consultancymanagement.entity.Agreement;
 import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
+import com.shulventures.consultancymanagement.entity.ConsultancyPaymentTransaction;
 import com.shulventures.consultancymanagement.entity.InterviewPlacement;
 import com.shulventures.consultancymanagement.repository.AgreementRepository;
 import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepository;
+import com.shulventures.consultancymanagement.repository.ConsultancyPaymentTransactionRepository;
 import com.shulventures.consultancymanagement.repository.InterviewPlacementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,26 +26,28 @@ public class PaymentHistoryService {
     private final ConsultancyPaymentRepository paymentRepository;
     private final InterviewPlacementRepository placementRepository;
     private final AgreementRepository agreementRepository;
+    private final ConsultancyPaymentTransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
     public List<PaymentHistoryResponse> getPaymentHistory() {
-        List<ConsultancyPayment> payments = paymentRepository.findAll()
-                .stream()
-                .filter(payment ->
-                        payment.getPaidAmount() != null
-                                && payment.getPaymentDate() != null
-                                && payment.getPaymentGateway() != null
-                                && payment.getInterviewId() != null
-                )
-                .sorted(
-                        Comparator.comparing(
-                                ConsultancyPayment::getPaymentDate
-                        ).reversed()
-                )
+        List<ConsultancyPaymentTransaction> transactions =
+                transactionRepository.findAllByOrderByPaymentDateDescIdDesc();
+
+        List<Long> paymentIds = transactions.stream()
+                .map(ConsultancyPaymentTransaction::getPaymentId)
+                .distinct()
                 .toList();
 
-        List<Long> interviewIds = payments.stream()
+        Map<Long, ConsultancyPayment> paymentsById = new HashMap<>();
+
+        paymentRepository.findAllById(paymentIds)
+                .forEach(payment ->
+                        paymentsById.put(payment.getId(), payment)
+                );
+
+        List<Long> interviewIds = paymentsById.values().stream()
                 .map(ConsultancyPayment::getInterviewId)
+                .filter(id -> id != null)
                 .distinct()
                 .toList();
 
@@ -58,10 +62,9 @@ public class PaymentHistoryService {
                         )
                 );
 
-        List<Long> candidateIds = placementsByInterviewId.values()
-                .stream()
+        List<Long> candidateIds = placementsByInterviewId.values().stream()
                 .map(InterviewPlacement::getCandidateId)
-                .filter(candidateId -> candidateId != null)
+                .filter(id -> id != null)
                 .distinct()
                 .toList();
 
@@ -72,8 +75,15 @@ public class PaymentHistoryService {
                         candidatesById.put(candidate.getId(), candidate)
                 );
 
-        return payments.stream()
-                .map(payment -> {
+        return transactions.stream()
+                .map(transaction -> {
+                    ConsultancyPayment payment =
+                            paymentsById.get(transaction.getPaymentId());
+
+                    if (payment == null || payment.getInterviewId() == null) {
+                        return null;
+                    }
+
                     InterviewPlacement placement =
                             placementsByInterviewId.get(payment.getInterviewId());
 
@@ -103,13 +113,13 @@ public class PaymentHistoryService {
                             : candidateName + " (" + companyName + ")";
 
                     return new PaymentHistoryResponse(
-                            payment.getId(),
+                            transaction.getId(),
                             "—",
                             "Consultancy",
                             payerName,
-                            payment.getPaidAmount(),
-                            payment.getPaymentDate(),
-                            payment.getPaymentGateway()
+                            transaction.getAmount(),
+                            transaction.getPaymentDate(),
+                            transaction.getPaymentGateway()
                     );
                 })
                 .filter(response -> response != null)

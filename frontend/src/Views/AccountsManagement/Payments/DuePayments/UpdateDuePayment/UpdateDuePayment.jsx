@@ -6,7 +6,7 @@ import "./UpdateDuePayment.css";
 const GATEWAYS = ["Cash", "UPI", "NEFT", "Cheque", "IMPS"];
 
 const emptyForm = {
-    paidAmount: "",
+    paymentAmount: "",
     applyTds: false,
     tdsAmount: "0",
     tdsPaid: false,
@@ -45,14 +45,18 @@ const UpdateDuePayment = () => {
 
                 setPayment(data);
                 setForm({
-                    paidAmount:"0.00",
+                    // Each visit records a new installment, so don't prefill a cumulative amount.
+                    paymentAmount: "",
                     applyTds: Number(data.tdsAmount || 0) > 0,
                     tdsAmount: data.tdsAmount ?? "0.00",
                     tdsPaid: Boolean(data.tdsPaid),
-                    paymentDate:
-                        data.paymentDate ||
-                        new Date().toISOString().slice(0, 10),
-                    dueDate: data.due || "",
+
+                    // Use today's date for this installment instead of the previous installment's date.
+                    paymentDate: new Date().toISOString().slice(0, 10),
+
+                    // The API property is dueDate.
+                    dueDate: data.dueDate || "",
+
                     paymentGateway: isKnownGateway
                         ? savedGateway
                         : savedGateway
@@ -62,17 +66,13 @@ const UpdateDuePayment = () => {
                 });
             } catch (loadError) {
                 if (active) {
-                    setError(
-                        loadError.message || "Could not load payment details."
-                    );
+                    setError(loadError.message || "Could not load payment details.");
                 }
             } finally {
                 if (active) setLoading(false);
             }
         };
-
         loadPayment();
-
         return () => {
             active = false;
         };
@@ -85,46 +85,6 @@ const UpdateDuePayment = () => {
             [name]: type === "checkbox" ? checked : value,
         }));
     };
-
-    // const handleSubmit = async (event) => {
-    //     event.preventDefault();
-    //     if (!payment || saving) return;
-
-    //     const gateway =
-    //         form.paymentGateway === "Other"
-    //             ? form.otherGateway.trim()
-    //             : form.paymentGateway;
-
-    //     if (!gateway) {
-    //         setError("Select or enter a payment gateway.");
-    //         return;
-    //     }
-
-    //     setSaving(true);
-    //     setError("");
-
-    //     try {
-    //         await paymentService.updatePayment(paymentId, {
-    //             paidAmount: Number(form.paidAmount),
-    //             paymentDate: form.paymentDate,
-    //             dueDate: form.dueDate || null,
-    //             paymentGateway: gateway,
-    //             tdsAmount: form.applyTds
-    //                 ? Number(form.tdsAmount || 0)
-    //                 : 0,
-    //             tdsPaid: form.applyTds && form.tdsPaid,
-    //         });
-
-    //         window.alert("Payment details updated successfully.");
-    //         navigate("/accounts/due-payment");
-    //     } catch (saveError) {
-    //         setError(
-    //             saveError.message || "Could not update payment details."
-    //         );
-    //     } finally {
-    //         setSaving(false);
-    //     }
-    // };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -140,10 +100,30 @@ const UpdateDuePayment = () => {
             return;
         }
 
+        const paymentAmount = Number(form.paymentAmount);
+        const currentDue = Number(payment.dueAmount || 0);
+        const previousPaid = Number(payment.paidAmount || 0);
+
+        if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+            setError("Enter a payment amount greater than zero.");
+            return;
+        }
+
+        if (paymentAmount > currentDue) {
+            setError("Payment amount cannot exceed the current due amount.");
+            return;
+        }
+
+        const newPaidTotal = previousPaid + paymentAmount;
+        const remainingDue = Math.max(currentDue - paymentAmount, 0);
+
         const confirmed = window.confirm(
-            `Please confirm the payment details:\n\n` +
-            `Paid Amount: ₹${formatAmount(form.paidAmount)}\n` +
-            `Payment Date: ${form.paymentDate || "Not selected"}\n` +
+            `Confirm this installment:\n\n` +
+            `Payment Amount: ₹${formatAmount(paymentAmount)}\n` +
+            `Previously Paid: ₹${formatAmount(previousPaid)}\n` +
+            `Paid Total After Payment: ₹${formatAmount(newPaidTotal)}\n` +
+            `Due After Payment: ₹${formatAmount(remainingDue)}\n` +
+            `Payment Date: ${form.paymentDate}\n` +
             `Payment Gateway: ${gateway}\n\n` +
             `Click OK to save or Cancel to edit.`
         );
@@ -155,7 +135,7 @@ const UpdateDuePayment = () => {
 
         try {
             await paymentService.updatePayment(paymentId, {
-                paidAmount: Number(form.paidAmount),
+                paymentAmount,
                 paymentDate: form.paymentDate,
                 dueDate: form.dueDate || null,
                 paymentGateway: gateway,
@@ -164,11 +144,10 @@ const UpdateDuePayment = () => {
                     : 0,
                 tdsPaid: form.applyTds && form.tdsPaid,
             });
-
-            window.alert("Payment details updated successfully.");
+            window.alert("Payment installment recorded successfully.");
             navigate("/accounts/due-payment");
         } catch (saveError) {
-            setError(saveError.message || "Could not update payment details.");
+            setError(saveError.message || "Could not record this payment.");
         } finally {
             setSaving(false);
         }
@@ -233,15 +212,16 @@ const UpdateDuePayment = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>Paid Amount (cumulative)</label>
+                                <label>Payment Amount</label>
                                 <input
                                     type="number"
-                                    name="paidAmount"
-                                    min="0"
-                                    max={payment.totalAmount}
+                                    name="paymentAmount"
+                                    min="0.01"
+                                    max={payment.dueAmount}
                                     step="0.01"
-                                    value={form.paidAmount}
+                                    value={form.paymentAmount}
                                     onChange={updateField}
+                                    placeholder="Enter payment amount"
                                     required
                                 />
                             </div>
