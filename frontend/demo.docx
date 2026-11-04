@@ -3355,4 +3355,942 @@ width:150px;
   mysqli_close($conn);
   ?>""
 
-now the 
+
+
+now the Genrate page is implememted now lets go to next step implement Action column > Generate Invoice Button . As user 
+click on the button new view with form will open . senior code file for referance generate_invoice.php -----> "
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+  session_start();
+ob_start();
+  if (!isset($_SESSION['email'])) {
+    header('Location: login.php');
+    exit();
+}
+  require_once 'db_connect.php';
+include 'header.php';
+  /* =========================================
+   GET DATA
+========================================= */
+  $client_id = $_GET['client_id'] ?? '';
+$source_type = strtolower(trim($_GET['source_type'] ?? ''));
+$amountFromUrl = $_GET['amount'] ?? '';
+  $success = '';
+$error = '';
+  $gst_type_selected = $_POST['gst_type'] ?? '';
+  $baseAmount = $amountFromUrl;
+  $commentPrefill = '';
+  $placement_interview_id = null;
+  /* =========================================
+   FETCH AMOUNT
+========================================= */
+  if (!empty($client_id) && !empty($source_type)) {
+      $safe_client_id = intval($client_id);
+      switch ($source_type) {
+          /* =========================
+           PEST CONTROL
+        ========================= */
+          /* =========================
+           PLACEMENT
+        ========================= */
+          case 'placement':
+              if (empty($baseAmount)) {
+                  $sql = "
+                    SELECT candidate_pay_amount, interview_id
+                    FROM tbl_placement
+                    WHERE candidate_id = $safe_client_id
+                    LIMIT 1
+                ";
+                  $result = mysqli_query($conn, $sql);
+                  if ($result && $row = mysqli_fetch_assoc($result)) {
+                      $baseAmount =
+                        $row['candidate_pay_amount'];
+                      $placement_interview_id =
+                        $row['interview_id'];
+                  }
+              }
+              break;
+          /* =========================
+           CONSULTANT
+        ========================= */
+          case 'consultant':
+              if (empty($baseAmount)) {
+                  $sql = "
+                    SELECT
+                        p.company_pay_amount,
+                        p.interview_id
+                    FROM tbl_associate a
+                    LEFT JOIN tbl_placement p
+                        ON p.company_name = a.company_name
+                    WHERE a.Id = $safe_client_id
+                    LIMIT 1
+                ";
+                  $result = mysqli_query($conn, $sql);
+                  if ($result && $row = mysqli_fetch_assoc($result)) {
+                      $baseAmount =
+                        $row['company_pay_amount'] ?? 0;
+                      $placement_interview_id =
+                        $row['interview_id'] ?? null;
+                  }
+              }
+              break;
+    }
+}
+  /* =========================================
+   FORM SUBMIT
+========================================= */
+  if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+      $entity_id =
+        intval($_POST['client_id'] ?? 0);
+      $sourceType =
+        mysqli_real_escape_string(
+            $conn,
+            $_POST['source_type'] ?? ''
+        );
+      $amount =
+        floatval($_POST['amount'] ?? 0);
+      $gst_type =
+        $_POST['gst_type'] ?? '';
+      $invoice_date =
+        mysqli_real_escape_string(
+            $conn,
+            $_POST['invoice_date'] ?? ''
+        );
+      $comments =
+        mysqli_real_escape_string(
+            $conn,
+            $_POST['comments'] ?? ''
+        );
+      $igst = 0;
+      $placement_interview_id =
+        !empty($_POST['placement_interview_id'])
+            ? intval($_POST['placement_interview_id'])
+            : null;
+      $placement_interview_id_sql =
+        $placement_interview_id !== null
+            ? $placement_interview_id
+            : "NULL";
+      /* =========================================
+       VALIDATION
+    ========================================= */
+      if (empty($sourceType)) {
+          $error = "Missing source type.";
+      } elseif ($entity_id <= 0) {
+          $error = "Invalid client ID.";
+      } elseif ($amount <= 0) {
+          $error = "Please enter a valid amount.";
+      } elseif (empty($invoice_date)) {
+          $error = "Please select invoice date.";
+      }
+      /* =========================================
+       GST CALCULATION
+    ========================================= */
+      if (empty($error)) {
+          if ($gst_type === 'exclusive') {
+              $basicAmount = $amount;
+              $cgst =
+                $basicAmount * 0.09;
+              $sgst =
+                $basicAmount * 0.09;
+              $totalAmount =
+                $basicAmount + $cgst + $sgst;
+          }
+          elseif ($gst_type === 'inclusive') {
+              $basicAmount =
+                $amount / 1.18;
+              $cgst =
+                $basicAmount * 0.09;
+              $sgst =
+                $basicAmount * 0.09;
+              $totalAmount =
+                $basicAmount + $cgst + $sgst;
+          }
+          elseif ($gst_type === 'normal') {
+              $basicAmount = $amount;
+              $cgst = 0;
+              $sgst = 0;
+              $totalAmount =
+                $basicAmount;
+          }
+          elseif ($gst_type === 'igst') {
+              $basicAmount = $amount;
+              $cgst = 0;
+              $sgst = 0;
+              $igst =
+                $basicAmount * 0.18;
+              $totalAmount =
+                $basicAmount + $igst;
+          }
+          else {
+              $error = "Invalid GST type.";
+          }
+    }
+      /* =========================================
+       SAME AMOUNT VALIDATION
+    ========================================= */
+      if (empty($error)) {
+          $oldRow =
+            $oldRes
+                ? mysqli_fetch_assoc($oldRes)
+                : null;
+          $oldAmount =
+            floatval(
+                $oldRow['final_amount'] ?? 0
+            );
+          $lastInvSql = "
+            SELECT total_amount
+            FROM tbl_gst_invoice
+            WHERE entity_id = $entity_id
+            AND source_type = '$sourceType'
+            ORDER BY id DESC
+            LIMIT 1
+        ";
+          $lastInvRes =
+            mysqli_query(
+                $conn,
+                $lastInvSql
+            );
+          $lastInvRow =
+            $lastInvRes
+                ? mysqli_fetch_assoc($lastInvRes)
+                : null;
+          $lastInvoiceAmount =
+            floatval(
+                $lastInvRow['total_amount'] ?? 0
+            );
+          if (
+            $lastInvoiceAmount > 0 &&
+            abs($oldAmount - $totalAmount) < 0.01
+        ) {
+              $error =
+                "Same amount GST invoice already generated. Change amount to generate new invoice.";
+          }
+    }
+      /* =========================================
+       INSERT INVOICE
+    ========================================= */
+      if (empty($error)) {
+          $res = mysqli_query(
+            $conn,
+            "
+            SELECT MAX(invoice_number) AS last_inv
+            FROM tbl_gst_invoice
+            "
+        );
+          $row =
+            $res
+                ? mysqli_fetch_assoc($res)
+                : null;
+          $lastInvoice =
+            intval($row['last_inv'] ?? 0);
+          $newInvoiceNumber =
+            ($lastInvoice > 0)
+                ? $lastInvoice + 1
+                : 201;
+          /* =====================================
+           INSERT
+        ===================================== */
+          $sql = "
+            INSERT INTO tbl_gst_invoice
+            (
+                entity_id,
+                source_type,
+                placement_interview_id,
+                invoice_number,
+                gst_type,
+                amount,
+                cgst,
+                sgst,
+                igst,
+                total_amount,
+                invoice_date,
+                comments
+            )
+            VALUES
+            (
+                $entity_id,
+                '$sourceType',
+                $placement_interview_id_sql,
+                $newInvoiceNumber,
+                '$gst_type',
+                $basicAmount,
+                $cgst,
+                $sgst,
+                $igst,
+                $totalAmount,
+                '$invoice_date',
+                '$comments'
+            )
+        ";
+          if (mysqli_query($conn, $sql)) {
+              echo "
+                <script>
+                    window.open(
+                        'print-tax-invoice-edit.php?invoice_number=$newInvoiceNumber',
+                        '_blank'
+                    );
+                      window.location.href =
+                        'view-gst-client.php';
+                </script>
+            ";
+              exit();
+          } else {
+              $error =
+                "Invoice insert failed: " .
+                mysqli_error($conn);
+          }
+    }
+}
+  ?>
+  <!-- =========================================
+     GST INVOICE DESIGN
+========================================= -->
+  <style>
+  /* =========================================
+   GST PAGE
+========================================= */
+  .gst-page {
+      width: 100%;
+      min-height:
+        calc(100vh - 70px);
+      background: #f3f6fb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding:
+        30px 20px 40px;
+      box-sizing: border-box;
+}
+  /* =========================================
+   MAIN CARD
+========================================= */
+  .gst-card {
+      width: 100%;
+      max-width: 405px;
+      background: #ffffff;
+      border-radius: 15px;
+      overflow: hidden;
+      border:
+        3px solid #294bd4;
+      box-shadow:
+        0 12px 30px
+        rgba(37, 65, 150, 0.15);
+}
+  /* =========================================
+   HEADER
+========================================= */
+  .gst-header {
+      min-height: 78px;
+      background:
+        linear-gradient(
+            110deg,
+            #1749cf 0%,
+            #3946dc 48%,
+            #7135e8 100%
+        );
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding:
+        12px 22px;
+      box-sizing: border-box;
+}
+  .gst-title {
+      width: 100%;
+      text-align: center;
+}
+  .gst-header h2 {
+      margin: 0;
+      padding: 0;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 25px;
+      text-align: center;
+}
+  .gst-header p {
+      margin:
+        3px 0 0;
+      color:
+        rgba(255,255,255,0.95);
+      font-size: 10px;
+      text-align: center;
+}
+  /* =========================================
+   FORM
+========================================= */
+  .gst-form {
+      padding:
+        12px 22px 20px;
+      background:
+        #fff;
+}
+  /* =========================================
+   FORM GROUP
+========================================= */
+  .gst-form .form-group {
+      margin-bottom: 10px;
+      padding:
+        8px 10px;
+      background:
+        #f7f9fc;
+      border:
+        1px solid #e5eaf2;
+      border-radius: 9px;
+      box-sizing: border-box;
+}
+  /* =========================================
+   LABEL
+========================================= */
+  .gst-form .form-group label {
+      display: block;
+      margin-bottom: 4px;
+      color:
+        #52627a;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing:
+        0.3px;
+      text-transform:
+        uppercase;
+}
+  /* =========================================
+   INPUT SELECT TEXTAREA
+========================================= */
+  .gst-form input,
+.gst-form select,
+.gst-form textarea {
+      width: 100%;
+      display: block;
+      box-sizing: border-box;
+      border:
+        1px solid #d4dce8;
+      border-radius: 7px;
+      background: #fff;
+      color:
+        #14264d;
+      font-family:
+        Arial, sans-serif;
+      font-size: 11px;
+      outline: none;
+      transition:
+        all 0.2s ease;
+}
+  /* INPUT + SELECT */
+  .gst-form input,
+.gst-form select {
+      height: 28px;
+      padding:
+        5px 9px;
+}
+  /* TEXTAREA */
+  .gst-form textarea {
+      min-height: 66px;
+      padding:
+        8px 9px;
+      resize: vertical;
+    line-height: 17px;
+}
+  /* =========================================
+   FOCUS
+========================================= */
+  .gst-form input:focus,
+.gst-form select:focus,
+.gst-form textarea:focus {
+      border-color:
+        #4656df;
+      box-shadow:
+        0 0 0 2px
+        rgba(70, 86, 223, 0.10);
+}
+  /* =========================================
+   GST SUMMARY
+========================================= */
+  .gst-summary {
+    background:
+        #f7f9fc !important;
+    border:
+        1px solid #e5eaf2 !important;
+    padding:
+        10px 12px !important;
+}
+  .gst-summary p {
+    margin:
+        5px 0;
+    color:
+        #14264d !important;
+    font-size:
+        11px !important;
+    line-height:
+        17px;
+}
+  .gst-summary p strong {
+    color:
+        #52627a;
+    font-weight:
+        700;
+}
+  /* MAIN TOTAL */
+  .gst-summary .main-total {
+    color:
+        #1749cf !important;
+    font-size:
+        13px !important;
+    font-weight:
+        700;
+    border-bottom:
+        1px solid #dfe5ef;
+    padding-bottom:
+        5px;
+    margin-bottom:
+        6px;
+}
+  /* =========================================
+   ALERT
+========================================= */
+  .gst-form .alert {
+    margin:
+        0 0 10px;
+    padding:
+        8px 10px;
+    border-radius:
+        8px;
+    font-size:
+        10px;
+}
+  /* =========================================
+   SUBMIT BUTTON
+========================================= */
+  .gst-submit-btn {
+    width: 100%;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background:
+        linear-gradient(
+            100deg,
+            #4b3de4,
+            #194fd4
+        );
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        0 5px 12px
+        rgba(50, 66, 210, 0.22);
+    transition:
+        all 0.2s ease;
+}
+  .gst-submit-btn:hover {
+    transform:
+        translateY(-1px);
+    box-shadow:
+        0 7px 16px
+        rgba(50, 66, 210, 0.30);
+}
+  .gst-submit-btn:active {
+    transform:
+        translateY(0);
+}
+  /* =========================================
+   RESPONSIVE
+========================================= */
+  @media (max-width: 600px) {
+    .gst-page {
+        padding:
+            15px 10px 30px;
+    }
+    .gst-card {
+        max-width:
+            100%;
+    }
+    .gst-form {
+        padding:
+            12px 14px 18px;
+    }
+    .gst-header {
+        min-height:
+            70px;
+    }
+    .gst-header h2 {
+        font-size:
+            18px;
+    }
+}
+</style>
+<!-- =========================================
+     MAIN CONTENT
+========================================= -->
+  <section id="main-content">
+    <section class="wrapper">
+        <div class="gst-page">
+            <div class="gst-card">
+                  <!-- =================================
+                     HEADER
+                ================================== -->
+                  <div class="gst-header">
+                    <div class="gst-title">
+                        <h2>
+                            Generate GST Invoice
+                        </h2>
+                        <p>
+                            Create customer tax invoice
+                        </p>
+                    </div>
+                </div>
+                  <!-- =================================
+                     FORM
+                ================================== -->
+                  <form
+                    method="post"
+                    action=""
+                    class="gst-form"
+                >
+                      <!-- HIDDEN CLIENT ID -->
+                      <input
+                        type="hidden"
+                        name="client_id"
+                        value="<?= htmlspecialchars($client_id) ?>"
+                    >
+                      <!-- HIDDEN SOURCE TYPE -->
+                      <input
+                        type="hidden"
+                        name="source_type"
+                        value="<?= htmlspecialchars($source_type) ?>"
+                    >
+                      <!-- HIDDEN INTERVIEW ID -->
+                      <input
+                        type="hidden"
+                        name="placement_interview_id"
+                        value="<?= isset($placement_interview_id)
+                            ? intval($placement_interview_id)
+                            : '' ?>"
+                    >
+                      <!-- =================================
+                         ERROR MESSAGE
+                    ================================== -->
+                      <?php if ($error): ?>
+                          <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
+                    <?php endif; ?>
+                      <?php if ($success): ?>
+                        <div class="alert alert-success">
+                            <?= htmlspecialchars($success) ?>
+                        </div>
+                    <?php endif; ?>
+                      <div class="form-group">
+                        <label>
+                            Base Amount (₹)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            name="amount"
+                            id="amount"
+                            value="<?= htmlspecialchars($baseAmount) ?>"
+                            required
+                        >
+                    </div>
+                      <div class="form-group">
+                          <label>
+                            GST Type
+                        </label>
+                        <select
+                            name="gst_type"
+                            id="gst_type"
+                            required
+                        >
+                            <option value="">
+                                Select GST Type
+                            </option>
+                            <option
+                                value="exclusive"
+                                <?= (
+                                    $gst_type_selected
+                                    == 'exclusive'
+                                )
+                                ? 'selected'
+                                : '' ?>
+                            >
+                                Add GST (18%)
+                            </option>
+                            <option
+                                value="inclusive"
+                                <?= (
+                                    $gst_type_selected
+                                    == 'inclusive'
+                                )
+                                ? 'selected'
+                                : '' ?>
+                            >
+                                GST Included (Back Calculate)
+                            </option>
+                            <option
+                                value="normal"
+                                <?= (
+                                    $gst_type_selected
+                                    == 'normal'
+                                )
+                                ? 'selected'
+                                : '' ?>
+                            >
+                                No GST
+                            </option>
+                            <option
+                                value="igst"
+                                <?= (
+                                    $gst_type_selected
+                                    == 'igst'
+                                )
+                                ? 'selected'
+                                : '' ?>
+                            >
+                                Add IGST (18%)
+                            </option>
+                        </select>
+                    </div>
+                    <div
+                        class="form-group gst-summary"
+                    >
+                        <p class="main-total">
+                            <strong>
+                                Total Amount:
+                            </strong>
+                            ₹<span id="total_val">
+                                0.00
+                            </span>
+                        </p>
+                        <p id="cgst_row">
+                            <strong>
+                                CGST (9%):
+                            </strong>
+                            ₹<span id="cgst_val">
+                                0.00
+                            </span>
+                        </p>
+                        <!-- SGST -->
+                        <p id="sgst_row">
+                            <strong>
+                                SGST (9%):
+                            </strong>
+                            ₹<span id="sgst_val">
+                                0.00
+                            </span>
+                        </p>
+                        <p
+                            id="igst_row"
+                            style="display:none;"
+                        >
+                            <strong>
+                                IGST (18%):
+                            </strong>
+                            ₹<span id="igst_val">
+                                0.00
+                            </span>
+                        </p>
+                        <!-- BASE -->
+                        <p>
+                            <strong>
+                                Base Amount:
+                            </strong>
+                              ₹<span id="base_val">
+                                0.00
+                            </span>
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Invoice Date
+                        </label>
+                        <input
+                            type="date"
+                            name="invoice_date"
+                            value="<?= !empty($_POST['invoice_date'])
+                                ? htmlspecialchars($_POST['invoice_date'])
+                                : date('Y-m-d') ?>"
+                            max="<?= date('Y-m-d') ?>"
+                            required
+                        >
+                    </div>
+                      <div class="form-group">
+                        <label>
+                            Comments
+                        </label>
+                        <textarea
+                            name="comments"
+                            rows="3"
+                            placeholder="Enter comments..."
+                        ><?= htmlspecialchars(
+                            !empty($_POST['comments'])
+                                ? $_POST['comments']
+                                : $commentPrefill
+                        ) ?></textarea>
+                    </div>
+                    <button
+                        type="submit"
+                        class="gst-submit-btn"
+                    >
+                        Generate Invoice
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+</section>
+  <!-- =========================================
+     GST CALCULATION JAVASCRIPT
+========================================= -->
+  <script>
+const amountInput =
+    document.getElementById('amount');
+const gstTypeSelect =
+    document.getElementById('gst_type');
+const totalVal =
+    document.getElementById('total_val');
+const baseVal =
+    document.getElementById('base_val');
+const cgstVal =
+    document.getElementById('cgst_val');
+const sgstVal =
+    document.getElementById('sgst_val');
+const igstVal =
+    document.getElementById('igst_val');
+const cgstRow =
+    document.getElementById('cgst_row');
+const sgstRow =
+    document.getElementById('sgst_row');
+const igstRow =
+    document.getElementById('igst_row');
+  /* =========================================
+   CALCULATE GST
+========================================= */
+  function calculateTotal() {
+    const amount =
+        parseFloat(amountInput.value) || 0;
+    const gstType =
+        gstTypeSelect.value;
+    let base = amount;
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+    let total = 0;
+    /* Hide GST rows */
+    cgstRow.style.display = 'none';
+    sgstRow.style.display = 'none';
+    igstRow.style.display = 'none';
+      /* =====================================
+       EXCLUSIVE GST
+    ===================================== */
+      if (gstType === 'exclusive') {
+        base = amount;
+        cgst =
+            base * 0.09;
+        sgst =
+            base * 0.09;
+        total =
+            base + cgst + sgst;
+        cgstRow.style.display =
+            'block';
+        sgstRow.style.display =
+            'block';
+                    }
+      /* ===================================
+       INCLUSIVE GST
+    ===================================== */
+      else if (gstType === 'inclusive') {
+        base =
+            amount / 1.18;
+        cgst =
+            base * 0.09;
+        sgst =
+            base * 0.09;
+        total =
+            amount;
+        cgstRow.style.display =
+            'block';
+        sgstRow.style.display =
+            'block';
+    }
+      /* =====================================
+       NORMAL
+    ===================================== */
+      else if (gstType === 'normal') {
+        base =
+            amount;
+        total =
+            base;
+    }
+      /* =====================================
+       IGST
+    ===================================== */
+    else if (gstType === 'igst') {
+        base =
+            amount;
+        igst =
+            base * 0.18;
+        total =
+            base + igst;
+        igstRow.style.display =
+            'block';
+    }
+    /* =====================================
+       DISPLAY VALUES
+    ===================================== */
+    totalVal.textContent =
+        total.toFixed(2);
+    baseVal.textContent =
+        base.toFixed(2);
+    cgstVal.textContent =
+        cgst.toFixed(2);
+    sgstVal.textContent =
+        sgst.toFixed(2);
+    igstVal.textContent =
+        igst.toFixed(2);
+}
+/* =========================================
+   AMOUNT CHANGE
+========================================= */
+amountInput.addEventListener(
+    'input',
+    calculateTotal
+);
+/* =========================================
+   GST TYPE CHANGE
+========================================= */
+gstTypeSelect.addEventListener(
+    'change',
+    calculateTotal
+);
+/* =========================================
+   PAGE LOAD
+========================================= */
+window.addEventListener(
+    'load',
+    function () {
+        if (!gstTypeSelect.value) {
+            gstTypeSelect.value =
+                'exclusive';
+        }
+        calculateTotal();
+    }
+);
+</script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+<script src="js/search.js"></script>
+</body>
+</html>
+<?php
+ob_end_flush();
+?>
+"

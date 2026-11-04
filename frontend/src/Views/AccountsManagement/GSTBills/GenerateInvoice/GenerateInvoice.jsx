@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import gstBillService from "../../../../services/gstBillService";
+import CreateGstInvoice from "./CreateGstInvoice.jsx";
 import "./GenerateInvoice.css";
 
 const formatAmount = (value) =>
@@ -8,11 +10,12 @@ const formatAmount = (value) =>
         maximumFractionDigits: 2,
     });
 
-const GenerateInvoice = () => {
+const GenerateBillsList = () => {
     const [bills, setBills] = useState([]);
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         let active = true;
@@ -116,8 +119,7 @@ const GenerateInvoice = () => {
                                                     <button
                                                         type="button"
                                                         className="gst-generate-action"
-                                                        disabled
-                                                        title="Invoice generation will be implemented next"
+                                                        onClick={() => navigate(`/accounts/generate-invoice/${bill.interviewId}`)}
                                                     >
                                                         Generate Invoice
                                                     </button>
@@ -141,6 +143,11 @@ const GenerateInvoice = () => {
             </section>
         </section>
     );
+};
+
+const GenerateInvoice = () => {
+    const { interviewId } = useParams();
+    return interviewId ? <CreateGstInvoice /> : <GenerateBillsList />;
 };
 
 export default GenerateInvoice;

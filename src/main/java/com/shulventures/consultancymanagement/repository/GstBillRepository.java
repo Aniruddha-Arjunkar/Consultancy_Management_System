@@ -16,6 +16,7 @@ public interface GstBillRepository extends JpaRepository<InterviewPlacement, Lon
                 CONCAT(CONCAT(a.companyName, ' ('), CONCAT(COALESCE(p.candidateName, 'Candidate'), ')')),
                 a.phone,
                 a.shippingAddress,
+                a.gstNumber,
                 p.companyPayDate,
                 pay.totalAmount,
                 pay.paidAmount
@@ -26,6 +27,8 @@ public interface GstBillRepository extends JpaRepository<InterviewPlacement, Lon
             JOIN ConsultancyPayment pay
                 ON pay.interviewId = p.interviewId
                 AND pay.paymentType = 'Company Pay'
+            LEFT JOIN GstInvoice invoice
+                ON invoice.placementInterviewId = p.interviewId
             WHERE p.interviewStatus = 'Placed'
                 AND p.paymentType IN ('Company Pay', 'Both Pay')
                 AND p.companyGstAmount > 0
@@ -33,7 +36,9 @@ public interface GstBillRepository extends JpaRepository<InterviewPlacement, Lon
                 AND TRIM(a.gstNumber) <> ''
                 AND a.shippingAddress IS NOT NULL
                 AND TRIM(a.shippingAddress) <> ''
+                AND invoice.id IS NULL
             ORDER BY p.companyPayDate DESC, p.interviewId DESC
             """)
     List<GstBillResponse> findEligibleCompanyBills();
+
 }

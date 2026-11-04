@@ -385,9 +385,6 @@ const UpdateAssociateCompany = () => {
                                 />
                             </div>
 
-
-                            
-
                             <div className="form-row">
 
                                 <button

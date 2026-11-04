@@ -9,6 +9,7 @@ public record GstBillResponse(
         String name,
         String phone,
         String address,
+        String gstNumber,
         LocalDate serviceDate,
         BigDecimal finalAmount,
         BigDecimal paidAmount

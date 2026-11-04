@@ -187,6 +187,7 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="GST_GENERATE" />}>
                         <Route path="accounts/generate-invoice" element={<GenerateInvoice />} />
+                        <Route path="accounts/generate-invoice/:interviewId" element={<GenerateInvoice />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="GST_VIEW" />}>

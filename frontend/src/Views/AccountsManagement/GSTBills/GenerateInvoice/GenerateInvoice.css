@@ -28,13 +28,29 @@
 .gst-generate-action {
     border: 0;
     border-radius: 7px;
-    background: #aeb7c5;
+    background: green;
     color: #fff;
-    cursor: not-allowed;
+    cursor: pointer;
     font-weight: 600;
     padding: 9px 12px;
     white-space: nowrap;
+    
+    /* 1. Add the transition property here */
+    transition: background 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
 }
+
+/* 2. Add a hover state to trigger the animation */
+.gst-generate-action:hover {
+    background: rgb(0, 137, 0); /* Smoothly changes color */
+    transform: translateY(-1px); /* Slight lift effect */
+    /* opacity: 0.9; */
+}
+
+/* 3. Optional: Add an active state for when the button is clicked */
+.gst-generate-action:active {
+    transform: translateY(1px); /* Pushes down slightly on click */
+}
+
 
 .gst-generate-message,
 .gst-generate-empty {
@@ -50,5 +66,221 @@
     .gst-generate-page .view-clients-header {
         align-items: flex-start;
         gap: 12px;
+    }
+}
+
+.gst-create-page {
+    min-height: calc(100vh - 90px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 16px 42px;
+    background: #f3f6fb;
+}
+
+.gst-create-card {
+    width: min(100%, 620px);
+    overflow: hidden;
+    border: 1px solid #dce4f1;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 14px 38px rgba(32, 55, 103, 0.12);
+}
+
+.gst-create-header {
+    padding: 24px 28px;
+    color: #fff;
+    background: linear-gradient(110deg, #1749cf 0%, #3946dc 52%, #7135e8 100%);
+}
+
+.gst-create-header h1,
+.gst-create-success h1 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.gst-create-header p {
+    margin: 6px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+.gst-create-form {
+    display: grid;
+    gap: 16px;
+    padding: 24px 28px 28px;
+}
+
+.gst-create-company {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid #e0e7f2;
+    border-radius: 10px;
+    background: #f7f9fc;
+}
+
+.gst-create-company div,
+.gst-create-summary div {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.gst-create-company span,
+.gst-create-summary span {
+    color: #59677f;
+}
+
+.gst-create-company strong {
+    max-width: 68%;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.gst-create-field {
+    display: grid;
+    gap: 7px;
+    color: #34435b;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.gst-create-field input,
+.gst-create-field select,
+.gst-create-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 9px 11px;
+    color: #18253a;
+    background: #fff;
+    font: inherit;
+}
+
+.gst-create-field input[readonly] {
+    background: #f7f9fc;
+}
+
+.gst-create-field textarea {
+    resize: vertical;
+}
+
+.gst-create-field small {
+    color: #66758b;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.gst-create-summary {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid #dce4f1;
+    border-radius: 10px;
+    background: #f7f9fc;
+}
+
+.gst-create-total {
+    margin-top: 2px;
+    padding-top: 12px;
+    border-top: 1px solid #d8e0ec;
+    color: #1749cf;
+    font-size: 16px;
+}
+
+.gst-create-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.gst-create-submit,
+.gst-create-secondary {
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gst-create-submit {
+    color: #fff;
+    background: #3156db;
+}
+
+.gst-create-secondary {
+    color: #334155;
+    background: #e8edf5;
+}
+
+.gst-create-submit:disabled,
+.gst-create-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.gst-create-message {
+    padding: 18px;
+    text-align: center;
+}
+
+.gst-create-message.error {
+    color: #b42318;
+}
+
+.gst-create-success {
+    padding: 36px 28px;
+    text-align: center;
+}
+
+.gst-create-success p {
+    color: #52627a;
+}
+
+.gst-create-success-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    color: #fff;
+    background: #16a34a;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.gst-create-success .gst-create-submit {
+    margin-top: 14px;
+}
+
+@media (max-width: 600px) {
+    .gst-create-page {
+        padding: 16px 10px 28px;
+    }
+
+    .gst-create-header,
+    .gst-create-form {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .gst-create-company div {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .gst-create-company strong {
+        max-width: none;
+        text-align: left;
+    }
+
+    .gst-create-actions {
+        flex-direction: column-reverse;
     }
 }
