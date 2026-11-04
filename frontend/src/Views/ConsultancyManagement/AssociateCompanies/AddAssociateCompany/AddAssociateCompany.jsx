@@ -19,6 +19,8 @@ const initialForm = {
     slaAgreed: "YES",
     payForFresher: "",
     payForExperienced: "",
+    gstNumber: "",
+    shippingAddress: "",
     invoiceSendText: "",
 };
 
@@ -327,6 +329,31 @@ const AddAssociateCompany = () => {
                                     </div>
                                 </div>
                             )}
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="gstNumber">GST Number</label>
+                                    <input
+                                        id="gstNumber"
+                                        name="gstNumber"
+                                        value={form.gstNumber}
+                                        onChange={handleChange}
+                                        placeholder="15-character GSTIN"
+                                        maxLength={15}
+                                        autoCapitalize="characters"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="shippingAddress">Shipping Address</label>
+                                    <input
+                                        id="shippingAddress"
+                                        name="shippingAddress"
+                                        value={form.shippingAddress}
+                                        onChange={handleChange}
+                                        placeholder="Billing / shipping address"
+                                    />
+                                </div>
+                            </div>
 
                             <div className="form-group">
                                 <label htmlFor="slaDocument">

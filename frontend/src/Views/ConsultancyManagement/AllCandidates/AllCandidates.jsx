@@ -173,7 +173,7 @@ const AllCandidates = () => {
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Name</th>
+                                            <th style={{width : '100px'}}>Name</th>
                                             <th>Mobile No.</th>
                                             <th>Email</th>
                                             <th>Experience</th>

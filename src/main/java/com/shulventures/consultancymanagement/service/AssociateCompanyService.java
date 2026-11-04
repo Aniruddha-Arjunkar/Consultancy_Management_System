@@ -108,6 +108,8 @@ public class AssociateCompanyService {
             company.setPayForExperienced(
                     blankToNull(request.getPayForExperienced())
             );
+            company.setGstNumber(normalizeGstNumber(request.getGstNumber()));
+            company.setShippingAddress(blankToNull(request.getShippingAddress()));
             company.setInvoiceSendText(
                     request.getInvoiceSendText() == null
                             ? ""
@@ -145,6 +147,11 @@ public class AssociateCompanyService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeGstNumber(String value) {
+        String normalized = blankToNull(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
     }
 
     private void deleteIfPresent(Path path) {
@@ -355,6 +362,8 @@ public class AssociateCompanyService {
             company.setPayForExperienced(
                     blankToNull(request.getPayForExperienced())
             );
+            company.setGstNumber(normalizeGstNumber(request.getGstNumber()));
+            company.setShippingAddress(blankToNull(request.getShippingAddress()));
             company.setInvoiceSendText(
                     request.getInvoiceSendText() == null
                             ? ""

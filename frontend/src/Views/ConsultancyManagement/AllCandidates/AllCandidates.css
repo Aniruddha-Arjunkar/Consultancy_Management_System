@@ -46,7 +46,7 @@
     display: inline-block;
     padding: 5px 9px;
     border-radius: 12px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -56,11 +56,11 @@
 }
 
 .candidate-status-agreed {
-    color: blue;
+    color: green;
 }
 
 .candidate-status-not-agreed {
-    color: green;
+    color: orange;
 }
 
 .all-candidate-action-all {

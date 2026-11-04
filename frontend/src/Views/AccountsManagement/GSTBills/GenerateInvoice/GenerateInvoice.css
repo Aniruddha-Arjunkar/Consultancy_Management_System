@@ -1,3 +1,54 @@
-.generate-invoice-page{
-    background-color: bisque;
+.gst-generate-page .view-clients-filter {
+    margin-bottom: 18px;
+}
+
+.gst-generate-page .view-client-search-wrap {
+    width: min(100%, 520px);
+}
+
+.gst-generate-table {
+    min-width: 1050px;
+}
+
+.gst-generate-table th,
+.gst-generate-table td {
+    vertical-align: middle;
+}
+
+.gst-generate-name {
+    min-width: 260px;
+    font-weight: 600;
+}
+
+.gst-generate-address {
+    min-width: 180px;
+    white-space: normal;
+}
+
+.gst-generate-action {
+    border: 0;
+    border-radius: 7px;
+    background: #aeb7c5;
+    color: #fff;
+    cursor: not-allowed;
+    font-weight: 600;
+    padding: 9px 12px;
+    white-space: nowrap;
+}
+
+.gst-generate-message,
+.gst-generate-empty {
+    padding: 20px;
+    text-align: center;
+}
+
+.gst-generate-message.error {
+    color: #b42318;
+}
+
+@media (max-width: 700px) {
+    .gst-generate-page .view-clients-header {
+        align-items: flex-start;
+        gap: 12px;
+    }
 }

@@ -21,6 +21,8 @@ const emptyForm = {
     slaAgreed: "NO",
     payForFresher: "",
     payForExperienced: "",
+    gstNumber: "",
+    shippingAddress: "",
     invoiceSendText: "",
 };
 
@@ -106,6 +108,8 @@ const UpdateAssociateCompany = () => {
                     slaAgreed: (company.slaAgreed || "NO").toUpperCase(),
                     payForFresher: company.payForFresher || "",
                     payForExperienced: company.payForExperienced || "",
+                    gstNumber: company.gstNumber || "",
+                    shippingAddress: company.shippingAddress || "",
                     invoiceSendText: company.invoiceSendText || "",
                 });
 
@@ -293,6 +297,31 @@ const UpdateAssociateCompany = () => {
                                 </div>
                             )}
 
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="gstNumber">GST Number</label>
+                                    <input
+                                        id="gstNumber"
+                                        name="gstNumber"
+                                        value={form.gstNumber}
+                                        onChange={handleChange}
+                                        placeholder="15-character GSTIN"
+                                        maxLength={15}
+                                        autoCapitalize="characters"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="shippingAddress">Shipping Address</label>
+                                    <input
+                                        id="shippingAddress"
+                                        name="shippingAddress"
+                                        value={form.shippingAddress}
+                                        onChange={handleChange}
+                                        placeholder="Billing / shipping address"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="form-group">
                                 <label htmlFor="invoiceNumber">
                                     Invoice Number
@@ -356,18 +385,13 @@ const UpdateAssociateCompany = () => {
                                 />
                             </div>
 
+
+                            
+
                             <div className="form-row">
-                                <button
-                                    type="submit"
-                                    className="submit-btn"
-                                    disabled={submitting}
-                                >
-                                    {submitting
-                                        ? "Updating..."
-                                        : "💾 Update Associate"}
-                                </button>
 
                                 <button
+                                
                                     type="button"
                                     className="submit-btn"
                                     disabled={submitting}
@@ -379,6 +403,16 @@ const UpdateAssociateCompany = () => {
                                 >
                                     Cancel
                                 </button>
+                                <button
+                                    type="submit"
+                                    className="submit-btn"
+                                    disabled={submitting}
+                                >
+                                    {submitting
+                                        ? "Updating..."
+                                        : "💾 Update Associate"}
+                                </button>
+
                             </div>
                         </form>
                     </div>

@@ -2,6 +2,7 @@ package com.shulventures.consultancymanagement.dto.associate;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,6 +51,9 @@ public class UpdateAssociateCompanyRequest {
     private String slaAgreed;
     private String payForFresher;
     private String payForExperienced;
+    @Size(max = 15)
+    private String gstNumber;
+    private String shippingAddress;
     private String invoiceSendText;
     private MultipartFile slaDocument;
 }
