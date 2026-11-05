@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.shulventures.consultancymanagement.entity.ConsultancyPaymentTransaction;
 import com.shulventures.consultancymanagement.repository.ConsultancyPaymentTransactionRepository;
+import com.shulventures.consultancymanagement.entity.InterviewPlacement;
+import com.shulventures.consultancymanagement.repository.InterviewPlacementRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -19,6 +21,7 @@ public class PaymentManagementService {
 
     private final ConsultancyPaymentRepository paymentRepository;
     private final ConsultancyPaymentTransactionRepository transactionRepository;
+    private final InterviewPlacementRepository placementRepository;
 
     @Transactional(readOnly = true)
     public DuePaymentDetailResponse getPayment(Long paymentId) {
@@ -78,6 +81,15 @@ public class PaymentManagementService {
 
         payment.setPaidAmount(newPaidTotal);
         payment.setTdsAmount(tds);
+
+        BigDecimal maxTdsAmount = getMaxTdsAmount(payment);
+
+        if (tds.compareTo(maxTdsAmount) > 0) {
+            throw new IllegalArgumentException(
+                    "TDS amount cannot exceed the applicable GST amount of ₹"
+                            + maxTdsAmount.toPlainString() + "."
+            );
+        }
         payment.setTdsPaid(tdsPaid);
         payment.setDueAmount(newDue);
         payment.setPaymentDate(request.paymentDate());
@@ -145,6 +157,8 @@ public class PaymentManagementService {
                 .max(BigDecimal.ZERO)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        BigDecimal maxTdsAmount = getMaxTdsAmount(payment);
+
         return new DuePaymentDetailResponse(
                 payment.getId(),
                 payment.getClientId(),
@@ -154,6 +168,7 @@ public class PaymentManagementService {
                 paid,
                 due,
                 tds,
+                maxTdsAmount,
                 payment.getTdsPaid(),
                 payment.getPaymentDate(),
                 payment.getDueDate(),
@@ -189,5 +204,30 @@ public class PaymentManagementService {
         });
 
         paymentRepository.saveAll(defaultedPayments);
+    }
+
+
+    private BigDecimal getMaxTdsAmount(ConsultancyPayment payment) {
+        if (payment.getInterviewId() == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        InterviewPlacement placement = placementRepository
+                .findById(payment.getInterviewId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Placement not found.")
+                );
+
+        BigDecimal gstAmount;
+
+        if ("Company Pay".equals(payment.getPaymentType())) {
+            gstAmount = placement.getCompanyGstAmount();
+        } else if ("Candidate Pay".equals(payment.getPaymentType())) {
+            gstAmount = placement.getCandidateGstAmount();
+        } else {
+            gstAmount = BigDecimal.ZERO;
+        }
+
+        return zeroIfNull(gstAmount).setScale(2, RoundingMode.HALF_UP);
     }
 }

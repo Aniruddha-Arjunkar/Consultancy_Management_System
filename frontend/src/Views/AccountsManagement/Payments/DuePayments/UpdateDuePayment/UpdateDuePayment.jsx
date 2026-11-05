@@ -114,6 +114,21 @@ const UpdateDuePayment = () => {
             return;
         }
 
+        const tdsAmount = form.applyTds ? Number(form.tdsAmount || 0) : 0;
+        const maxTdsAmount = Number(payment.maxTdsAmount || 0);
+
+        if (!Number.isFinite(tdsAmount) || tdsAmount < 0) {
+            setError("Enter a valid TDS amount.");
+            return;
+        }
+
+        if (tdsAmount > maxTdsAmount) {
+            setError(
+                `TDS amount cannot exceed the applicable GST amount of ₹${formatAmount(maxTdsAmount)}.`
+            );
+            return;
+        }
+
         const newPaidTotal = previousPaid + paymentAmount;
         const remainingDue = Math.max(currentDue - paymentAmount, 0);
 
@@ -246,10 +261,14 @@ const UpdateDuePayment = () => {
                                             type="number"
                                             name="tdsAmount"
                                             min="0"
+                                            max={payment.maxTdsAmount}
                                             step="0.01"
                                             value={form.tdsAmount}
                                             onChange={updateField}
                                         />
+                                        <small>
+                                            Maximum TDS allowed: ₹{formatAmount(payment.maxTdsAmount)}
+                                        </small>
                                     </div>
 
                                     <div className="form-group">

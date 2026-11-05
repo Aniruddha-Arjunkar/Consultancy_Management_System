@@ -12,6 +12,7 @@ public record DuePaymentDetailResponse(
         BigDecimal paidAmount,
         BigDecimal dueAmount,
         BigDecimal tdsAmount,
+        BigDecimal maxTdsAmount,
         Boolean tdsPaid,
         LocalDate paymentDate,
         LocalDate dueDate,

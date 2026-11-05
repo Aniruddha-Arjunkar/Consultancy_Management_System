@@ -2,7 +2,7 @@ package com.shulventures.consultancymanagement.repository;
 
 import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +21,15 @@ public interface ConsultancyPaymentRepository
     List<ConsultancyPayment> findByClientId(String clientId);
 
     List<ConsultancyPayment> findByStatusOrderByDueDateAscIdAsc(String status);
+
+    @Query("""
+        select p
+        from ConsultancyPayment p
+        where p.paymentType = 'Company Pay'
+          and p.tdsAmount > 0
+          and (p.tdsPaid is null or p.tdsPaid = false)
+        order by p.paymentDate desc, p.id desc
+        """)
+    List<ConsultancyPayment> findCompanyTdsDue();
+
 }

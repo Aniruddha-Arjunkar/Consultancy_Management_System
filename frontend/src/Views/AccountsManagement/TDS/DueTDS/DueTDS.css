@@ -1,3 +1,20 @@
-.due-tds-page{
-    background-color: rgb(255, 221, 221);
+.due-tds-page .due-tds-paid-button {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: #087cf0;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.due-tds-page .due-tds-paid-button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.due-tds-page .view-client-total {
+    margin-top: 18px;
+    text-align: right;
+    font-weight: 700;
 }

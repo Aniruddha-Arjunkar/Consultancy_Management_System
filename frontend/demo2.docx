@@ -1,1386 +1,417 @@
-now the Generate invoice page is working perpectly , now we cam move to implement next GST invoice page . Lets implement
-it here we manage our genarated Invoices. seniors code file view-gst-bills.php --->  "<?php
+Now GST Bills Sub-module is completed , we can move to imlpement last sub-module of this Account Module TDS sub-module.
+This sub-module have 2 main pages Due TDS page and Paid TDS page. First we have to Analyze seniors code files and 
+after that we will I,mplement it . Ideally TDS Amount should not be greater than GST Applied on the Base Amount , 
+Because TDS is decuted  from the GST as its name is Tax Dedicated at Source. Dont make any changes in our project 
+by your self . seniors code file --> due-tds-payments.php -----> "<?php
 session_start();
-  if (!isset($_SESSION['email'])) {
+if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
     header('location:login.php');
     exit();
 }
-  if (isset($_GET['logout'])) {
+if (isset($_GET['logout'])) {
     session_destroy();
     unset($_SESSION['email']);
     header('location:login.php');
     exit();
 }
-  require_once 'db_connect.php';
+require_once 'db_connect.php';
 include 'header.php';
-ob_start(); 
+$total_tds_due = 0;
 ?>
-  <style>
-  .view-client-action-buttons {
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 160px;
-}
-  .view-client-action-buttons a,
-button.view-client-action-toggle {
-    width: 160px;
-    padding: 9px 12px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    color: #fff !important;
-    text-align: center;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-}
-  button.view-client-action-toggle {
-    width: auto;
-    background: #3f65e7 !important;
-}
-  .view-client-edit-btn {
-    background: #2563eb !important;
-}
-  .view-client-print-amc-btn {
-    background: #16a34a !important;
-}
-  .view-client-print-no-amc-btn {
-    background: #46b8da !important;
-}
-  .view-client-view-btn {
-    background: #f59e0b !important;
-}
-  .view-client-print-btn{
-  background: #31c745 !important;
-}
-    </style>
-  <body>
-  <section id="main-content">
-      <section class="wrapper">
-          <div class="view-clients-page">
-              <div class="view-clients-header">
-                  <div class="view-clients-title-wrap">
-                      <h1 class="view-clients-title">
-                          <span class="view-clients-title-icon">
-                            🧾
-                        </span>
-                          View GST Invoices
-                      </h1>
-                      <p class="view-clients-subtitle">
-                        View and manage all GST invoices
-                    </p>
-                  </div>
-                  <span class="view-clients-count">
-    <span id="gst-invoice-count-placeholder">{{INVOICE_COUNT_PLACEHOLDER}} {{INVOICE_COUNT_LABEL_PLACEHOLDER}}</span>
-</span>
-              </div>
-              <div class="view-clients-card">
-                  <form
-                    method="post"
-                    action=""
-                    class="view-clients-filter"
+<section id="main-content">
+<section class="wrapper">
+    <div class="view-clients-page">
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
+        <div class="view-clients-header">
+            <div class="view-clients-title-wrap">
+                <h1 class="view-clients-title">
+                    <span class="view-clients-title-icon">
+                        💰
+                    </span>
+                    TDS Due Payments
+                </h1>
+                <p class="view-clients-subtitle">
+                    View and manage pending TDS payments
+                </p>
+            </div>
+            <span class="view-clients-count">
+                TDS Due
+            </span>
+        </div>
+        <!-- =================================================
+             CARD
+        ================================================== -->
+        <div class="view-clients-card">
+            <!-- =================================================
+                 SEARCH
+            ================================================== -->
+            <form
+                method="get"
+                action=""
+                class="view-clients-filter"
+            >
+                <div class="view-client-search-wrap">
+                    <span class="view-client-search-icon">
+                        🔍
+                    </span>
+                    <input
+                        type="text"
+                        id="txt_searchall"
+                        class="view-client-search"
+                        placeholder="Search by Name or Branch"
+                        autocomplete="off"
+                    >
+                </div>
+            </form>
+            <!-- =================================================
+                 TABLE
+            ================================================== -->
+            <div
+                class="view-clients-table-wrapper"
+                id="scrollable-content"
+            >
+                <table
+                    class="view-clients-table"
+                    id="payments-table"
                 >
-                      <div class="view-client-search-wrap">
-                          <span class="view-client-search-icon">
-                            🔍
-                        </span>
-                          <input
-                            type="text"
-                            id="txt_searchall"
-                            class="view-client-search"
-                            placeholder="Search GST invoices..."
-                            autocomplete="off"
-                        >
-                      </div>
-                      <input
-                        type="date"
-                        name="fromDate"
-                        id="start_date"
-                        class="view-client-date"
-                        value="<?= htmlspecialchars($_POST['fromDate'] ?? ''); ?>"
-                    >
-                      <input
-                        type="date"
-                        name="endDate"
-                        id="end_date"
-                        class="view-client-date"
-                        value="<?= htmlspecialchars($_POST['endDate'] ?? ''); ?>"
-                    >
-                      <button
-                        type="submit"
-                        name="but_search"
-                        class="view-client-search-btn"
-                    >
-                        🔍 Search
-                    </button>
-                  </form>
-                  <?php if (!empty($_POST['fromDate']) && !empty($_POST['endDate'])): ?>
-                      <form
-                        method="post"
-                        action="bulk-print-pdf.php"
-                        target="_blank"
-                        class="view-client-bulk-actions"
-                    >
-                          <input
-                            type="hidden"
-                            name="fromDate"
-                            value="<?= htmlspecialchars($_POST['fromDate']); ?>"
-                        >
-                          <input
-                            type="hidden"
-                            name="endDate"
-                            value="<?= htmlspecialchars($_POST['endDate']); ?>"
-                        >
-                          <button style="background:#399529; color:white; border-radius:10px; font-size:13px;"
-                            type="submit"
-                            name="action"
-                            value="print"
-                            class="view-client-print-btn"
-                        >
-                            🖨️ Print All
-                        </button>
-                          <button  style="background:#295d9f; color:white; border-radius:10px; font-size:13px;"
-                            type="submit"
-                            name="action"
-                            value="pdf"
-                            class="view-client-pdf-btn"
-                        >
-                            ⬇️ Download PDF
-                        </button>
-                      </form>
-                  <?php endif; ?>
-                  <div
-                    class="view-clients-table-wrapper"
-                    id="scrollable-content"
-                >
-                      <table
-                        class="view-clients-table"
-                        id="payments-table"
-                    >
-                          <thead>
-                              <tr>
-                                  <th>
-                                    Sr. No.
-                                </th>
-                                  <th style="min-width: 100px">
-                                    Source
-                                </th>
-                                  <th>
-                                    Branch
-                                </th>
-                                  <th style="min-width: 120px">
-                                    Service
-                                </th>
-                                  <th>
-                                    Name
-                                </th>
-                                  <th>
-                                    Phone
-                                </th>
-                                  <th>
-                                    Address
-                                </th>
-                                  <th>
-                                    Invoice No
-                                </th>
-                                  <th style="min-width: 120px">
-                                    Invoice Date
-                                </th>
-                                  <th>
-                                    Comments
-                                </th>
-                                  <th>
-                                    Amount
-                                </th>
-                                  <th>
-                                    Total Amount
-                                </th>
-                                  <th class="view-client-action">
-                                    Action
-                                </th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                          <?php
-                          $from = mysqli_real_escape_string(
-                            $conn,
-                            $_POST['fromDate'] ?? ''
-                        );
-                          $to = mysqli_real_escape_string(
-                            $conn,
-                            $_POST['endDate'] ?? ''
-                        );
-                          $pestControlDateFilter =
-                            (!empty($from) && !empty($to))
-                            ?
-                            "AND (
-                                (gi.invoice_date BETWEEN '$from' AND '$to')
-                                OR
-                                (gi.id IS NULL AND c.due_date BETWEEN '$from' AND '$to')
-                            )"
-                            :
-                            "";
-                          $placementDateFilter =
-                            (!empty($from) && !empty($to))
-                            ?
-                            "AND gi.invoice_date BETWEEN '$from' AND '$to'"
-                            :
-                            "";
-                          $consultantDateFilter =
-                            (!empty($from) && !empty($to))
-                            ?
-                            "AND gi.invoice_date BETWEEN '$from' AND '$to'"
-                            :
-                            "";
-                          $branchFilter = "";
-                          if (
-                            $_SESSION['role'] !== 'super_admin'
-                            &&
-                            !empty($_SESSION['branch'])
-                        ) {
-                              $branch = mysqli_real_escape_string(
-                                $conn,
-                                $_SESSION['branch']
-                            );
-                              $branchFilter =
-                                "AND c.branch = '$branch'";
-                        }
-                          $sql = "
-                            SELECT * FROM (
-                              SELECT
-                                  'Placement' AS source,
-                                  a.Id AS entity_id,
-                                  'Nagpur' AS branch,
-                                  'Consultancy' AS services,
-                                  a.name,
-                                  a.phone,
-                                  a.shipping_address AS address,
-                                  gi.invoice_number,
-                                  gi.invoice_date,
-                                  gi.comments AS invoice_comments,
-                                  '' AS comments,
-                                  gi.gst_type,
-                                  gi.amount,
-                                  gi.total_amount,
-                                  IFNULL(
-                                    CAST(
-                                        p.candidate_pay_amount
-                                        AS DECIMAL(10,2)
-                                    )
-                                    +
-                                    IFNULL(
-                                        p.candidate_gst_amount,
-                                        0
-                                    ),
-                                    0
-                                ) AS fallback_amount,
-                                  gi.id AS invoice_id
-                              FROM tbl_agreement a
-                              LEFT JOIN tbl_placement p
-                                  ON p.candidate_name = a.name
-                              LEFT JOIN tbl_gst_invoice gi
-                                  ON gi.entity_id = a.Id
-                                  AND gi.source_type = 'Placement'
-                              WHERE a.shipping_address IS NOT NULL
-                              AND a.shipping_address != ''
-                              AND IFNULL(
-                                p.candidate_gst_amount,
-                                0
-                            ) > 0
-                              AND gi.id IS NOT NULL
-                              $placementDateFilter
-                              UNION ALL
-                              SELECT
-                                  'Consultant' AS source,
-                                  asoc.Id AS entity_id,
-                                  'Nagpur' AS branch,
-                                  'Consultancy' AS services,
-                                  asoc.company_name AS name,
-                                  asoc.phone,
-                                  asoc.shipping_address AS address,
-                                  gi.invoice_number,
-                                  gi.invoice_date,
-                                  gi.comments AS invoice_comments,
-                                  '' AS comments,
-                                  gi.gst_type,
-                                  gi.amount,
-                                  gi.total_amount,
-                                  IFNULL(
-                                    CAST(
-                                        p.company_pay_amount
-                                        AS DECIMAL(10,2)
-                                    )
-                                    +
-                                    IFNULL(
-                                        p.company_gst_amount,
-                                        0
-                                    ),
-                                    0
-                                ) AS fallback_amount,
-                                  gi.id AS invoice_id
-                              FROM tbl_associate asoc
-                              LEFT JOIN (
-                                  SELECT
-                                      company_name,
-                                      MAX(company_pay_amount)
-                                    AS company_pay_amount,
-                                      MAX(company_gst_amount)
-                                    AS company_gst_amount
-                                  FROM tbl_placement
-                                  GROUP BY company_name
-                              ) p
-                              ON p.company_name =
-                            asoc.company_name
-                              LEFT JOIN tbl_gst_invoice gi
-                              ON gi.entity_id = asoc.Id
-                              AND gi.source_type = 'Consultant'
-                              WHERE asoc.gst_number IS NOT NULL
-                              AND asoc.gst_number != ''
-                              AND IFNULL(
-                                p.company_gst_amount,
-                                0
-                            ) > 0
-                              AND gi.id IS NOT NULL
-                              $consultantDateFilter
-                          ) AS final_data
-                          ";
-                          $result = mysqli_query(
-                            $conn,
-                            $sql
-                        );
-                          if (!$result) {
-                              die(
-                                "Database Error: "
-                                . mysqli_error($conn)
-                            );
-                          }
-                          $total_records =
-                            mysqli_num_rows($result);
-$header_html = ob_get_clean();
-$header_html = str_replace('{{INVOICE_COUNT_PLACEHOLDER}}', $total_records, $header_html);
-$header_html = str_replace('{{INVOICE_COUNT_LABEL_PLACEHOLDER}}', ($total_records == 1 ? 'record' : 'records'), $header_html);
-echo $header_html;
-ob_start(); // resume buffering for the rest of the table markup that follows
-                          $total_records =
-                            mysqli_num_rows($result);
-                          if ($total_records > 0):
-                              $i = 1;
-                              while (
-                                $row =
-                                mysqli_fetch_assoc($result)
-                            ):
-                                  $source =
-                                    htmlspecialchars(
-                                        $row['source'] ?? '',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $branchName =
-                                    htmlspecialchars(
-                                        $row['branch'] ?: '—',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $service =
-                                    htmlspecialchars(
-                                        $row['services'] ?: '—',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $name =
-                                    htmlspecialchars(
-                                        $row['name'] ?? '',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $phone =
-                                    htmlspecialchars(
-                                        $row['phone'] ?? '',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $address =
-                                    htmlspecialchars(
-                                        $row['address'] ?? '',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $invoiceNumber =
-                                    htmlspecialchars(
-                                        $row['invoice_number'] ?? '—',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $invoiceDate =
-                                    htmlspecialchars(
-                                        $row['invoice_date'] ?? '—',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $invoiceComments =
-                                    htmlspecialchars(
-                                        $row['invoice_comments']
-                                        ?: ($row['comments'] ?? '—'),
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    );
-                                  $amount =
-                                    (float) (
-                                        $row['amount'] ?? 0
-                                    );
-                                  $totalAmount =
-                                    !empty($row['total_amount'])
-                                    ?
-                                    (float)$row['total_amount']
-                                    :
-                                    (float)(
-                                        $row['fallback_amount'] ?? 0
-                                    );
-                                  ?>
-                                  <tr>
-                                      <td class="view-client-sr">
-                                        <?= $i++; ?>
-                                    </td>
-                                      <td>
-                                        <span class="view-client-source">
-                                            <?= $source; ?>
-                                        </span>
-                                    </td>
-                                      <td>
-                                          <span class="view-client-branch blue">
-                                              <?= $branchName; ?>
-                                          </span>
-                                      </td>
-                                      <td class="view-client-service">
-                                          <?= $service; ?>
-                                      </td>
-                                      <td  style="min-width:120px" class="view-client-name">
-                                          <?= $name; ?>
-                                      </td>
-                                      <td style="max-width:50px" class="view-client-phone">
-                                          <?= $phone; ?>
-                                      </td>
-                                      <td class="view-client-address">
-                                          <?= $address; ?>
-                                      </td>
-                                      <td class="view-client-invoice">
-                                          <?= $invoiceNumber; ?>
-                                      </td>
-                                      <td class="view-client-date-cell">
-                                          <?= $invoiceDate; ?>
-                                      </td>
-                                      <td class="view-client-address">
-                                          <?= $invoiceComments; ?>
-                                      </td>
-                                      <td class="view-client-amount">
-                                          ₹<?= number_format(
-                                            $amount,
-                                            2
-                                        ); ?>
-                                      </td>
-                                      <td class="view-client-amount">
-                                          ₹<?= number_format(
-                                            $totalAmount,
-                                            2
-                                        ); ?>
-                                      </td>
-                                      <td class="view-client-action">
-                                          <button
-                                            type="button"
-                                            class="view-client-action-toggle action-toggle"
-                                        >
-                                            Action ▾
-                                        </button>
-                                          <div class="view-client-action-buttons action-buttons">
-                                              <?php if (!empty($row['invoice_id'])): ?>
-                                                  <a
-                                                    href="edit-gst-invoice.php?id=<?= intval($row['invoice_id']); ?>"
-                                                    class="view-client-edit-btn"
-                                                >
-                                                    Edit
-                                                </a><br>
-                                                  <?php if ($row['source'] === 'Pest Control'): ?>
-                                                       <a
-                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>&show_amc=1"
-                                                        class="view-client-print-amc-btn"
-                                                        target="_blank"
-                                                    >
-                                                        Print With AMC
-                                                    </a><br>
-                                                      <a
-                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>&show_amc=0"
-                                                       class="view-client-print-no-amc-btn"
-                                                        target="_blank"
-                                                    >
-                                                        Print Without AMC
-                                                    </a>
-                                                  <?php else: ?>
-                                                      <a
-                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>"
-                                                        class="view-client-print-btn"
-                                                        target="_blank"
-                                                    >
-                                                        Print
-                                                    </a>
-                                                  <?php endif; ?>
-                                              <?php else: ?>
-                                                   <a
-                                                    href="print-tax-invoice.php?client_id=<?= intval($row['entity_id']); ?>&source_type=<?= urlencode($row['source']); ?>"
-                                                    class="view-client-view-btn"
-                                                >
-                                                    Print GST Invoice
-                                                </a>
-                                              <?php endif; ?>
-                                          </div>
-                                      </td>
-                                  </tr>
-                              <?php endwhile; ?>
-                          <?php else: ?>
-                              <tr>
-                                  <td
-                                    colspan="13"
-                                    class="view-client-no-data"
-                                >
-                                      No GST invoices found.
-                                  </td>
-                              </tr>
-                          <?php endif; ?>
-                          </tbody>
-                      </table>
-                  </div>
-                  <div
-                    class="view-client-bottom-scroll"
-                    id="viewClientBottomScroll"
-                >
-                      <div
-                        class="view-client-bottom-scroll-inner"
-                        id="viewClientBottomScrollInner"
-                    ></div>
-                  </div>
-              </div>
-          </div>
-      </section>
-  </section>
-  <script>
-  document.addEventListener(
+                    <thead>
+                        <tr>
+                            <th>
+                                Sr. No.
+                            </th>
+                            <th>
+                                Branch
+                            </th>
+                            <th>
+                                Client Name
+                            </th>
+                            <th>
+                                TDS Amount
+                            </th>
+                            <th>
+                                Payment Date
+                            </th>
+                            <th>
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+<?php
+$sql = "
+SELECT
+    p.Id,
+    p.client_Id,
+    CASE
+        WHEN p1.company_name IS NOT NULL
+             AND p1.candidate_name IS NOT NULL
+        THEN CONCAT(
+            p1.company_name,
+            ' (',
+            p1.candidate_name,
+            ')'
+        )
+        WHEN p1.company_name IS NOT NULL
+        THEN p1.company_name
+        WHEN p1.candidate_name IS NOT NULL
+        THEN p1.candidate_name
+        ELSE 'UNKNOWN CLIENT'
+    END AS cust_name,
+    'Nagpur' AS branch,
+    p.total_amount,
+    p.tds_amount,
+    p.payment_date
+FROM tbl_payment p
+LEFT JOIN tbl_placement p1
+    ON p1.interview_id = p.interview_id
+WHERE
+    p.tds_amount > 0
+    AND (p.tds_paid IS NULL OR p.tds_paid = 0)
+GROUP BY
+    p.client_Id,
+    p.payment_date
+ORDER BY
+    p.payment_date DESC
+";
+$result = mysqli_query($conn, $sql);
+$serial = 1;
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $total_tds_due += (float)$row['tds_amount'];
+        $branchName = htmlspecialchars(
+            $row['branch'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        $clientName = htmlspecialchars(
+            $row['cust_name'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        $tdsAmount = number_format(
+            (float)$row['tds_amount'],
+            2
+        );
+        $paymentDate = htmlspecialchars(
+            $row['payment_date'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        /* =================================================
+           BRANCH COLOR
+        ================================================= */
+        $branchClass = 'blue';
+        $branchLower = strtolower(
+            trim($row['branch'] ?? '')
+        );
+        if ($branchLower === 'nagpur') {
+            $branchClass = 'blue';
+        }
+        elseif ($branchLower === 'bramhapuri') {
+            $branchClass = 'green';
+        }
+        elseif (
+            $branchLower === 'chandrapur'
+            ||
+            $branchLower === 'chandreapur'
+        ) {
+            $branchClass = 'orange';
+        }
+?>
+<tr>
+<!-- SR NO -->
+<td class="view-client-sr">
+    <?= $serial++; ?>
+</td>
+<!-- BRANCH -->
+<td>
+    <span
+        class="
+            view-client-branch
+            <?= $branchClass; ?>
+        "
+    >
+        <?= $branchName; ?>
+    </span>
+</td>
+<!-- CLIENT NAME -->
+<td class="view-client-name">
+    <?= $clientName; ?>
+</td>
+<!-- TDS -->
+<td class="view-client-tds-amount">
+    ₹ <?= $tdsAmount; ?>
+</td>
+<!-- PAYMENT DATE -->
+<td class="view-client-date-cell">
+    <?= $paymentDate; ?>
+</td>
+<!-- ACTION -->
+<td class="view-client-action">
+    <a
+        href="add-payment.php?payment_id=<?= intval($row['Id']); ?>"
+        class="view-client-view-btn"
+    >
+        💰 Pay TDS
+    </a>
+</td>
+</tr>
+<?php
+    }
+} else {
+?>
+<tr>
+<td
+    colspan="6"
+    class="view-client-no-data"
+>
+    No TDS Due Found
+</td>
+</tr>
+<?php
+}
+?>
+                    </tbody>
+                </table>
+            </div>
+            <!-- =================================================
+                 BOTTOM HORIZONTAL SCROLLBAR
+            ================================================== -->
+            <div
+                class="view-client-bottom-scroll"
+                id="viewClientBottomScroll"
+            >
+                <div
+                    class="view-client-bottom-scroll-inner"
+                    id="viewClientBottomScrollInner"
+                ></div>
+            </div>
+            <!-- =================================================
+                 TOTAL TDS
+            ================================================== -->
+            <div class="view-client-total">
+                Total TDS Due (INR):
+                <span id="total-tds">
+                    ₹ <?= number_format($total_tds_due, 2); ?>
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+</section>
+<!-- =========================================================
+     SEARCH JAVASCRIPT
+========================================================= -->
+<script>
+document.addEventListener(
     "DOMContentLoaded",
     function () {
-          const searchInput =
+        const searchInput =
             document.getElementById(
                 "txt_searchall"
             );
-          const table =
+        const table =
             document.getElementById(
                 "payments-table"
             );
-          if (!searchInput || !table) {
+        if (
+            !searchInput
+            ||
+            !table
+        ) {
             return;
         }
-          searchInput.addEventListener(
+        searchInput.addEventListener(
             "input",
             function () {
-                  const searchValue =
+                const searchValue =
                     this.value
                         .toLowerCase()
                         .trim();
-                  const rows =
+                const rows =
                     table.querySelectorAll(
                         "tbody tr"
                     );
-                  let serial = 1;
-                  rows.forEach(
+                let serial = 1;
+                let total = 0;
+                rows.forEach(
                     function (row) {
-                          const noData =
+                        const noData =
                             row.querySelector(
                                 ".view-client-no-data"
                             );
-                          if (noData) {
+                        if (noData) {
                             return;
                         }
-                          const rowText =
+                        const rowText =
                             row.textContent
                                 .toLowerCase();
-                          if (
+                        if (
                             searchValue === ""
                             ||
                             rowText.includes(
                                 searchValue
                             )
                         ) {
-                              row.style.display = "";
-                              const sr =
+                            row.style.display = "";
+                            const sr =
                                 row.querySelector(
                                     ".view-client-sr"
                                 );
-                              if (sr) {
-                                  sr.textContent =
+                            if (sr) {
+                                sr.textContent =
                                     serial++;
-                              }
-                          } else {
-                              row.style.display =
+                            }
+                            /* Calculate visible TDS */
+                            const tdsCell =
+                                row.querySelector(
+                                    ".view-client-tds-amount"
+                                );
+                            if (tdsCell) {
+                                let value =
+                                    tdsCell.textContent
+                                        .replace(
+                                            /[^0-9.-]/g,
+                                            ''
+                                        );
+                                total +=
+                                    parseFloat(value)
+                                    || 0;
+                            }
+                        }
+                        else {
+                            row.style.display =
                                 "none";
-                          }
-                      }
+                        }
+                    }
                 );
-              }
+                document.getElementById(
+                    "total-tds"
+                ).textContent =
+                    "₹ " + total.toFixed(2);
+            }
         );
-      }
+    }
 );
-  document.addEventListener(
+/* =========================================================
+   BOTTOM SCROLLBAR SYNC
+========================================================= */
+document.addEventListener(
     "DOMContentLoaded",
     function () {
-          document
-            .querySelectorAll(
-                ".action-toggle"
-            )
-            .forEach(
-                function (button) {
-                      button.addEventListener(
-                        "click",
-                        function () {
-                              const actions =
-                                this.nextElementSibling;
-                              if (
-                                actions.style.display ===
-                                "block"
-                            ) {
-                                  actions.style.display =
-                                    "none";
-                              } else {
-                                  document
-                                    .querySelectorAll(
-                                        ".action-buttons"
-                                    )
-                                    .forEach(
-                                        function (item) {
-                                              item.style.display =
-                                                "none";
-                                          }
-                                    );
-                                  actions.style.display =
-                                    "block";
-                              }
-                          }
-                    );
-                  }
-            );
-      }
-);
-  document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-          const bottomScroll =
+        const bottomScroll =
             document.getElementById(
                 "viewClientBottomScroll"
             );
-          const bottomInner =
+        const bottomInner =
             document.getElementById(
                 "viewClientBottomScrollInner"
             );
-          const tableWrapper =
+        const tableWrapper =
             document.querySelector(
                 ".view-clients-table-wrapper"
             );
-          if (
-            !bottomScroll ||
-            !bottomInner ||
+        if (
+            !bottomScroll
+            ||
+            !bottomInner
+            ||
             !tableWrapper
         ) {
             return;
         }
-          function updateScrollWidth() {
-              bottomInner.style.width =
-                tableWrapper.scrollWidth + "px";
-          }
-          updateScrollWidth();
-          window.addEventListener(
+        function updateScrollWidth() {
+            bottomInner.style.width =
+                tableWrapper.scrollWidth
+                + "px";
+        }
+        updateScrollWidth();
+        window.addEventListener(
             "resize",
             updateScrollWidth
         );
-          bottomScroll.addEventListener(
+        /* Bottom scrollbar -> table */
+        bottomScroll.addEventListener(
             "scroll",
             function () {
-                  tableWrapper.scrollLeft =
+                tableWrapper.scrollLeft =
                     bottomScroll.scrollLeft;
-              }
+            }
         );
-          tableWrapper.addEventListener(
+        /* Table -> bottom scrollbar */
+        tableWrapper.addEventListener(
             "scroll",
             function () {
-                  bottomScroll.scrollLeft =
+                bottomScroll.scrollLeft =
                     tableWrapper.scrollLeft;
-              }
-        );
-      }
-);
-  </script>
-  <script src="js/bootstrap.js"></script>
-<script src="js/jquery.dcjqaccordion.2.7.js"></script>
-<script src="js/scripts.js"></script>
-<script src="js/jquery.slimscroll.js"></script>
-<script src="js/jquery.nicescroll.js"></script>
-<script src="js/jquery.scrollTo.js"></script>
-<script src="js/search.js"></script>
-  </body>
-</html>
-  <?php
-  mysqli_close($conn);
-echo ob_get_clean();
-  ?>"
-
-  remove Source , Branch and Sevice column also implement Action Column > Action dropdown button with Edit and Print 
-  button in the Drop down as same as Seniors code file . Don't make any changes by yourself give me code files 
-  i will add code manually . 
-
-
-
-
-
-  now the GST Invoice page is working perfectly , So now lets implement Edit button Functionality Currently we are 
-  opening model after clicking, But it should open a new view (EditGSTInvoice.jsx) form as same as seniors project . Seniors code file
-  edit-gst-invoice ------> "<?php
-session_start();
-ob_start();
-/* =========================
-   LOGIN CHECK
-========================= */
-if (!isset($_SESSION['email'])) {
-    $_SESSION['msg'] = "You must log in first";
-    header('Location: login.php');
-    exit();
-}
-/* =========================
-   LOGOUT
-========================= */
-if (isset($_GET['logout'])) {
-    session_destroy();
-    unset($_SESSION['email']);
-    header('Location: login.php');
-    exit();
-}
-/* =========================
-   DATABASE
-========================= */
-require_once 'db_connect.php';
-include 'header.php';
-/* =========================
-   GET INVOICE ID
-========================= */
-$invoice_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-if ($invoice_id <= 0) {
-    echo "<script>
-        alert('Invalid invoice ID');
-        window.location.href='view-gst-client.php';
-    </script>";
-    exit();
-}
-/* =========================
-   HANDLE FORM SUBMISSION
-========================= */
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $invoice_id_post = intval($_POST['invoice_id'] ?? 0);
-    $amount = floatval($_POST['amount'] ?? 0);
-    $gst_type = trim($_POST['gst_type'] ?? '');
-    $invoice_date = mysqli_real_escape_string(
-        $conn,
-        trim($_POST['invoice_date'] ?? '')
-    );
-    $comments = mysqli_real_escape_string(
-        $conn,
-        trim($_POST['comments'] ?? '')
-    );
-    /* =========================
-       GST CALCULATION
-    ========================= */
-    $cgst = 0;
-    $sgst = 0;
-    $igst = 0;
-    $total = 0;
-    switch ($gst_type) {
-        /* =====================
-           EXCLUSIVE
-        ===================== */
-        case 'exclusive':
-            $cgst = round($amount * 0.09, 2);
-            $sgst = round($amount * 0.09, 2);
-            $igst = 0;
-            $total = $amount + $cgst + $sgst;
-            break;
-        /* =====================
-           NORMAL
-        ===================== */
-        case 'normal':
-            $cgst = 0;
-            $sgst = 0;
-            $igst = 0;
-            $total = $amount;
-            break;
-        /* =====================
-           INCLUSIVE
-        ===================== */
-        case 'inclusive':
-            $cgst = round(
-                ($amount / 1.18) * 0.09,
-                2
-            );
-            $sgst = round(
-                ($amount / 1.18) * 0.09,
-                2
-            );
-            $igst = 0;
-            $total = $amount;
-            break;
-        /* =====================
-           IGST
-        ===================== */
-        case 'igst':
-            $cgst = 0;
-            $sgst = 0;
-            $igst = round(
-                $amount * 0.18,
-                2
-            );
-            $total = $amount + $igst;
-            break;
-        default:
-            echo "<script>
-                alert('Invalid GST type');
-                history.back();
-            </script>";
-            exit();
-    }
-    /* =========================
-       VALIDATION
-    ========================= */
-    if ($invoice_id_post <= 0) {
-        echo "<script>
-            alert('Invalid invoice ID');
-            history.back();
-        </script>";
-        exit();
-    }
-    if ($amount <= 0) {
-        echo "<script>
-            alert('Please enter a valid amount');
-            history.back();
-        </script>";
-        exit();
-    }
-    if (empty($invoice_date)) {
-        echo "<script>
-            alert('Please select invoice date');
-            history.back();
-        </script>";
-        exit();
-    }
-    /* =========================
-       UPDATE INVOICE
-    ========================= */
-    $stmt = $conn->prepare("
-        UPDATE tbl_gst_invoice
-        SET
-            gst_type = ?,
-            amount = ?,
-            cgst = ?,
-            sgst = ?,
-            igst = ?,
-            total_amount = ?,
-            invoice_date = ?,
-            comments = ?
-        WHERE id = ?
-    ");
-    if (!$stmt) {
-        die(
-            "Prepare failed: " .
-            $conn->error
+            }
         );
     }
-    $stmt->bind_param(
-        "sdddddssi",
-        $gst_type,
-        $amount,
-        $cgst,
-        $sgst,
-        $igst,
-        $total,
-        $invoice_date,
-        $comments,
-        $invoice_id_post
-    );
-    if (!$stmt->execute()) {
-        die(
-            "Update failed: " .
-            $stmt->error
-        );
-    }
-    /* =========================
-       GET INVOICE NUMBER
-    ========================= */
-    $invNumQuery = $conn->prepare("
-        SELECT invoice_number
-        FROM tbl_gst_invoice
-        WHERE id = ?
-    ");
-    $invNumQuery->bind_param(
-        "i",
-        $invoice_id_post
-    );
-    $invNumQuery->execute();
-    $invNumResult =
-        $invNumQuery->get_result();
-    $invoiceData =
-        $invNumResult->fetch_assoc();
-    if (!$invoiceData) {
-        die("Invoice number not found.");
-    }
-    $invoice_number =
-        $invoiceData['invoice_number'];
-    /* =========================
-       REDIRECT TO PRINT
-    ========================= */
-    header(
-        "Location: print-tax-invoice-edit.php?invoice_number=" .
-        urlencode($invoice_number)
-    );
-    exit();
-}
-/* =========================
-   FETCH SOURCE TYPE
-========================= */
-$stmt = $conn->prepare("
-    SELECT source_type
-    FROM tbl_gst_invoice
-    WHERE id = ?
-");
-$stmt->bind_param(
-    "i",
-    $invoice_id
 );
-$stmt->execute();
-$result =
-    $stmt->get_result();
-if ($result->num_rows === 0) {
-    echo "<script>
-        alert('Invoice not found');
-        window.location.href='view-gst-client.php';
-    </script>";
-    exit();
-}
-$invoiceRow =
-    $result->fetch_assoc();
-$source_type =
-    $invoiceRow['source_type'];
-/* =========================
-   FETCH RELATED ENTITY
-========================= */
-switch ($source_type) {
-    /* =====================
-       PEST CONTROL
-    ===================== */
-    case 'Pest Control':
-        $query = "
-            SELECT
-                gi.*,
-                c.gst_number,
-                c.cust_name AS name
-            FROM tbl_gst_invoice gi
-            JOIN tbl_client c
-                ON gi.entity_id = c.Id
-            WHERE gi.id = ?
-        ";
-        break;
-    /* =====================
-       PLACEMENT
-    ===================== */
-    case 'Placement':
-        $query = "
-            SELECT
-                gi.*,
-                a.gst_number,
-                a.name
-            FROM tbl_gst_invoice gi
-            JOIN tbl_agreement a
-                ON gi.entity_id = a.Id
-            WHERE gi.id = ?
-        ";
-        break;
-    /* =====================
-       CONSULTANT
-    ===================== */
-    case 'Consultant':
-        $query = "
-            SELECT
-                gi.*,
-                asoc.gst_number,
-                asoc.company_name AS name
-            FROM tbl_gst_invoice gi
-            JOIN tbl_associate asoc
-                ON gi.entity_id = asoc.Id
-            WHERE gi.id = ?
-        ";
-        break;
-    default:
-        echo "<script>
-            alert('Invalid source type');
-            window.location.href='view-gst-client.php';
-        </script>";
-        exit();
-}
-/* =========================
-   FETCH INVOICE
-========================= */
-$stmt = $conn->prepare($query);
-$stmt->bind_param(
-    "i",
-    $invoice_id
-);
-$stmt->execute();
-$result =
-    $stmt->get_result();
-if ($result->num_rows === 0) {
-    echo "<script>
-        alert('Invoice not found');
-        window.location.href='view-gst-client.php';
-    </script>";
-    exit();
-}
-$row =
-    $result->fetch_assoc();
-?>
-<!-- =========================================
-     MAIN CONTENT
-========================================= -->
-<section id="main-content">
-    <section class="wrapper">
-        <div class="reg-w3">
-            <div class="refollowup-card">
-                <!-- =================================
-                     HEADER
-                ================================== -->
-                <div class="refollowup-header">
-                    <div class="refollowup-title">
-                        <span class="phone-icon">🧾</span>
-                        <div>
-                            <h2>
-                                Edit GST Invoice
-                            </h2>
-                            <p>
-                                Update customer tax invoice details
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <!-- =================================
-                     FORM
-                ================================== -->
-                <form
-                    action=""
-                    method="post"
-                    class="refollowup-form"
-                >
-                    <!-- HIDDEN INVOICE ID -->
-                    <input
-                        type="hidden"
-                        name="invoice_id"
-                        value="<?= intval($row['id']); ?>"
-                    >
-                    <!-- =================================
-                         NAME
-                    ================================== -->
-                    <div class="form-group">
-                        <label>
-                            Name
-                        </label>
-                        <input
-                            type="text"
-                            value="<?= htmlspecialchars($row['name'] ?? ''); ?>"
-                            readonly
-                        >
-                    </div>
-                    <!-- =================================
-                         GST NUMBER
-                    ================================== -->
-                    <div class="form-group">
-                        <label>
-                            GST Number
-                        </label>
-                        <input
-                            type="text"
-                            value="<?= htmlspecialchars($row['gst_number'] ?? ''); ?>"
-                            readonly
-                        >
-                    </div>
-                    <!-- =================================
-                         INVOICE DATE + GST TYPE
-                    ================================== -->
-                    <div class="form-row">
-                        <!-- INVOICE DATE -->
-                        <div class="form-group">
-                            <label>
-                                Invoice Date <span>*</span>
-                            </label>
-                            <input
-                                type="date"
-                                name="invoice_date"
-                                value="<?= htmlspecialchars($row['invoice_date'] ?? ''); ?>"
-                                required
-                            >
-                        </div>
-                        <!-- GST TYPE -->
-                        <div class="form-group">
-                            <label>
-                                GST Type <span>*</span>
-                            </label>
-                            <select
-                                name="gst_type"
-                                id="gst_type"
-                                required
-                            >
-                                <option
-                                    value="exclusive"
-                                    <?= ($row['gst_type'] === 'exclusive') ? 'selected' : ''; ?>
-                                >
-                                    Add GST (18%)
-                                </option>
-                                <option
-                                    value="normal"
-                                    <?= ($row['gst_type'] === 'normal') ? 'selected' : ''; ?>
-                                >
-                                    No GST
-                                </option>
-                                <option
-                                    value="inclusive"
-                                    <?= ($row['gst_type'] === 'inclusive') ? 'selected' : ''; ?>
-                                >
-                                    GST Included
-                                </option>
-                                <option
-                                    value="igst"
-                                    <?= ($row['gst_type'] === 'igst') ? 'selected' : ''; ?>
-                                >
-                                    Add IGST (18%)
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    <!-- =================================
-                         AMOUNT
-                    ================================== -->
-                    <div class="form-group">
-                        <label>
-                            Amount (Basic) <span>*</span>
-                        </label>
-                        <input
-                            type="number"
-                            name="amount"
-                            id="amount"
-                            step="0.01"
-                            min="0"
-                            value="<?= htmlspecialchars($row['amount'] ?? '0'); ?>"
-                            required
-                        >
-                    </div>
-                    <!-- =================================
-                         GST DETAILS
-                    ================================== -->
-                    <div class="form-row">
-                        <!-- CGST -->
-                        <div class="form-group">
-                            <label>
-                                CGST
-                            </label>
-                            <input
-                                type="text"
-                                id="cgst"
-                                value="<?= number_format((float)$row['cgst'], 2); ?>"
-                                readonly
-                            >
-                        </div>
-                        <!-- SGST -->
-                        <div class="form-group">
-                            <label>
-                                SGST
-                            </label>
-                            <input
-                                type="text"
-                                id="sgst"
-                                value="<?= number_format((float)$row['sgst'], 2); ?>"
-                                readonly
-                            >
-                        </div>
-                    </div>
-                    <!-- =================================
-                         IGST + TOTAL
-                    ================================== -->
-                    <div class="form-row">
-                        <!-- IGST -->
-                        <div class="form-group">
-                            <label>
-                                IGST
-                            </label>
-                            <input
-                                type="text"
-                                id="igst"
-                                value="<?= number_format((float)$row['igst'], 2); ?>"
-                                readonly
-                            >
-                        </div>
-                        <!-- TOTAL -->
-                        <div class="form-group">
-                            <label>
-                                Total Amount
-                            </label>
-                            <input
-                                type="text"
-                                id="total"
-                                value="<?= number_format((float)$row['total_amount'], 2); ?>"
-                                readonly
-                            >
-                        </div>
-                    </div>
-                    <!-- =================================
-                         COMMENTS
-                    ================================== -->
-                    <div class="form-group">
-                        <label>
-                            Comments
-                        </label>
-                        <textarea
-                            name="comments"
-                            rows="4"
-                            placeholder="Enter comments..."
-                        ><?= htmlspecialchars($row['comments'] ?? ''); ?></textarea>
-                    </div>
-                    <!-- =================================
-                         SUBMIT
-                    ================================== -->
-                    <button
-                        type="submit"
-                        class="submit-btn"
-                    >
-                        <span>🧾</span>
-                        Update & Print Invoice
-                    </button>
-                </form>
-            </div>
-        </div>
-    </section>
-</section>
-<!-- =========================================
-     GST CALCULATION
-========================================= -->
-<script>
-const gstType =
-    document.getElementById('gst_type');
-const amountInput =
-    document.getElementById('amount');
-const cgstInput =
-    document.getElementById('cgst');
-const sgstInput =
-    document.getElementById('sgst');
-const igstInput =
-    document.getElementById('igst');
-const totalInput =
-    document.getElementById('total');
-function calculateGST() {
-    let amount =
-        parseFloat(amountInput.value) || 0;
-    let type =
-        gstType.value;
-    let cgst = 0;
-    let sgst = 0;
-    let igst = 0;
-    let total = 0;
-    /* =========================
-       EXCLUSIVE
-    ========================= */
-    if (type === 'exclusive') {
-        cgst =
-            parseFloat(
-                (amount * 0.09).toFixed(2)
-            );
-        sgst =
-            parseFloat(
-                (amount * 0.09).toFixed(2)
-            );
-        igst = 0;
-        total =
-            amount + cgst + sgst;
-    }
-    /* =========================
-       NORMAL
-    ========================= */
-    else if (type === 'normal') {
-        cgst = 0;
-        sgst = 0;
-        igst = 0;
-        total =
-            amount;
-    }
-    /* =========================
-       INCLUSIVE
-    ========================= */
-    else if (type === 'inclusive') {
-        const basicAmount =
-            amount / 1.18;
-        cgst =
-            parseFloat(
-                (basicAmount * 0.09).toFixed(2)
-            );
-        sgst =
-            parseFloat(
-                (basicAmount * 0.09).toFixed(2)
-            );
-        igst = 0;
-        total =
-            amount;
-    }
-    /* =========================
-       IGST
-    ========================= */
-    else if (type === 'igst') {
-        cgst = 0;
-        sgst = 0;
-        igst =
-            parseFloat(
-                (amount * 0.18).toFixed(2)
-            );
-        total =
-            amount + igst;
-    }
-    /* =========================
-       DISPLAY
-    ========================= */
-    cgstInput.value =
-        cgst.toFixed(2);
-    sgstInput.value =
-        sgst.toFixed(2);
-    igstInput.value =
-        igst.toFixed(2);
-    totalInput.value =
-        total.toFixed(2);
-}
-/* =========================
-   EVENTS
-========================= */
-gstType.addEventListener(
-    'change',
-    calculateGST
-);
-amountInput.addEventListener(
-    'input',
-    calculateGST
-);
-/* =========================
-   INITIAL CALCULATION
-========================= */
-calculateGST();
 </script>
-<!-- =========================================
-     OTHER JS
-========================================= -->
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
@@ -1389,470 +420,808 @@ calculateGST();
 <script src="js/jquery.scrollTo.js"></script>
 </body>
 </html>
-<?php
-mysqli_close($conn);
-ob_end_flush();
-?>" and ask for confirmation before updating data . 
-
-
-currently after updating the data we are also opening print window ,I didn't told you to add this functionality . 
-Remove it first we already have Dedicated Print button in the Action drop down so print window should only be 
-open after user clicks print button .After that we will implement Print button , Current we have Self Created
-invoice page view which is not official . As user Click on the Print Button ,code generate invoice and open in new
-browser tab with download (As user click on download the invoice should download ) and print(As user click on this 
-button Print window should open) buttons . I am also attaching Sample invoce generated by seniors project 
-our generated incvoice should be exact copy of this invoice. Seniors Code file print-tax-invoice-edit.php ----> "
-<?php
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
+"
+view-paid-tds.php ----> "<?php
+session_start();
+if (!isset($_SESSION['email'])) {
+    header('Location: login.php');
+    exit();
+}
 require_once 'db_connect.php';
-
-$invoice_number = isset($_GET['invoice_number']) ? intval($_GET['invoice_number']) : 0;
-
-$show_amc = isset($_GET['show_amc'])
-    ? (int) $_GET['show_amc']
-    : 0;
-
-if (!$invoice_number) {
-    die("Invoice number missing.");
+include 'header.php';
+/* =========================================================
+   MAIN QUERY
+========================================================= */
+$sql = "
+SELECT 
+    p.Id,
+    p.total_amount,
+    p.tds_amount,
+    p.tds_paid,
+    p.payment_date
+FROM tbl_payment p
+WHERE p.tds_paid = 1
+ORDER BY p.payment_date DESC
+";
+$result = mysqli_query($conn, $sql);
+if (!$result) {
+    die("Database Error: " . mysqli_error($conn));
 }
-
-// Fetch GST invoice info by invoice_number
-$invSql = "SELECT * FROM tbl_gst_invoice WHERE invoice_number = ?";
-$invStmt = $conn->prepare($invSql);
-$invStmt->bind_param("i", $invoice_number);
-$invStmt->execute();
-$invResult = $invStmt->get_result();
-if ($invResult->num_rows === 0) {
-    die("GST Invoice not found.");
-}
-$invoice = $invResult->fetch_assoc();
-
-$invoice_year = date('Y', strtotime($invoice['invoice_date']));
-
-
-// Get source_type safely
-$source_type = isset($invoice['source_type']) ? strtolower(trim($invoice['source_type'])) : null;
-
-if (!$source_type) {
-    die("Source type not specified in invoice.");
-}
-
-// Identify source_type and entity_id from invoice, so you can fetch accordingly
-$entity_id = $invoice['entity_id'];
-$joining_date = null;
-$entity = null;
-$client = null;
-
-
-// Fetch entity info based on source_type
-if ($source_type === 'placement') {
-    $sql = "SELECT * FROM tbl_agreement WHERE Id = ?";
-} elseif ($source_type === 'consultant') {
-    $sql = "SELECT * FROM tbl_associate WHERE Id = ?";
-} else {
-    die("Unknown source type.");
-}
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $entity_id);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows === 0) {
-    die(ucfirst($source_type) . " not found.");
-}
-$entity = $result->fetch_assoc();
-
-
- // Fetch all non-zero payments
-// Fetch payments for the invoice year
-$payments = [];
-$total_paid = 0;
-$total_invoice_amount = 0;
-
-if ($source_type === 'placement' || $source_type === 'consultant') {
-
-    $interview_id = (int)($invoice['placement_interview_id'] ?? 0);
-
-    $paymentSql = "
-        SELECT *
-        FROM tbl_payment
-        WHERE interview_id = ?
-          AND YEAR(payment_date) = ?
-          AND (
-              COALESCE(paid_amount, 0) > 0
-              OR COALESCE(tds_amount, 0) > 0
-          )
-          AND payment_gateway IS NOT NULL
-          AND TRIM(payment_gateway) NOT IN ('', '0')
-        ORDER BY payment_date ASC, Id ASC
-    ";
-
-    $paymentStmt = $conn->prepare($paymentSql);
-    $paymentStmt->bind_param("ii", $interview_id, $invoice_year);
-
-} else {
-
-    $paymentSql = "
-        SELECT *
-        FROM tbl_payment
-        WHERE client_Id = ?
-          AND YEAR(payment_date) = ?
-          AND (
-              COALESCE(paid_amount, 0) > 0
-              OR COALESCE(tds_amount, 0) > 0
-          )
-          AND payment_gateway IS NOT NULL
-          AND TRIM(payment_gateway) NOT IN ('', '0')
-        ORDER BY payment_date ASC, Id ASC
-    ";
-
-    $paymentStmt = $conn->prepare($paymentSql);
-    $paymentStmt->bind_param("si", $entity_id, $invoice_year);
-}
-
-$paymentStmt->execute();
-$paymentResult = $paymentStmt->get_result();
-
-while ($row = $paymentResult->fetch_assoc()) {
-
-    // Total amount from tbl_payment
-    $total_invoice_amount = max(
-        $total_invoice_amount,
-        (float)($row['total_amount'] ?? 0)
-    );
-
-    // Add instalments paid
-    $total_paid += (float)($row['paid_amount'] ?? 0)
-                 + (float)($row['tds_amount'] ?? 0);
-
-    $payments[] = $row;
-}
-
-// Calculate remaining balance
-$balance_amount = $total_invoice_amount - $total_paid;
-
-
-// ✅ Get Joining Date
-$joining_date = '';
-
-if (!empty($invoice['placement_interview_id'])) {
-    $interview_id = intval($invoice['placement_interview_id']);
-    $sql2 = "SELECT joining_date FROM tbl_placement WHERE interview_id = $interview_id";
-    $res2 = mysqli_query($conn, $sql2);
-    if ($row2 = mysqli_fetch_assoc($res2)) {
-        $joining_date = $row2['joining_date'];
-    }
-}
-
-// Function to convert numbers to Indian words
-function convertToWords($number) {
-    // (Keep your convertToWords function here as in your original code)
-    $words = array(
-        '0' => '', '1' => 'One', '2' => 'Two', '3' => 'Three',
-        '4' => 'Four', '5' => 'Five', '6' => 'Six',
-        '7' => 'Seven', '8' => 'Eight', '9' => 'Nine',
-        '10' => 'Ten', '11' => 'Eleven', '12' => 'Twelve',
-        '13' => 'Thirteen', '14' => 'Fourteen', '15' => 'Fifteen',
-        '16' => 'Sixteen', '17' => 'Seventeen', '18' => 'Eighteen',
-        '19' => 'Nineteen', '20' => 'Twenty', '30' => 'Thirty',
-        '40' => 'Forty', '50' => 'Fifty', '60' => 'Sixty',
-        '70' => 'Seventy', '80' => 'Eighty', '90' => 'Ninety'
-    );
-
-    $digits = array('', 'Hundred', 'Thousand', 'Lakh', 'Crore');
-
-    if ($number == 0) return 'Zero';
-
-    $no = floor($number);
-    $decimal = round($number - $no, 2) * 100;
-    $i = 0;
-    $str = array();
-
-    while ($no > 0) {
-        $divider = ($i == 2) ? 10 : 100;
-        $number_part = $no % $divider;
-        $no = floor($no / $divider);
-        $i += ($divider == 10) ? 1 : 2;
-
-        if ($number_part) {
-            $plural = (($counter = count($str)) && $number_part > 9) ? 's' : null;
-            $hundred = ($counter == 1 && $str[0]) ? ' and ' : null;
-            $str [] = ($number_part < 21) ? $words[$number_part] . " " . $digits[$counter] . $plural . " " . $hundred
-            : $words[floor($number_part / 10) * 10] . " " . $words[$number_part % 10] . " " . $digits[$counter] . $plural . " " . $hundred;
-        } else {
-            $str[] = null;
+$total_records = mysqli_num_rows($result);
+?>
+<section id="main-content">
+<section class="wrapper">
+<div class="view-clients-page">
+    <!-- =================================================
+         PAGE HEADER
+    ================================================== -->
+    <div class="view-clients-header">
+        <div class="view-clients-title-wrap">
+            <h1 class="view-clients-title">
+                <span class="view-clients-title-icon">
+                    💰
+                </span>
+                Paid TDS Payments
+            </h1>
+            <p class="view-clients-subtitle">
+                View all paid TDS payment records
+            </p>
+        </div>
+        <!-- RECORD COUNT -->
+        <span class="view-clients-count">
+            <?= $total_records; ?>
+            <?= ($total_records == 1)
+                ? 'record'
+                : 'records';
+            ?>
+        </span>
+    </div>
+    <!-- =================================================
+         CARD
+    ================================================== -->
+    <div class="view-clients-card">
+        <!-- =================================================
+             SEARCH
+        ================================================== -->
+        <div class="view-clients-filter">
+            <div class="view-client-search-wrap">
+                <span class="view-client-search-icon">
+                    🔍
+                </span>
+                <input
+                    type="text"
+                    id="txt_searchall"
+                    class="view-client-search"
+                    placeholder="Search by Name or Branch..."
+                    autocomplete="off"
+                >
+            </div>
+        </div>
+        <!-- =================================================
+             TABLE WRAPPER
+        ================================================== -->
+        <div
+            class="view-clients-table-wrapper"
+            id="scrollable-content"
+        >
+            <table
+                class="view-clients-table"
+                id="payments-table"
+            >
+                <thead>
+                    <tr>
+                        <th>
+                            #
+                        </th>
+                        <th>
+                            Branch
+                        </th>
+                        <th>
+                            Client Name
+                        </th>
+                        <th>
+                            TDS Amount Paid
+                        </th>
+                        <th>
+                            Payment Date
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                if ($total_records > 0) {
+                    $i = 1;
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        ?>
+                        <tr>
+                            <!-- SR NO -->
+                            <td class="view-client-sr">
+                                <?= $i++; ?>
+                            </td>
+                            <!-- BRANCH -->
+                            <td>
+                                <?= htmlspecialchars(
+                                    $row['branch'] ?? '',
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ); ?>
+                            </td>
+                            <!-- CLIENT NAME -->
+                            <td class="view-client-name">
+                                <?= htmlspecialchars(
+                                    $row['cust_name'] ?? '',
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ); ?>
+                            </td>
+                            <!-- TDS AMOUNT -->
+                            <td class="view-client-amount">
+                                ₹<?= number_format(
+                                    (float)$row['tds_amount'],
+                                    2
+                                ); ?>
+                            </td>
+                            <!-- PAYMENT DATE -->
+                            <td>
+                                <?= htmlspecialchars(
+                                    $row['payment_date'] ?? '',
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ); ?>
+                            </td>
+                        </tr>
+                        <?php
+                    }
+                } else {
+                    ?>
+                    <tr>
+                        <td
+                            colspan="5"
+                            class="view-client-no-data"
+                        >
+                            No Paid TDS Found.
+                        </td>
+                    </tr>
+                    <?php
+                }
+                ?>
+                </tbody>
+                <!-- =================================================
+                     TOTAL TDS
+                ================================================== -->
+                <tfoot>
+                    <tr class="view-client-total-row">
+                        <td
+                            colspan="3"
+                            class="view-client-total-label"
+                        >
+                            Total:
+                        </td>
+                        <td
+                            id="totalTds"
+                            class="view-client-total-value"
+                        >
+                            ₹0.00
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <!-- =================================================
+             BOTTOM HORIZONTAL SCROLLBAR
+        ================================================== -->
+        <div
+            class="view-client-bottom-scroll"
+            id="viewClientBottomScroll"
+        >
+            <div
+                class="view-client-bottom-scroll-inner"
+                id="viewClientBottomScrollInner"
+            ></div>
+        </div>
+    </div>
+</div>
+</section>
+</section>
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        const searchInput =
+            document.getElementById(
+                "txt_searchall"
+            );
+        const table =
+            document.getElementById(
+                "payments-table"
+            );
+        if (!searchInput || !table) {
+            return;
         }
+        const tbody =
+            table.querySelector("tbody");
+        const totalTdsCell =
+            document.getElementById(
+                "totalTds"
+            );
+        /* =====================================================
+           UPDATE TOTAL
+        ===================================================== */
+        function updateTotal() {
+            let total = 0;
+            const rows =
+                tbody.querySelectorAll("tr");
+            rows.forEach(
+                function (row) {
+                    if (
+                        row.style.display !== "none" &&
+                        row.cells.length >= 5
+                    ) {
+                        const amountText =
+                            row.cells[3]
+                                .innerText
+                                .replace(/[₹,]/g, "")
+                                .trim();
+                        const amount =
+                            parseFloat(amountText);
+                        if (!isNaN(amount)) {
+                            total += amount;
+                        }
+                    }
+                }
+            );
+            totalTdsCell.innerText =
+                "₹" +
+                total.toLocaleString(
+                    undefined,
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+        }
+        /* =====================================================
+           FILTER ROWS
+        ===================================================== */
+        function filterRows() {
+            const filter =
+                searchInput.value
+                    .toLowerCase()
+                    .trim();
+            const rows =
+                tbody.querySelectorAll("tr");
+            rows.forEach(
+                function (row) {
+                    const noData =
+                        row.querySelector(
+                            ".view-client-no-data"
+                        );
+                    if (noData) {
+                        return;
+                    }
+                    const rowText =
+                        row.innerText
+                            .toLowerCase();
+                    if (
+                        filter === "" ||
+                        rowText.includes(filter)
+                    ) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                }
+            );
+            updateTotal();
+        }
+        /* INITIAL TOTAL */
+        updateTotal();
+        /* SEARCH */
+        searchInput.addEventListener(
+            "input",
+            filterRows
+        );
     }
+);
+/* =========================================================
+   BOTTOM SCROLLBAR SYNC
+========================================================= */
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        const bottomScroll =
+            document.getElementById(
+                "viewClientBottomScroll"
+            );
+        const bottomInner =
+            document.getElementById(
+                "viewClientBottomScrollInner"
+            );
+        const tableWrapper =
+            document.querySelector(
+                ".view-clients-table-wrapper"
+            );
+        if (
+            !bottomScroll ||
+            !bottomInner ||
+            !tableWrapper
+        ) {
+            return;
+        }
+        function updateScrollWidth() {
+            bottomInner.style.width =
+                tableWrapper.scrollWidth + "px";
+        }
+        updateScrollWidth();
+        window.addEventListener(
+            "resize",
+            updateScrollWidth
+        );
+        bottomScroll.addEventListener(
+            "scroll",
+            function () {
+                tableWrapper.scrollLeft =
+                    bottomScroll.scrollLeft;
+            }
+        );
+        tableWrapper.addEventListener(
+            "scroll",
+            function () {
+                bottomScroll.scrollLeft =
+                    tableWrapper.scrollLeft;
+            }
+        );
+    }
+);
+</script>
+<!-- =========================================================
+     EXISTING JS
+========================================================= -->
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+</body>
+</html>
+"
 
-    $Rupees = implode('', array_reverse($str));
-    $paise = ($decimal > 0) ? "And " . convertToWords($decimal) . " Paise" : '';
-    return trim("Rupees " . $Rupees . $paise);
+
+Now lets start implementing TDS sub-module. We allowing user to enter TDS Amount in the UpdateDuePayment.jsx , So
+we have to check TDS should not be greater than GST Amount Applied on the Base Amount = Total Amount to pay. 
+And then Implement Due TDS page , Remove Branch Column and in Client name column should show value 
+CompanyName(PalcedCandidate Name) Because We are Generating Invoice only for Company Pay  (Exclude candidate pay , including 
+candidate pay portion in both pay payment type) So in Due TDS only
+Company due should be visible . And In Action Column The Should TDS Paid Button After Clicking That Button one 
+conforamtion should appear saying Mark Client Name TDS paid , as user confirm tds_paid value in tbl_Payment should 
+get 0 to 1 (False to true) and disappear from this page. For Referance seniors code file due-tds-payments.php ---->
+"<?php
+session_start();
+if (!isset($_SESSION['email'])) {
+    $_SESSION['msg'] = "You must log in first";
+    header('location:login.php');
+    exit();
+}
+if (isset($_GET['logout'])) {
+    session_destroy();
+    unset($_SESSION['email']);
+    header('location:login.php');
+    exit();
+}
+require_once 'db_connect.php';
+include 'header.php';
+$total_tds_due = 0;
+?>
+<section id="main-content">
+<section class="wrapper">
+    <div class="view-clients-page">
+        <!-- =================================================
+             PAGE HEADER
+        ================================================== -->
+        <div class="view-clients-header">
+            <div class="view-clients-title-wrap">
+                <h1 class="view-clients-title">
+                    <span class="view-clients-title-icon">
+                        💰
+                    </span>
+                    TDS Due Payments
+                </h1>
+                <p class="view-clients-subtitle">
+                    View and manage pending TDS payments
+                </p>
+            </div>
+            <span class="view-clients-count">
+                TDS Due
+            </span>
+        </div>
+        <!-- =================================================
+             CARD
+        ================================================== -->
+        <div class="view-clients-card">
+            <!-- =================================================
+                 SEARCH
+            ================================================== -->
+            <form
+                method="get"
+                action=""
+                class="view-clients-filter"
+            >
+                <div class="view-client-search-wrap">
+                    <span class="view-client-search-icon">
+                        🔍
+                    </span>
+                    <input
+                        type="text"
+                        id="txt_searchall"
+                        class="view-client-search"
+                        placeholder="Search by Name or Branch"
+                        autocomplete="off"
+                    >
+                </div>
+            </form>
+            <!-- =================================================
+                 TABLE
+            ================================================== -->
+            <div
+                class="view-clients-table-wrapper"
+                id="scrollable-content"
+            >
+                <table
+                    class="view-clients-table"
+                    id="payments-table"
+                >
+                    <thead>
+                        <tr>
+                            <th>
+                                Sr. No.
+                            </th>
+                            <th>
+                                Branch
+                            </th>
+                            <th>
+                                Client Name
+                            </th>
+                            <th>
+                                TDS Amount
+                            </th>
+                            <th>
+                                Payment Date
+                            </th>
+                            <th>
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+<?php
+$sql = "
+SELECT
+    p.Id,
+    p.client_Id,
+    CASE
+        WHEN p1.company_name IS NOT NULL
+             AND p1.candidate_name IS NOT NULL
+        THEN CONCAT(
+            p1.company_name,
+            ' (',
+            p1.candidate_name,
+            ')'
+        )
+        WHEN p1.company_name IS NOT NULL
+        THEN p1.company_name
+        WHEN p1.candidate_name IS NOT NULL
+        THEN p1.candidate_name
+        ELSE 'UNKNOWN CLIENT'
+    END AS cust_name,
+    'Nagpur' AS branch,
+    p.total_amount,
+    p.tds_amount,
+    p.payment_date
+FROM tbl_payment p
+LEFT JOIN tbl_placement p1
+    ON p1.interview_id = p.interview_id
+WHERE
+    p.tds_amount > 0
+    AND (p.tds_paid IS NULL OR p.tds_paid = 0)
+GROUP BY
+    p.client_Id,
+    p.payment_date
+ORDER BY
+    p.payment_date DESC
+";
+$result = mysqli_query($conn, $sql);
+$serial = 1;
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $total_tds_due += (float)$row['tds_amount'];
+        $branchName = htmlspecialchars(
+            $row['branch'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        $clientName = htmlspecialchars(
+            $row['cust_name'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        $tdsAmount = number_format(
+            (float)$row['tds_amount'],
+            2
+        );
+        $paymentDate = htmlspecialchars(
+            $row['payment_date'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        /* =================================================
+           BRANCH COLOR
+        ================================================= */
+        $branchClass = 'blue';
+        $branchLower = strtolower(
+            trim($row['branch'] ?? '')
+        );
+        if ($branchLower === 'nagpur') {
+            $branchClass = 'blue';
+        }
+        elseif ($branchLower === 'bramhapuri') {
+            $branchClass = 'green';
+        }
+        elseif (
+            $branchLower === 'chandrapur'
+            ||
+            $branchLower === 'chandreapur'
+        ) {
+            $branchClass = 'orange';
+        }
+?>
+<tr>
+<!-- SR NO -->
+<td class="view-client-sr">
+    <?= $serial++; ?>
+</td>
+<!-- BRANCH -->
+<td>
+    <span
+        class="
+            view-client-branch
+            <?= $branchClass; ?>
+        "
+    >
+        <?= $branchName; ?>
+    </span>
+</td>
+<!-- CLIENT NAME -->
+<td class="view-client-name">
+    <?= $clientName; ?>
+</td>
+<!-- TDS -->
+<td class="view-client-tds-amount">
+    ₹ <?= $tdsAmount; ?>
+</td>
+<!-- PAYMENT DATE -->
+<td class="view-client-date-cell">
+    <?= $paymentDate; ?>
+</td>
+<!-- ACTION -->
+<td class="view-client-action">
+    <a
+        href="add-payment.php?payment_id=<?= intval($row['Id']); ?>"
+        class="view-client-view-btn"
+    >
+        💰 Pay TDS
+    </a>
+</td>
+</tr>
+<?php
+    }
+} else {
+?>
+<tr>
+<td
+    colspan="6"
+    class="view-client-no-data"
+>
+    No TDS Due Found
+</td>
+</tr>
+<?php
 }
 ?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Tax Invoice</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-        }
-        .invoice-box {
-            width: 800px;
-            margin: auto;
-            padding: 30px;
-            border: 1px solid #eee;
-        }
-        .company-details {
-            text-align: right;
-            margin-top: 10px;
-        }
-        .invoice-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-align: center;
-            text-decoration: underline;
-        }
-        .details, .items, .total {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .details td, .items th, .items td, .total td {
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-        .items th {
-            background-color: #005580;
-            color: #ffffff;
-        }
-        .items td {
-            text-align: center;
-        }
-        .highlight {
-            font-weight: bold;
-            background-color: #ff8080;
-            font-size: 16px;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .text-total{
-            text-align: right;
-            background-color: #c2f0f0;
-        }
-        hr{
-            height: 5px;
-            border-width:0;
-            color: #99dea5;
-            background-color: #99dea5;
-        }
-        footer {
-            background-color: white;
-            color: #000;
-            padding: 20px 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .footer {
-            max-width: 100%;
-            margin: 0;
-            padding: 0 50px;
-            box-sizing: border-box;
-        }
-        .footer .cont {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            line-height: 1.6;
-        }
-        .footer .cont p,
-        .footer .cont a,
-        .add, .cin {
-            margin: 0;
-            font-size: 16px;
-            color: black;
-            text-decoration: none;
-        }
-        .footer .cont a:hover {
-            color: #1e90ff;
-        }
-        .add, .cin {
-            text-align: center;
-        }
-        
-          #logo {
-    width: 100%;
-    height: 90px;
-    padding-left: 0;
-    padding-top: 0;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-}
-
-#logo img {
-    width: 400px;
-    height: auto;
-    margin: -60px 0 0 -60px;
-}
-
-
-        @media print {
-            @page {
-                size: A4 portrait;
-                margin: 10mm;
-            }
-        }
-    </style>
-</head>
-<body onload="window.print()">
-    <div class="invoice-box">
-        <div id="logo">
-            <img src="img/SHUL.png"  alt="Company Logo" />
-        </div>
-        <hr>
-        <div class="company-details">
-            <strong>Shul Ventures Pvt. Ltd.</strong><br>
-            Bank A/C Number: 920020001745664<br>
-            IFSC: UTIB0001242<br>
-            Bank Name: AXIS Bank Ltd.<br>
-            Branch: Swavalambi Nagar, Nagpur<br>
-            GSTIN: 27ABACS2141Q1Z3<br>
-        </div>
-
-        <div class="invoice-title">TAX INVOICE</div>
-
-        <strong>Invoice Date:</strong> <?= htmlspecialchars($invoice['invoice_date']) ?><br><br>
-        <strong>Invoice No:</strong> <?= htmlspecialchars($invoice['invoice_number']) ?><br><br>
-
-        <strong>Invoice To:</strong>
-        <table class="items">
-            <tr>
-                <th>Billing Address</th>
-                <th>Shipping Address</th>
-            </tr>
-            <tr>
-                <td>
-                    <?= htmlspecialchars($entity['cust_name'] ?? $entity['name'] ?? $entity['company_name']) ?><br>
-                    <?= nl2br(htmlspecialchars($entity['cust_address'] ?? $entity['shipping_address'] ?? '')) ?><br>
-                    GSTIN: <?= htmlspecialchars($entity['gst_number'] ?? '') ?>
-                </td>
-                <td>
-                    <?= htmlspecialchars($entity['cust_name'] ?? $entity['name'] ?? $entity['company_name']) ?><br>
-                    <?= nl2br(htmlspecialchars($entity['cust_address'] ?? $entity['shipping_address'] ?? '')) ?><br>
-                    GSTIN: <?= htmlspecialchars($entity['gst_number'] ?? '') ?>
-                </td>
-            </tr>
-        </table>
-
-        <table class="items">
-            <tr>
-                <th>Service</th>
-               <th>
-        <?= ($source_type === 'consultant' || $source_type === 'placement') ? 'Joining Date' : 'Service Date'; ?>
-    </th>
-                <th>Description</th>
-                <th>Service Charges</th>
-            </tr>
-            <tr>
-                <td>
-    <?php
-        if ($source_type === 'consultant') {
-            echo 'Consultant';
-        } elseif ($source_type === 'placement') {
-            echo 'Placement';
-        } else {
-            echo htmlspecialchars($entity['services'] ?? 'Service');
-        }
-    ?>
-</td>
-
-                <td>
-    <?php        if (($source_type === 'consultant' || $source_type === 'placement') && !empty($joining_date)) {
-                        echo date('d-m-Y', strtotime($joining_date));
-                    } else {
-                        echo date('d-m-Y', strtotime($invoice['invoice_date']));
-                    }
-                    ?>
-</td>
-                
-
-                <td class="text-right">₹<?= number_format($invoice['amount'], 2) ?></td>
-            </tr>
-           <?php if ($invoice['gst_type'] === 'igst'): ?>
-                <tr>
-                    <td colspan="3" style="text-align:center;">IGST (18%)</td>
-                    <td class="text-right">₹<?= number_format($invoice['igst'], 2) ?></td>
-                </tr>
-            <?php elseif ($invoice['gst_type'] === 'exclusive' || $invoice['gst_type'] === 'inclusive'): ?>
-                <tr>
-                    <td colspan="3" style="text-align:center;">CGST (9%)</td>
-                    <td class="text-right">₹<?= number_format($invoice['cgst'], 2) ?></td>
-                </tr>
-                <tr>
-                    <td colspan="3" style="text-align:center;">SGST (9%)</td>
-                    <td class="text-right">₹<?= number_format($invoice['sgst'], 2) ?></td>
-                </tr>
-            <?php endif; ?>
-            <tr>
-                <td class="text-total" colspan="3"><strong>Total Amount</strong></td>
-                <td class="text-total"><strong>₹<?= number_format($invoice['total_amount'], 2) ?></strong></td>
-            </tr>
-            <tr>
-                <td colspan="4" style="text-align:center; color:#333;">
-                    <strong>(In Words: <?= convertToWords($invoice['total_amount']); ?> Only)</strong>
-                </td>
-            </tr>
-        </table><br>
-        
-
-
-        
-
-        <p style="text-align:center;">
-            <strong>(This is system generated PDF; signature & stamp not required)</strong>
-        </p>
-
-        <footer>
-            <hr>
-            <div class="footer">
-                <div class="cont">
-                    <p>+91-9764385996</p>
-                    <a href="https://shulventures.com/">www.shulventures.com</a>
-                    <p>support@shulventures.com</p>
-                </div>
-                <div class="add">
-                    <p>Shree Ganesh Apartment, Ring Road, Plot No. 32, above Rajat Wines, Khamla, Nagpur, Maharashtra 440015</p>
-                </div>
-                <div class="cin">
-                    <p>CIN: U74999MH2018PTC308404</p>
-                </div>
+                    </tbody>
+                </table>
             </div>
-            <hr>
-        </footer>
+            <!-- =================================================
+                 BOTTOM HORIZONTAL SCROLLBAR
+            ================================================== -->
+            <div
+                class="view-client-bottom-scroll"
+                id="viewClientBottomScroll"
+            >
+                <div
+                    class="view-client-bottom-scroll-inner"
+                    id="viewClientBottomScrollInner"
+                ></div>
+            </div>
+            <!-- =================================================
+                 TOTAL TDS
+            ================================================== -->
+            <div class="view-client-total">
+                Total TDS Due (INR):
+                <span id="total-tds">
+                    ₹ <?= number_format($total_tds_due, 2); ?>
+                </span>
+            </div>
+        </div>
     </div>
+</section>
+</section>
+<!-- =========================================================
+     SEARCH JAVASCRIPT
+========================================================= -->
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        const searchInput =
+            document.getElementById(
+                "txt_searchall"
+            );
+        const table =
+            document.getElementById(
+                "payments-table"
+            );
+        if (
+            !searchInput
+            ||
+            !table
+        ) {
+            return;
+        }
+        searchInput.addEventListener(
+            "input",
+            function () {
+                const searchValue =
+                    this.value
+                        .toLowerCase()
+                        .trim();
+                const rows =
+                    table.querySelectorAll(
+                        "tbody tr"
+                    );
+                let serial = 1;
+                let total = 0;
+                rows.forEach(
+                    function (row) {
+                        const noData =
+                            row.querySelector(
+                                ".view-client-no-data"
+                            );
+                        if (noData) {
+                            return;
+                        }
+                        const rowText =
+                            row.textContent
+                                .toLowerCase();
+                        if (
+                            searchValue === ""
+                            ||
+                            rowText.includes(
+                                searchValue
+                            )
+                        ) {
+                            row.style.display = "";
+                            const sr =
+                                row.querySelector(
+                                    ".view-client-sr"
+                                );
+                            if (sr) {
+                                sr.textContent =
+                                    serial++;
+                            }
+                            /* Calculate visible TDS */
+                            const tdsCell =
+                                row.querySelector(
+                                    ".view-client-tds-amount"
+                                );
+                            if (tdsCell) {
+                                let value =
+                                    tdsCell.textContent
+                                        .replace(
+                                            /[^0-9.-]/g,
+                                            ''
+                                        );
+                                total +=
+                                    parseFloat(value)
+                                    || 0;
+                            }
+                        }
+                        else {
+                            row.style.display =
+                                "none";
+                        }
+                    }
+                );
+                document.getElementById(
+                    "total-tds"
+                ).textContent =
+                    "₹ " + total.toFixed(2);
+            }
+        );
+    }
+);
+/* =========================================================
+   BOTTOM SCROLLBAR SYNC
+========================================================= */
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        const bottomScroll =
+            document.getElementById(
+                "viewClientBottomScroll"
+            );
+        const bottomInner =
+            document.getElementById(
+                "viewClientBottomScrollInner"
+            );
+        const tableWrapper =
+            document.querySelector(
+                ".view-clients-table-wrapper"
+            );
+        if (
+            !bottomScroll
+            ||
+            !bottomInner
+            ||
+            !tableWrapper
+        ) {
+            return;
+        }
+        function updateScrollWidth() {
+            bottomInner.style.width =
+                tableWrapper.scrollWidth
+                + "px";
+        }
+        updateScrollWidth();
+        window.addEventListener(
+            "resize",
+            updateScrollWidth
+        );
+        /* Bottom scrollbar -> table */
+        bottomScroll.addEventListener(
+            "scroll",
+            function () {
+                tableWrapper.scrollLeft =
+                    bottomScroll.scrollLeft;
+            }
+        );
+        /* Table -> bottom scrollbar */
+        tableWrapper.addEventListener(
+            "scroll",
+            function () {
+                bottomScroll.scrollLeft =
+                    tableWrapper.scrollLeft;
+            }
+        );
+    }
+);
+</script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
 </body>
-</html>"  
+</html>
+"
 
-
-
-i restart the srping boot project and got Error in build in GstInvoicePdfService.java ----> "
-java: cannot find symbol
-  symbol:   class BaseColor
-  location: package org.openpdf.text
-java: cannot find symbol
-  symbol:   class BaseColor
-  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
-java: cannot find symbol
-  symbol:   class BaseColor
-  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
-java: cannot find symbol
-  symbol:   class BaseColor
-  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
-" 
+Due TDS page is working perpectly but in UpdateDuePayment.jsx changes that we make now causing problem . 
+As Shown in first screenshot , callisto IT Solution(Jitendra) Total Amount = 5900 (Base Amount = 5000 + GST Amount 
+= 900) paid Amount = 2500 , TDS = 100 (paid) and Due Payment = 3400. But in UpdateDuePayment.jsx Page , due Amount 
+is showing 100 (TDS) ,  MAximum TDS Allowed is showing 3400 (Due Amount) and TDS Input Field show 900 (Max TDS
+Allowed) as it shows in second attached ScreenShot.     
