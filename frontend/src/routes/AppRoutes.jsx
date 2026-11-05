@@ -50,6 +50,9 @@ import DefaulterPayments from "./../Views/AccountsManagement/Payments/DefaulterP
 
 import GenerateInvoice from "./../Views/AccountsManagement/GSTBills/GenerateInvoice/GenerateInvoice.jsx";
 import GSTInvoices from "./../Views/AccountsManagement/GSTBills/GSTInvoices/GSTInvoices.jsx";
+import EditGSTInvoice from "./../Views/AccountsManagement/GSTBills/GSTInvoices/EditGSTInvoice.jsx";
+import PrintGSTInvoice from "./../Views/AccountsManagement/GSTBills/GSTInvoices/PrintGSTInvoice.jsx";
+
 
 import AddExpenses from "./../Views/AccountsManagement/Expenses/AddExpenses/AddExpenses.jsx";
 import ViewExpenses from "./../Views/AccountsManagement/Expenses/ViewExpenses/ViewExpenses.jsx";
@@ -192,6 +195,8 @@ function AppRoutes() {
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="GST_VIEW" />}>
                         <Route path="accounts/gst-Invoice" element={<GSTInvoices />} />
+                        <Route path="accounts/gst-Invoice/print/:invoiceId" element={<PrintGSTInvoice />} />
+                        <Route path="accounts/gst-Invoice/:invoiceId" element={<EditGSTInvoice />} />
                     </Route>
 
                     <Route element={<PermissionRoute module="ACCOUNTS" page="EXPENSES_ADD" />}>

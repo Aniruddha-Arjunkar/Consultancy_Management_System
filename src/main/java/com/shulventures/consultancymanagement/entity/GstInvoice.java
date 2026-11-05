@@ -61,9 +61,15 @@ public class GstInvoice {
     @Column(name = "company_name_snapshot", nullable = false, columnDefinition = "TEXT")
     private String companyNameSnapshot;
 
+    @Column(name = "company_phone_snapshot", length = 255)
+    private String companyPhoneSnapshot;
+
     @Column(name = "company_gst_number_snapshot", nullable = false, length = 15)
     private String companyGstNumberSnapshot;
 
     @Column(name = "shipping_address_snapshot", nullable = false, columnDefinition = "TEXT")
     private String shippingAddressSnapshot;
+
+    @Column(name = "joining_date_snapshot")
+    private LocalDate joiningDateSnapshot;
 }

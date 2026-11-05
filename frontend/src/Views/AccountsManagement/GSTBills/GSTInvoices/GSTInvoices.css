@@ -1,3 +1,103 @@
-.gst-invoice-page{
-    background-color: rgb(210, 245, 245);
+.gst-invoices-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.gst-invoices-filter .view-client-search-wrap {
+    flex: 1 1 280px;
+}
+
+.gst-invoices-filter .view-client-date {
+    min-height: 40px;
+}
+
+.gst-invoices-table {
+    min-width: 1250px;
+}
+
+.gst-invoices-name {
+    min-width: 170px;
+    font-weight: 600;
+}
+
+.gst-invoices-address {
+    min-width: 200px;
+    white-space: normal;
+}
+
+.gst-invoices-action-cell {
+    position: relative;
+    min-width: 120px;
+}
+
+.gst-invoices-action-toggle {
+    border: 0;
+    border-radius: 7px;
+    padding: 9px 12px;
+    color: #fff;
+    background: #3f65e7;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.gst-invoices-action-menu {
+    position: absolute;
+    z-index: 5;
+    top: calc(80%);
+    right: 5px;
+    display: grid;
+    min-width: 100px;
+    padding: 5px;
+    border: 1px solid #dce4f1;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(22, 38, 67, 0.16);
+}
+
+.gst-invoices-action-menu button {
+    border: 0;
+    border-radius: 5px;
+    padding: 9px 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+
+.gst-invoices-action-menu button:hover {
+  filter: brightness(90%);
+}
+
+
+.gst-invoices-action-menu button:active {
+  transform: scale(0.98);
+}
+
+.get-invoice-action-edit-btn{
+    background-color: #1e51fb;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.get-invoice-action-print-btn{
+    background-color:green;
+    color: #fff;
+}
+
+
+
+.gst-invoices-message,
+.gst-invoices-empty {
+    padding: 20px;
+    text-align: center;
+}
+
+.gst-invoices-error {
+    padding: 12px 16px;
+    color: #b42318;
 }

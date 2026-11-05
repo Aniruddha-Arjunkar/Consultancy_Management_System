@@ -3,9 +3,12 @@ package com.shulventures.consultancymanagement.service;
 import com.shulventures.consultancymanagement.dto.gst.GstBillResponse;
 import com.shulventures.consultancymanagement.dto.gst.CreateGstInvoiceRequest;
 import com.shulventures.consultancymanagement.dto.gst.GstInvoiceResponse;
+import com.shulventures.consultancymanagement.dto.gst.UpdateGstInvoiceRequest;
 import com.shulventures.consultancymanagement.entity.GstInvoice;
 import com.shulventures.consultancymanagement.repository.GstBillRepository;
 import com.shulventures.consultancymanagement.repository.GstInvoiceRepository;
+import com.shulventures.consultancymanagement.repository.InterviewPlacementRepository;
+import com.shulventures.consultancymanagement.entity.InterviewPlacement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ public class GstBillService {
 
     private final GstBillRepository gstBillRepository;
     private final GstInvoiceRepository gstInvoiceRepository;
+    private final InterviewPlacementRepository placementRepository;
 
     @Transactional(readOnly = true)
     public List<GstBillResponse> getEligibleCompanyBills() {
@@ -73,13 +77,57 @@ public class GstBillService {
         invoice.setComments(request.comments() == null || request.comments().isBlank()
                 ? null : request.comments().trim());
         invoice.setCompanyNameSnapshot(companyName(bill.name()));
+        invoice.setCompanyPhoneSnapshot(bill.phone());
         invoice.setCompanyGstNumberSnapshot(bill.gstNumber());
         invoice.setShippingAddressSnapshot(bill.address());
+        invoice.setJoiningDateSnapshot(bill.joiningDate());
 
         GstInvoice saved = gstInvoiceRepository.saveAndFlush(invoice);
         saved.setInvoiceNumber(saved.getId() + 200);
         saved = gstInvoiceRepository.save(saved);
         return toResponse(saved, interviewId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GstInvoiceResponse> getInvoices() {
+        return gstInvoiceRepository.findAllByOrderByInvoiceDateDescIdDesc()
+                .stream()
+                .map(invoice -> toResponse(invoice, invoice.getPlacementInterviewId()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GstInvoiceResponse getInvoice(Long invoiceId) {
+        GstInvoice invoice = gstInvoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("GST invoice not found."));
+        return toResponse(invoice, invoice.getPlacementInterviewId());
+    }
+
+    @Transactional
+    public GstInvoiceResponse updateInvoice(
+            Long invoiceId,
+            UpdateGstInvoiceRequest request
+    ) {
+        GstInvoice invoice = gstInvoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("GST invoice not found."));
+
+        if (request.invoiceDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Invoice date cannot be in the future.");
+        }
+
+        TaxAmounts tax = calculateTax(money(request.amount()), request.gstType());
+        invoice.setGstType(request.gstType());
+        invoice.setAmount(tax.baseAmount());
+        invoice.setCgst(tax.cgst());
+        invoice.setSgst(tax.sgst());
+        invoice.setIgst(tax.igst());
+        invoice.setTotalAmount(tax.totalAmount());
+        invoice.setInvoiceDate(request.invoiceDate());
+        invoice.setComments(request.comments() == null || request.comments().isBlank()
+                ? null : request.comments().trim());
+
+        GstInvoice updated = gstInvoiceRepository.save(invoice);
+        return toResponse(updated, updated.getPlacementInterviewId());
     }
 
     private TaxAmounts calculateTax(BigDecimal sourceAmount, String gstType) {
@@ -144,12 +192,24 @@ public class GstBillService {
     private GstInvoiceResponse toResponse(GstInvoice invoice, Long interviewId) {
         return new GstInvoiceResponse(
                 invoice.getId(), invoice.getInvoiceNumber(), interviewId,
-                invoice.getCompanyNameSnapshot(), invoice.getCompanyGstNumberSnapshot(),
+                getJoiningDate(invoice),
+                invoice.getCompanyNameSnapshot(), invoice.getCompanyPhoneSnapshot(),
+                invoice.getCompanyGstNumberSnapshot(),
                 invoice.getShippingAddressSnapshot(), invoice.getGstType(),
                 invoice.getAmount(), invoice.getCgst(), invoice.getSgst(),
                 invoice.getIgst(), invoice.getTotalAmount(), invoice.getInvoiceDate(),
                 invoice.getComments()
         );
+    }
+
+    private LocalDate getJoiningDate(GstInvoice invoice) {
+        if (invoice.getJoiningDateSnapshot() != null) {
+            return invoice.getJoiningDateSnapshot();
+        }
+        if (invoice.getPlacementInterviewId() == null) return null;
+        return placementRepository.findById(invoice.getPlacementInterviewId())
+                .map(InterviewPlacement::getJoiningDate)
+                .orElse(null);
     }
 
     private record TaxAmounts(

@@ -19,7 +19,8 @@ public interface GstBillRepository extends JpaRepository<InterviewPlacement, Lon
                 a.gstNumber,
                 p.companyPayDate,
                 pay.totalAmount,
-                pay.paidAmount
+                pay.paidAmount,
+                p.joiningDate
             )
             FROM InterviewPlacement p
             JOIN AssociateCompany a

@@ -12,5 +12,6 @@ public record GstBillResponse(
         String gstNumber,
         LocalDate serviceDate,
         BigDecimal finalAmount,
-        BigDecimal paidAmount
+        BigDecimal paidAmount,
+        LocalDate joiningDate
 ) {}

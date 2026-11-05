@@ -1,2292 +1,1386 @@
-now lets implement InterviewScheduled.jsx > Action Column > update button (we have UpdateInterviewSchedule.jsx which is placeholder) . Here we Update the 
-interview Status ('Scheduled','Rescheduled','Placed','Rejected','Completed') , Data - time , Remarks and other information regarding interview and keep some imformation
-Candidate name  , Company name , Job profile remain same for that individual candidate . we have to implement every single functionality preserving seniors UI and
- Same classNames . Don't make any changes by youself , first analyze seniors code and  give me code file .Seniors code file update-interview.php ----> "<?php
+now the Generate invoice page is working perpectly , now we cam move to implement next GST invoice page . Lets implement
+it here we manage our genarated Invoices. seniors code file view-gst-bills.php --->  "<?php
 session_start();
-
-if (!isset($_SESSION['email'])) {
+  if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
     header('location:login.php');
     exit();
 }
-
-require_once 'db_connect.php';
-
-if (!isset($_GET['id'])) {
-    die("Invalid interview ID.");
+  if (isset($_GET['logout'])) {
+    session_destroy();
+    unset($_SESSION['email']);
+    header('location:login.php');
+    exit();
 }
-
-$interview_id = (int)$_GET['id'];
-
-
-/*
-|--------------------------------------------------------------------------
-| Fetch Current Interview
-|--------------------------------------------------------------------------
-*/
-
-$sql = "
-    SELECT p.*, a.name AS candidate_name
-    FROM tbl_placement p
-    LEFT JOIN tbl_agreement a
-        ON p.candidate_id = a.Id
-    WHERE p.interview_id = ?
-";
-
-$stmt = $conn->prepare($sql);
-
-if (!$stmt) {
-    die("Prepare failed: " . $conn->error);
-}
-
-$stmt->bind_param("i", $interview_id);
-$stmt->execute();
-
-$result = $stmt->get_result();
-
-$current = $result->fetch_assoc();
-
-$stmt->close();
-
-if (!$current) {
-    die("Interview not found.");
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Current Round + Status
-|--------------------------------------------------------------------------
-*/
-
-$current_round = (int)($current['interview_round'] ?? 1);
-
-if ($current_round < 1) {
-    $current_round = 1;
-}
-
-$current_status = trim(
-    $current['interview_status'] ?? 'Scheduled'
-);
-
-$next_round = $current_round + 1;
-
-
-/*
-|--------------------------------------------------------------------------
-| Handle POST Actions
-|--------------------------------------------------------------------------
-*/
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $action = $_POST['action'] ?? '';
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | RESCHEDULE SAME ROUND
-    |--------------------------------------------------------------------------
-    */
-
-    if ($action === 'reschedule') {
-
-        $interview_date = trim(
-            $_POST['interview_date'] ?? ''
-        );
-
-        $interview_time = trim(
-            $_POST['interview_time'] ?? ''
-        );
-
-        $hr_name = trim(
-            $_POST['hr_name'] ?? ''
-        );
-
-        $remark = trim(
-            $_POST['remark'] ?? ''
-        );
-
-
-        if (
-            $interview_date === '' ||
-            $interview_time === '' ||
-            $hr_name === ''
-        ) {
-
-            echo "
-            <script>
-                alert('Please enter Interview Date, Time and HR Name.');
-                window.history.back();
-            </script>
-            ";
-
-            exit();
-        }
-
-
-        $conn->begin_transaction();
-
-        try {
-
-            $update_sql = "
-                UPDATE tbl_placement
-                SET
-                    interview_date = ?,
-                    interview_time = ?,
-                    hr_name = ?,
-                    remark = ?,
-                    interview_status = 'Rescheduled'
-                WHERE interview_id = ?
-            ";
-
-            $update_stmt = $conn->prepare($update_sql);
-
-            if (!$update_stmt) {
-                throw new Exception(
-                    "Reschedule prepare failed: " .
-                    $conn->error
-                );
-            }
-
-            $update_stmt->bind_param(
-                "ssssi",
-                $interview_date,
-                $interview_time,
-                $hr_name,
-                $remark,
-                $interview_id
-            );
-
-            if (!$update_stmt->execute()) {
-                throw new Exception(
-                    "Reschedule failed: " .
-                    $update_stmt->error
-                );
-            }
-
-            $update_stmt->close();
-
-            $conn->commit();
-
-
-            echo "
-            <script>
-                alert(
-                    'Round {$current_round} rescheduled successfully.'
-                );
-
-                window.location.href =
-                    'view-interview-schedule-student.php';
-            </script>
-            ";
-
-            exit();
-
-        } catch (Exception $e) {
-
-            $conn->rollback();
-
-            die(
-                "Error: " .
-                htmlspecialchars($e->getMessage())
-            );
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | COMPLETE SAME ROUND
-    |--------------------------------------------------------------------------
-    */
-
-    if ($action === 'complete') {
-
-        $conn->begin_transaction();
-
-        try {
-
-            $complete_sql = "
-                UPDATE tbl_placement
-                SET interview_status = 'Completed'
-                WHERE interview_id = ?
-            ";
-
-            $complete_stmt = $conn->prepare(
-                $complete_sql
-            );
-
-            if (!$complete_stmt) {
-                throw new Exception(
-                    "Complete prepare failed: " .
-                    $conn->error
-                );
-            }
-
-            $complete_stmt->bind_param(
-                "i",
-                $interview_id
-            );
-
-            if (!$complete_stmt->execute()) {
-                throw new Exception(
-                    "Complete failed: " .
-                    $complete_stmt->error
-                );
-            }
-
-            $complete_stmt->close();
-
-            $conn->commit();
-
-
-            echo "
-            <script>
-
-                alert(
-                    'Round {$current_round} marked as Completed.'
-                );
-
-                window.location.href =
-                    'view-interview-schedule-student.php';
-
-            </script>
-            ";
-
-            exit();
-
-        } catch (Exception $e) {
-
-            $conn->rollback();
-
-            die(
-                "Error: " .
-                htmlspecialchars($e->getMessage())
-            );
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SCHEDULE NEXT ROUND
-    |--------------------------------------------------------------------------
-    */
-
-    if ($action === 'schedule_next') {
-
-        /*
-        |--------------------------------------------------------------
-        | IMPORTANT:
-        | Calculate next round from database/current row.
-        | Never trust posted round.
-        |--------------------------------------------------------------
-        */
-
-        $new_round = $current_round + 1;
-
-
-        /*
-        |--------------------------------------------------------------
-        | Current round MUST be completed first
-        |--------------------------------------------------------------
-        */
-
-        if ($current_status !== 'Completed') {
-
-            echo "
-            <script>
-
-                alert(
-                    'Round {$current_round} is still in process. Please Reschedule or Complete it first.'
-                );
-
-                window.location.href =
-                    'view-interview-schedule-student.php';
-
-            </script>
-            ";
-
-            exit();
-        }
-
-
-        $position = trim(
-            $_POST['position'] ?? ''
-        );
-
-        $interview_date = trim(
-            $_POST['interview_date'] ?? ''
-        );
-
-        $interview_time = trim(
-            $_POST['interview_time'] ?? ''
-        );
-
-        $hr_name = trim(
-            $_POST['hr_name'] ?? ''
-        );
-
-        $remark = trim(
-            $_POST['remark'] ?? ''
-        );
-
-
-        if (
-            $position === '' ||
-            $interview_date === '' ||
-            $interview_time === '' ||
-            $hr_name === ''
-        ) {
-
-            echo "
-            <script>
-
-                alert(
-                    'Please fill Position, Date, Time and HR Name.'
-                );
-
-                window.history.back();
-
-            </script>
-            ";
-
-            exit();
-        }
-
-
-        $conn->begin_transaction();
-
-        try {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Insert NEW Round
-            |--------------------------------------------------------------------------
-            */
-
-            $insert_sql = "
-                INSERT INTO tbl_placement
-                (
-                    candidate_id,
-                    company_name,
-                    position,
-                    interview_date,
-                    interview_time,
-                    hr_name,
-                    remark,
-                    interview_status,
-                    interview_round
-                )
-                VALUES
-                (
-                    ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?
-                )
-            ";
-
-            $insert_stmt = $conn->prepare(
-                $insert_sql
-            );
-
-            if (!$insert_stmt) {
-                throw new Exception(
-                    "Next round prepare failed: " .
-                    $conn->error
-                );
-            }
-
-
-            $insert_stmt->bind_param(
-                "issssssi",
-                $current['candidate_id'],
-                $current['company_name'],
-                $position,
-                $interview_date,
-                $interview_time,
-                $hr_name,
-                $remark,
-                $new_round
-            );
-
-
-            if (!$insert_stmt->execute()) {
-
-                throw new Exception(
-                    "Next round insert failed: " .
-                    $insert_stmt->error
-                );
-            }
-
-            $insert_stmt->close();
-
-
-            $conn->commit();
-
-
-            echo "
-            <script>
-
-                alert(
-                    'Round {$new_round} scheduled successfully.'
-                );
-
-                window.location.href =
-                    'view-interview-schedule-student.php';
-
-            </script>
-            ";
-
-            exit();
-
-
-        } catch (Exception $e) {
-
-            $conn->rollback();
-
-            die(
-                "Error: " .
-                htmlspecialchars($e->getMessage())
-            );
-        }
-    }
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Fetch ALL Interview Rounds
-|--------------------------------------------------------------------------
-*/
-
-$all_rounds = [];
-
-$round_sql = "
-    SELECT p.*, a.name AS candidate_name
-    FROM tbl_placement p
-    LEFT JOIN tbl_agreement a
-        ON p.candidate_id = a.Id
-    WHERE p.candidate_id = ?
-      AND p.company_name = ?
-    ORDER BY
-        p.interview_round ASC,
-        p.interview_id ASC
-";
-
-$round_stmt = $conn->prepare($round_sql);
-
-if (!$round_stmt) {
-    die(
-        "Round prepare failed: " .
-        $conn->error
-    );
-}
-
-$round_stmt->bind_param(
-    "is",
-    $current['candidate_id'],
-    $current['company_name']
-);
-
-$round_stmt->execute();
-
-$round_result = $round_stmt->get_result();
-
-while ($row = $round_result->fetch_assoc()) {
-    $all_rounds[] = $row;
-}
-
-$round_stmt->close();
-
-
+  require_once 'db_connect.php';
 include 'header.php';
+ob_start(); 
 ?>
-
-
-<section id="main-content">
-
-
-<div class="next-round-page">
-
-
-<!-- =========================================================
-     HEADER
-========================================================= -->
-
-<div class="next-round-header">
-
-    <h1>
-        Schedule Next Interview Round
-    </h1>
-
-    <span>
-        Consultancy Management
-    </span>
-
-    <strong class="candidate-name">
-
-        <?= htmlspecialchars(
-            $current['candidate_name'] ?? 'N/A'
-        ); ?>
-
-    </strong>
-
-</div>
-
-
-<!-- =========================================================
-     CURRENT ROUND
-========================================================= -->
-
-<div class="current-round">
-
-
-    <!-- INTERVIEW ROUND BUTTONS -->
-
-    <div class="round-buttons">
-
-        <?php foreach ($all_rounds as $index => $round): ?>
-
-            <button
-                type="button"
-                class="round-small-btn"
-                onclick="openRoundDetails(
-                    <?= $index; ?>
-                )"
-            >
-
-                Round
-                <?= (int)$round['interview_round']; ?>
-
-            </button>
-
-        <?php endforeach; ?>
-
-    </div>
-
-
-    <!-- CURRENT / NEXT ROUND + STATUS -->
-
-    <div class="round-info-row">
-
-
-        <!-- ROUND -->
-
-        <div class="round-info next-round-info">
-
-            <span>
-
-                <?php
-
-                if ($current_status === 'Completed') {
-
-                    echo 'NEXT ROUND';
-
-                } else {
-
-                    echo 'CURRENT ROUND';
-
-                }
-
-                ?>
-
-            </span>
-
-
-            <strong>
-
-                <?php
-
-                if ($current_status === 'Completed') {
-
-                    echo 'Round ' . $next_round;
-
-                } else {
-
-                    echo 'Round ' . $current_round;
-
-                }
-
-                ?>
-
-            </strong>
-
-        </div>
-
-
-        <!-- STATUS -->
-
-        <div class="round-info">
-
-            <span>
-                STATUS
-            </span>
-
-
-            <strong>
-
-                <?php
-
-                if (
-                    $current_status === 'Scheduled' ||
-                    $current_status === 'Rescheduled'
-                ) {
-
-                    echo 'In Process';
-
-                } elseif (
-                    $current_status === 'Completed'
-                ) {
-
-                    echo 'Ready for Next Round';
-
-                } else {
-
-                    echo htmlspecialchars(
-                        $current_status
-                    );
-
-                }
-
-                ?>
-
-            </strong>
-
-        </div>
-
-
-    </div>
-
-</div>
-
-
-<!-- =========================================================
-     ROUNDS MODAL
-========================================================= -->
-
-<div
-    id="roundsModal"
-    class="rounds-modal"
->
-
-
-    <div class="rounds-modal-content">
-
-
-        <div class="rounds-modal-header">
-
-            <h3>
-                Interview Rounds
-            </h3>
-
-
-            <button
-                type="button"
-                onclick="closeRounds()"
-            >
-                ×
-            </button>
-
-        </div>
-
-
-        <div class="round-details">
-
-
-            <?php foreach (
-                $all_rounds
-                as $index => $round
-            ): ?>
-
-
-                <div
-                    class="round-detail"
-                    id="round-<?php echo $index; ?>"
-                >
-
-
-                    <div class="round-detail-title">
-
-                        <h4>
-
-                            Interview
-                            <?=
-                            (int)$round['interview_round'];
-                            ?>
-
-                        </h4>
-
-
-                        <span class="round-status">
-
-                            <?=
-                            htmlspecialchars(
-                                $round['interview_status']
-                                ?? 'N/A'
-                            );
-                            ?>
-
+  <style>
+  .view-client-action-buttons {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+}
+  .view-client-action-buttons a,
+button.view-client-action-toggle {
+    width: 160px;
+    padding: 9px 12px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 6px;
+    color: #fff !important;
+    text-align: center;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+  button.view-client-action-toggle {
+    width: auto;
+    background: #3f65e7 !important;
+}
+  .view-client-edit-btn {
+    background: #2563eb !important;
+}
+  .view-client-print-amc-btn {
+    background: #16a34a !important;
+}
+  .view-client-print-no-amc-btn {
+    background: #46b8da !important;
+}
+  .view-client-view-btn {
+    background: #f59e0b !important;
+}
+  .view-client-print-btn{
+  background: #31c745 !important;
+}
+    </style>
+  <body>
+  <section id="main-content">
+      <section class="wrapper">
+          <div class="view-clients-page">
+              <div class="view-clients-header">
+                  <div class="view-clients-title-wrap">
+                      <h1 class="view-clients-title">
+                          <span class="view-clients-title-icon">
+                            🧾
                         </span>
-
-                    </div>
-
-
-                    <div class="round-detail-grid">
-
-
-                        <div class="round-box">
-
-                            <span>
-                                Candidate
-                            </span>
-
-                            <strong>
-
-                                <?=
-                                htmlspecialchars(
-                                    $round['candidate_name']
-                                    ?? 'N/A'
+                          View GST Invoices
+                      </h1>
+                      <p class="view-clients-subtitle">
+                        View and manage all GST invoices
+                    </p>
+                  </div>
+                  <span class="view-clients-count">
+    <span id="gst-invoice-count-placeholder">{{INVOICE_COUNT_PLACEHOLDER}} {{INVOICE_COUNT_LABEL_PLACEHOLDER}}</span>
+</span>
+              </div>
+              <div class="view-clients-card">
+                  <form
+                    method="post"
+                    action=""
+                    class="view-clients-filter"
+                >
+                      <div class="view-client-search-wrap">
+                          <span class="view-client-search-icon">
+                            🔍
+                        </span>
+                          <input
+                            type="text"
+                            id="txt_searchall"
+                            class="view-client-search"
+                            placeholder="Search GST invoices..."
+                            autocomplete="off"
+                        >
+                      </div>
+                      <input
+                        type="date"
+                        name="fromDate"
+                        id="start_date"
+                        class="view-client-date"
+                        value="<?= htmlspecialchars($_POST['fromDate'] ?? ''); ?>"
+                    >
+                      <input
+                        type="date"
+                        name="endDate"
+                        id="end_date"
+                        class="view-client-date"
+                        value="<?= htmlspecialchars($_POST['endDate'] ?? ''); ?>"
+                    >
+                      <button
+                        type="submit"
+                        name="but_search"
+                        class="view-client-search-btn"
+                    >
+                        🔍 Search
+                    </button>
+                  </form>
+                  <?php if (!empty($_POST['fromDate']) && !empty($_POST['endDate'])): ?>
+                      <form
+                        method="post"
+                        action="bulk-print-pdf.php"
+                        target="_blank"
+                        class="view-client-bulk-actions"
+                    >
+                          <input
+                            type="hidden"
+                            name="fromDate"
+                            value="<?= htmlspecialchars($_POST['fromDate']); ?>"
+                        >
+                          <input
+                            type="hidden"
+                            name="endDate"
+                            value="<?= htmlspecialchars($_POST['endDate']); ?>"
+                        >
+                          <button style="background:#399529; color:white; border-radius:10px; font-size:13px;"
+                            type="submit"
+                            name="action"
+                            value="print"
+                            class="view-client-print-btn"
+                        >
+                            🖨️ Print All
+                        </button>
+                          <button  style="background:#295d9f; color:white; border-radius:10px; font-size:13px;"
+                            type="submit"
+                            name="action"
+                            value="pdf"
+                            class="view-client-pdf-btn"
+                        >
+                            ⬇️ Download PDF
+                        </button>
+                      </form>
+                  <?php endif; ?>
+                  <div
+                    class="view-clients-table-wrapper"
+                    id="scrollable-content"
+                >
+                      <table
+                        class="view-clients-table"
+                        id="payments-table"
+                    >
+                          <thead>
+                              <tr>
+                                  <th>
+                                    Sr. No.
+                                </th>
+                                  <th style="min-width: 100px">
+                                    Source
+                                </th>
+                                  <th>
+                                    Branch
+                                </th>
+                                  <th style="min-width: 120px">
+                                    Service
+                                </th>
+                                  <th>
+                                    Name
+                                </th>
+                                  <th>
+                                    Phone
+                                </th>
+                                  <th>
+                                    Address
+                                </th>
+                                  <th>
+                                    Invoice No
+                                </th>
+                                  <th style="min-width: 120px">
+                                    Invoice Date
+                                </th>
+                                  <th>
+                                    Comments
+                                </th>
+                                  <th>
+                                    Amount
+                                </th>
+                                  <th>
+                                    Total Amount
+                                </th>
+                                  <th class="view-client-action">
+                                    Action
+                                </th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                          <?php
+                          $from = mysqli_real_escape_string(
+                            $conn,
+                            $_POST['fromDate'] ?? ''
+                        );
+                          $to = mysqli_real_escape_string(
+                            $conn,
+                            $_POST['endDate'] ?? ''
+                        );
+                          $pestControlDateFilter =
+                            (!empty($from) && !empty($to))
+                            ?
+                            "AND (
+                                (gi.invoice_date BETWEEN '$from' AND '$to')
+                                OR
+                                (gi.id IS NULL AND c.due_date BETWEEN '$from' AND '$to')
+                            )"
+                            :
+                            "";
+                          $placementDateFilter =
+                            (!empty($from) && !empty($to))
+                            ?
+                            "AND gi.invoice_date BETWEEN '$from' AND '$to'"
+                            :
+                            "";
+                          $consultantDateFilter =
+                            (!empty($from) && !empty($to))
+                            ?
+                            "AND gi.invoice_date BETWEEN '$from' AND '$to'"
+                            :
+                            "";
+                          $branchFilter = "";
+                          if (
+                            $_SESSION['role'] !== 'super_admin'
+                            &&
+                            !empty($_SESSION['branch'])
+                        ) {
+                              $branch = mysqli_real_escape_string(
+                                $conn,
+                                $_SESSION['branch']
+                            );
+                              $branchFilter =
+                                "AND c.branch = '$branch'";
+                        }
+                          $sql = "
+                            SELECT * FROM (
+                              SELECT
+                                  'Placement' AS source,
+                                  a.Id AS entity_id,
+                                  'Nagpur' AS branch,
+                                  'Consultancy' AS services,
+                                  a.name,
+                                  a.phone,
+                                  a.shipping_address AS address,
+                                  gi.invoice_number,
+                                  gi.invoice_date,
+                                  gi.comments AS invoice_comments,
+                                  '' AS comments,
+                                  gi.gst_type,
+                                  gi.amount,
+                                  gi.total_amount,
+                                  IFNULL(
+                                    CAST(
+                                        p.candidate_pay_amount
+                                        AS DECIMAL(10,2)
+                                    )
+                                    +
+                                    IFNULL(
+                                        p.candidate_gst_amount,
+                                        0
+                                    ),
+                                    0
+                                ) AS fallback_amount,
+                                  gi.id AS invoice_id
+                              FROM tbl_agreement a
+                              LEFT JOIN tbl_placement p
+                                  ON p.candidate_name = a.name
+                              LEFT JOIN tbl_gst_invoice gi
+                                  ON gi.entity_id = a.Id
+                                  AND gi.source_type = 'Placement'
+                              WHERE a.shipping_address IS NOT NULL
+                              AND a.shipping_address != ''
+                              AND IFNULL(
+                                p.candidate_gst_amount,
+                                0
+                            ) > 0
+                              AND gi.id IS NOT NULL
+                              $placementDateFilter
+                              UNION ALL
+                              SELECT
+                                  'Consultant' AS source,
+                                  asoc.Id AS entity_id,
+                                  'Nagpur' AS branch,
+                                  'Consultancy' AS services,
+                                  asoc.company_name AS name,
+                                  asoc.phone,
+                                  asoc.shipping_address AS address,
+                                  gi.invoice_number,
+                                  gi.invoice_date,
+                                  gi.comments AS invoice_comments,
+                                  '' AS comments,
+                                  gi.gst_type,
+                                  gi.amount,
+                                  gi.total_amount,
+                                  IFNULL(
+                                    CAST(
+                                        p.company_pay_amount
+                                        AS DECIMAL(10,2)
+                                    )
+                                    +
+                                    IFNULL(
+                                        p.company_gst_amount,
+                                        0
+                                    ),
+                                    0
+                                ) AS fallback_amount,
+                                  gi.id AS invoice_id
+                              FROM tbl_associate asoc
+                              LEFT JOIN (
+                                  SELECT
+                                      company_name,
+                                      MAX(company_pay_amount)
+                                    AS company_pay_amount,
+                                      MAX(company_gst_amount)
+                                    AS company_gst_amount
+                                  FROM tbl_placement
+                                  GROUP BY company_name
+                              ) p
+                              ON p.company_name =
+                            asoc.company_name
+                              LEFT JOIN tbl_gst_invoice gi
+                              ON gi.entity_id = asoc.Id
+                              AND gi.source_type = 'Consultant'
+                              WHERE asoc.gst_number IS NOT NULL
+                              AND asoc.gst_number != ''
+                              AND IFNULL(
+                                p.company_gst_amount,
+                                0
+                            ) > 0
+                              AND gi.id IS NOT NULL
+                              $consultantDateFilter
+                          ) AS final_data
+                          ";
+                          $result = mysqli_query(
+                            $conn,
+                            $sql
+                        );
+                          if (!$result) {
+                              die(
+                                "Database Error: "
+                                . mysqli_error($conn)
+                            );
+                          }
+                          $total_records =
+                            mysqli_num_rows($result);
+$header_html = ob_get_clean();
+$header_html = str_replace('{{INVOICE_COUNT_PLACEHOLDER}}', $total_records, $header_html);
+$header_html = str_replace('{{INVOICE_COUNT_LABEL_PLACEHOLDER}}', ($total_records == 1 ? 'record' : 'records'), $header_html);
+echo $header_html;
+ob_start(); // resume buffering for the rest of the table markup that follows
+                          $total_records =
+                            mysqli_num_rows($result);
+                          if ($total_records > 0):
+                              $i = 1;
+                              while (
+                                $row =
+                                mysqli_fetch_assoc($result)
+                            ):
+                                  $source =
+                                    htmlspecialchars(
+                                        $row['source'] ?? '',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $branchName =
+                                    htmlspecialchars(
+                                        $row['branch'] ?: '—',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $service =
+                                    htmlspecialchars(
+                                        $row['services'] ?: '—',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $name =
+                                    htmlspecialchars(
+                                        $row['name'] ?? '',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $phone =
+                                    htmlspecialchars(
+                                        $row['phone'] ?? '',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $address =
+                                    htmlspecialchars(
+                                        $row['address'] ?? '',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $invoiceNumber =
+                                    htmlspecialchars(
+                                        $row['invoice_number'] ?? '—',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $invoiceDate =
+                                    htmlspecialchars(
+                                        $row['invoice_date'] ?? '—',
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $invoiceComments =
+                                    htmlspecialchars(
+                                        $row['invoice_comments']
+                                        ?: ($row['comments'] ?? '—'),
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                  $amount =
+                                    (float) (
+                                        $row['amount'] ?? 0
+                                    );
+                                  $totalAmount =
+                                    !empty($row['total_amount'])
+                                    ?
+                                    (float)$row['total_amount']
+                                    :
+                                    (float)(
+                                        $row['fallback_amount'] ?? 0
+                                    );
+                                  ?>
+                                  <tr>
+                                      <td class="view-client-sr">
+                                        <?= $i++; ?>
+                                    </td>
+                                      <td>
+                                        <span class="view-client-source">
+                                            <?= $source; ?>
+                                        </span>
+                                    </td>
+                                      <td>
+                                          <span class="view-client-branch blue">
+                                              <?= $branchName; ?>
+                                          </span>
+                                      </td>
+                                      <td class="view-client-service">
+                                          <?= $service; ?>
+                                      </td>
+                                      <td  style="min-width:120px" class="view-client-name">
+                                          <?= $name; ?>
+                                      </td>
+                                      <td style="max-width:50px" class="view-client-phone">
+                                          <?= $phone; ?>
+                                      </td>
+                                      <td class="view-client-address">
+                                          <?= $address; ?>
+                                      </td>
+                                      <td class="view-client-invoice">
+                                          <?= $invoiceNumber; ?>
+                                      </td>
+                                      <td class="view-client-date-cell">
+                                          <?= $invoiceDate; ?>
+                                      </td>
+                                      <td class="view-client-address">
+                                          <?= $invoiceComments; ?>
+                                      </td>
+                                      <td class="view-client-amount">
+                                          ₹<?= number_format(
+                                            $amount,
+                                            2
+                                        ); ?>
+                                      </td>
+                                      <td class="view-client-amount">
+                                          ₹<?= number_format(
+                                            $totalAmount,
+                                            2
+                                        ); ?>
+                                      </td>
+                                      <td class="view-client-action">
+                                          <button
+                                            type="button"
+                                            class="view-client-action-toggle action-toggle"
+                                        >
+                                            Action ▾
+                                        </button>
+                                          <div class="view-client-action-buttons action-buttons">
+                                              <?php if (!empty($row['invoice_id'])): ?>
+                                                  <a
+                                                    href="edit-gst-invoice.php?id=<?= intval($row['invoice_id']); ?>"
+                                                    class="view-client-edit-btn"
+                                                >
+                                                    Edit
+                                                </a><br>
+                                                  <?php if ($row['source'] === 'Pest Control'): ?>
+                                                       <a
+                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>&show_amc=1"
+                                                        class="view-client-print-amc-btn"
+                                                        target="_blank"
+                                                    >
+                                                        Print With AMC
+                                                    </a><br>
+                                                      <a
+                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>&show_amc=0"
+                                                       class="view-client-print-no-amc-btn"
+                                                        target="_blank"
+                                                    >
+                                                        Print Without AMC
+                                                    </a>
+                                                  <?php else: ?>
+                                                      <a
+                                                        href="print-tax-invoice-edit.php?invoice_number=<?= urlencode($row['invoice_number']); ?>"
+                                                        class="view-client-print-btn"
+                                                        target="_blank"
+                                                    >
+                                                        Print
+                                                    </a>
+                                                  <?php endif; ?>
+                                              <?php else: ?>
+                                                   <a
+                                                    href="print-tax-invoice.php?client_id=<?= intval($row['entity_id']); ?>&source_type=<?= urlencode($row['source']); ?>"
+                                                    class="view-client-view-btn"
+                                                >
+                                                    Print GST Invoice
+                                                </a>
+                                              <?php endif; ?>
+                                          </div>
+                                      </td>
+                                  </tr>
+                              <?php endwhile; ?>
+                          <?php else: ?>
+                              <tr>
+                                  <td
+                                    colspan="13"
+                                    class="view-client-no-data"
+                                >
+                                      No GST invoices found.
+                                  </td>
+                              </tr>
+                          <?php endif; ?>
+                          </tbody>
+                      </table>
+                  </div>
+                  <div
+                    class="view-client-bottom-scroll"
+                    id="viewClientBottomScroll"
+                >
+                      <div
+                        class="view-client-bottom-scroll-inner"
+                        id="viewClientBottomScrollInner"
+                    ></div>
+                  </div>
+              </div>
+          </div>
+      </section>
+  </section>
+  <script>
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+          const searchInput =
+            document.getElementById(
+                "txt_searchall"
+            );
+          const table =
+            document.getElementById(
+                "payments-table"
+            );
+          if (!searchInput || !table) {
+            return;
+        }
+          searchInput.addEventListener(
+            "input",
+            function () {
+                  const searchValue =
+                    this.value
+                        .toLowerCase()
+                        .trim();
+                  const rows =
+                    table.querySelectorAll(
+                        "tbody tr"
+                    );
+                  let serial = 1;
+                  rows.forEach(
+                    function (row) {
+                          const noData =
+                            row.querySelector(
+                                ".view-client-no-data"
+                            );
+                          if (noData) {
+                            return;
+                        }
+                          const rowText =
+                            row.textContent
+                                .toLowerCase();
+                          if (
+                            searchValue === ""
+                            ||
+                            rowText.includes(
+                                searchValue
+                            )
+                        ) {
+                              row.style.display = "";
+                              const sr =
+                                row.querySelector(
+                                    ".view-client-sr"
                                 );
-                                ?>
+                              if (sr) {
+                                  sr.textContent =
+                                    serial++;
+                              }
+                          } else {
+                              row.style.display =
+                                "none";
+                          }
+                      }
+                );
+              }
+        );
+      }
+);
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+          document
+            .querySelectorAll(
+                ".action-toggle"
+            )
+            .forEach(
+                function (button) {
+                      button.addEventListener(
+                        "click",
+                        function () {
+                              const actions =
+                                this.nextElementSibling;
+                              if (
+                                actions.style.display ===
+                                "block"
+                            ) {
+                                  actions.style.display =
+                                    "none";
+                              } else {
+                                  document
+                                    .querySelectorAll(
+                                        ".action-buttons"
+                                    )
+                                    .forEach(
+                                        function (item) {
+                                              item.style.display =
+                                                "none";
+                                          }
+                                    );
+                                  actions.style.display =
+                                    "block";
+                              }
+                          }
+                    );
+                  }
+            );
+      }
+);
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+          const bottomScroll =
+            document.getElementById(
+                "viewClientBottomScroll"
+            );
+          const bottomInner =
+            document.getElementById(
+                "viewClientBottomScrollInner"
+            );
+          const tableWrapper =
+            document.querySelector(
+                ".view-clients-table-wrapper"
+            );
+          if (
+            !bottomScroll ||
+            !bottomInner ||
+            !tableWrapper
+        ) {
+            return;
+        }
+          function updateScrollWidth() {
+              bottomInner.style.width =
+                tableWrapper.scrollWidth + "px";
+          }
+          updateScrollWidth();
+          window.addEventListener(
+            "resize",
+            updateScrollWidth
+        );
+          bottomScroll.addEventListener(
+            "scroll",
+            function () {
+                  tableWrapper.scrollLeft =
+                    bottomScroll.scrollLeft;
+              }
+        );
+          tableWrapper.addEventListener(
+            "scroll",
+            function () {
+                  bottomScroll.scrollLeft =
+                    tableWrapper.scrollLeft;
+              }
+        );
+      }
+);
+  </script>
+  <script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+<script src="js/search.js"></script>
+  </body>
+</html>
+  <?php
+  mysqli_close($conn);
+echo ob_get_clean();
+  ?>"
 
-                            </strong>
-
-                        </div>
-
-
-                        <div class="round-box">
-
-                            <span>
-                                Company
-                            </span>
-
-                            <strong>
-
-                                <?=
-                                htmlspecialchars(
-                                    $round['company_name']
-                                    ?? 'N/A'
-                                );
-                                ?>
-
-                            </strong>
-
-                        </div>
+  remove Source , Branch and Sevice column also implement Action Column > Action dropdown button with Edit and Print 
+  button in the Drop down as same as Seniors code file . Don't make any changes by yourself give me code files 
+  i will add code manually . 
 
 
-                        <div class="round-box">
-
-                            <span>
-                                Position
-                            </span>
-
-                            <strong>
-
-                                <?=
-                                htmlspecialchars(
-                                    $round['position']
-                                    ?? 'N/A'
-                                );
-                                ?>
-
-                            </strong>
-
-                        </div>
 
 
-                        <div class="round-box">
 
-                            <span>
-                                Interview Round
-                            </span>
-
-                            <strong>
-
-                                Interview
-                                <?=
-                                (int)$round['interview_round'];
-                                ?>
-
-                            </strong>
-
-                        </div>
-
-
-                        <div class="round-box">
-
-                            <span>
-                                Interview Date
-                            </span>
-
-                            <strong>
-                                <?=
-                                htmlspecialchars(
-                                    $round['interview_date']
-                                    ?? 'N/A'
-                                ); ?>
-                            </strong>
-                        </div>
-
-                        <div class="round-box">
-                            <span>
-                                Interview Time
-                            </span>
-
-                            <strong>
-                                <?=
-                                htmlspecialchars(
-                                    $round['interview_time']
-                                    ?? 'N/A'
-                                );
-                                ?>
-                            </strong>
-
-                        </div>
-
-                        <div class="round-box">
-                            <span>
-                                Managed By / HR
-                            </span>
-
-                            <strong>
-                                <?=
-                                htmlspecialchars($round['hr_name'] ?? 'N/A');?>
-                            </strong>
-                        </div>
-
-                        <div class="round-box">
-                            <span>
-                                Remark
-                            </span>
-                            <strong>
-                                <?=
-                                htmlspecialchars($round['remark'] ?? 'N/A');?>
-                            </strong>
-                        </div>
-
-                        <div class="round-box">
-                            <span>
-                                Status
-                            </span>
-                            <strong>
-
-                                <?=
-                                htmlspecialchars($round['interview_status'] ?? 'N/A');?>
-                            </strong>
-                        </div>
-                        <div class="round-box">
-                            <span>
-                                Next Round
-                            </span>
-                            <strong>
-                                <?php
-
-                                echo isset($round['interview_round'])
-                                    ? 'Interview ' .
-                                      (
-                                        (int)$round['interview_round'] + 1) : 'N/A';?>
-                            </strong>
+  now the GST Invoice page is working perfectly , So now lets implement Edit button Functionality Currently we are 
+  opening model after clicking, But it should open a new view (EditGSTInvoice.jsx) form as same as seniors project . Seniors code file
+  edit-gst-invoice ------> "<?php
+session_start();
+ob_start();
+/* =========================
+   LOGIN CHECK
+========================= */
+if (!isset($_SESSION['email'])) {
+    $_SESSION['msg'] = "You must log in first";
+    header('Location: login.php');
+    exit();
+}
+/* =========================
+   LOGOUT
+========================= */
+if (isset($_GET['logout'])) {
+    session_destroy();
+    unset($_SESSION['email']);
+    header('Location: login.php');
+    exit();
+}
+/* =========================
+   DATABASE
+========================= */
+require_once 'db_connect.php';
+include 'header.php';
+/* =========================
+   GET INVOICE ID
+========================= */
+$invoice_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+if ($invoice_id <= 0) {
+    echo "<script>
+        alert('Invalid invoice ID');
+        window.location.href='view-gst-client.php';
+    </script>";
+    exit();
+}
+/* =========================
+   HANDLE FORM SUBMISSION
+========================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $invoice_id_post = intval($_POST['invoice_id'] ?? 0);
+    $amount = floatval($_POST['amount'] ?? 0);
+    $gst_type = trim($_POST['gst_type'] ?? '');
+    $invoice_date = mysqli_real_escape_string(
+        $conn,
+        trim($_POST['invoice_date'] ?? '')
+    );
+    $comments = mysqli_real_escape_string(
+        $conn,
+        trim($_POST['comments'] ?? '')
+    );
+    /* =========================
+       GST CALCULATION
+    ========================= */
+    $cgst = 0;
+    $sgst = 0;
+    $igst = 0;
+    $total = 0;
+    switch ($gst_type) {
+        /* =====================
+           EXCLUSIVE
+        ===================== */
+        case 'exclusive':
+            $cgst = round($amount * 0.09, 2);
+            $sgst = round($amount * 0.09, 2);
+            $igst = 0;
+            $total = $amount + $cgst + $sgst;
+            break;
+        /* =====================
+           NORMAL
+        ===================== */
+        case 'normal':
+            $cgst = 0;
+            $sgst = 0;
+            $igst = 0;
+            $total = $amount;
+            break;
+        /* =====================
+           INCLUSIVE
+        ===================== */
+        case 'inclusive':
+            $cgst = round(
+                ($amount / 1.18) * 0.09,
+                2
+            );
+            $sgst = round(
+                ($amount / 1.18) * 0.09,
+                2
+            );
+            $igst = 0;
+            $total = $amount;
+            break;
+        /* =====================
+           IGST
+        ===================== */
+        case 'igst':
+            $cgst = 0;
+            $sgst = 0;
+            $igst = round(
+                $amount * 0.18,
+                2
+            );
+            $total = $amount + $igst;
+            break;
+        default:
+            echo "<script>
+                alert('Invalid GST type');
+                history.back();
+            </script>";
+            exit();
+    }
+    /* =========================
+       VALIDATION
+    ========================= */
+    if ($invoice_id_post <= 0) {
+        echo "<script>
+            alert('Invalid invoice ID');
+            history.back();
+        </script>";
+        exit();
+    }
+    if ($amount <= 0) {
+        echo "<script>
+            alert('Please enter a valid amount');
+            history.back();
+        </script>";
+        exit();
+    }
+    if (empty($invoice_date)) {
+        echo "<script>
+            alert('Please select invoice date');
+            history.back();
+        </script>";
+        exit();
+    }
+    /* =========================
+       UPDATE INVOICE
+    ========================= */
+    $stmt = $conn->prepare("
+        UPDATE tbl_gst_invoice
+        SET
+            gst_type = ?,
+            amount = ?,
+            cgst = ?,
+            sgst = ?,
+            igst = ?,
+            total_amount = ?,
+            invoice_date = ?,
+            comments = ?
+        WHERE id = ?
+    ");
+    if (!$stmt) {
+        die(
+            "Prepare failed: " .
+            $conn->error
+        );
+    }
+    $stmt->bind_param(
+        "sdddddssi",
+        $gst_type,
+        $amount,
+        $cgst,
+        $sgst,
+        $igst,
+        $total,
+        $invoice_date,
+        $comments,
+        $invoice_id_post
+    );
+    if (!$stmt->execute()) {
+        die(
+            "Update failed: " .
+            $stmt->error
+        );
+    }
+    /* =========================
+       GET INVOICE NUMBER
+    ========================= */
+    $invNumQuery = $conn->prepare("
+        SELECT invoice_number
+        FROM tbl_gst_invoice
+        WHERE id = ?
+    ");
+    $invNumQuery->bind_param(
+        "i",
+        $invoice_id_post
+    );
+    $invNumQuery->execute();
+    $invNumResult =
+        $invNumQuery->get_result();
+    $invoiceData =
+        $invNumResult->fetch_assoc();
+    if (!$invoiceData) {
+        die("Invoice number not found.");
+    }
+    $invoice_number =
+        $invoiceData['invoice_number'];
+    /* =========================
+       REDIRECT TO PRINT
+    ========================= */
+    header(
+        "Location: print-tax-invoice-edit.php?invoice_number=" .
+        urlencode($invoice_number)
+    );
+    exit();
+}
+/* =========================
+   FETCH SOURCE TYPE
+========================= */
+$stmt = $conn->prepare("
+    SELECT source_type
+    FROM tbl_gst_invoice
+    WHERE id = ?
+");
+$stmt->bind_param(
+    "i",
+    $invoice_id
+);
+$stmt->execute();
+$result =
+    $stmt->get_result();
+if ($result->num_rows === 0) {
+    echo "<script>
+        alert('Invoice not found');
+        window.location.href='view-gst-client.php';
+    </script>";
+    exit();
+}
+$invoiceRow =
+    $result->fetch_assoc();
+$source_type =
+    $invoiceRow['source_type'];
+/* =========================
+   FETCH RELATED ENTITY
+========================= */
+switch ($source_type) {
+    /* =====================
+       PEST CONTROL
+    ===================== */
+    case 'Pest Control':
+        $query = "
+            SELECT
+                gi.*,
+                c.gst_number,
+                c.cust_name AS name
+            FROM tbl_gst_invoice gi
+            JOIN tbl_client c
+                ON gi.entity_id = c.Id
+            WHERE gi.id = ?
+        ";
+        break;
+    /* =====================
+       PLACEMENT
+    ===================== */
+    case 'Placement':
+        $query = "
+            SELECT
+                gi.*,
+                a.gst_number,
+                a.name
+            FROM tbl_gst_invoice gi
+            JOIN tbl_agreement a
+                ON gi.entity_id = a.Id
+            WHERE gi.id = ?
+        ";
+        break;
+    /* =====================
+       CONSULTANT
+    ===================== */
+    case 'Consultant':
+        $query = "
+            SELECT
+                gi.*,
+                asoc.gst_number,
+                asoc.company_name AS name
+            FROM tbl_gst_invoice gi
+            JOIN tbl_associate asoc
+                ON gi.entity_id = asoc.Id
+            WHERE gi.id = ?
+        ";
+        break;
+    default:
+        echo "<script>
+            alert('Invalid source type');
+            window.location.href='view-gst-client.php';
+        </script>";
+        exit();
+}
+/* =========================
+   FETCH INVOICE
+========================= */
+$stmt = $conn->prepare($query);
+$stmt->bind_param(
+    "i",
+    $invoice_id
+);
+$stmt->execute();
+$result =
+    $stmt->get_result();
+if ($result->num_rows === 0) {
+    echo "<script>
+        alert('Invoice not found');
+        window.location.href='view-gst-client.php';
+    </script>";
+    exit();
+}
+$row =
+    $result->fetch_assoc();
+?>
+<!-- =========================================
+     MAIN CONTENT
+========================================= -->
+<section id="main-content">
+    <section class="wrapper">
+        <div class="reg-w3">
+            <div class="refollowup-card">
+                <!-- =================================
+                     HEADER
+                ================================== -->
+                <div class="refollowup-header">
+                    <div class="refollowup-title">
+                        <span class="phone-icon">🧾</span>
+                        <div>
+                            <h2>
+                                Edit GST Invoice
+                            </h2>
+                            <p>
+                                Update customer tax invoice details
+                            </p>
                         </div>
                     </div>
                 </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</div>
-
-
-<!-- =========================================================
-     MAIN FORM
-========================================================= -->
-
-<form method="POST">
-
-    <!-- ACTION -->
-    <input
-        type="hidden"
-        name="action"
-        id="interviewAction"
-        value=""
-    >
-
-    <!-- COMPANY -->
-    <label>
-        Company Name:
-    </label>
-
-    <input
-        type="text"
-        name="company_name"
-        class="refollowup-input"
-        value="<?= htmlspecialchars($current['company_name']);?>"
-        readonly
-        required>
-
-
-    <!-- POSITION -->
-    <label>
-        Position:
-    </label>
-
-    <input
-        type="text"
-        name="position"
-        class="refollowup-input"
-        value="<?=
-            htmlspecialchars($current['position']);?>"
-        required>
-
-
-    <!-- ROUND -->
-    <label>
-        Interview Round:
-    </label>
-
-    <input
-        type="text"
-        class="refollowup-input"
-        value="<?php
-
-            if ($current_status === 'Completed') {
-                echo 'Round ' . $next_round;
-            } else {
-                echo 'Round ' . $current_round;
-            }
-
-        ?>" readonly>
-
-    <!-- DATE + TIME -->
-    <div class="date-time-row">
-        <div class="form-group-small">
-
-            <label>
-                Interview Date
-            </label>
-
-            <input
-                type="date"
-                name="interview_date"
-                class="refollowup-input"
-                value="<?php
-                    if ($current_status !== 'Completed') {
-                        echo htmlspecialchars(
-                            $current['interview_date']
-                            ?? '');}?>"
-                required>
-        </div>
-        <div class="form-group-small">
-            <label>
-                Interview Time
-            </label>
-
-            <input
-                type="time"
-                name="interview_time"
-                class="refollowup-input"
-                value="<?php
-                    if ($current_status !== 'Completed') {
-                        echo htmlspecialchars(
-                            $current['interview_time']
-                            ?? '');}?>"
-                required
-            >
-        </div>
-    </div>
-
-
-    <!-- HR -->
-    <label>
-        Managed By / HR Name:
-    </label>
-
-    <input
-        type="text"
-        name="hr_name"
-        class="refollowup-input"
-        value="<?php
-
-            if ($current_status !== 'Completed') {
-                echo htmlspecialchars(
-                    $current['hr_name']
-                    ?? ''
-                );}?>"
-        required
-    >
-    <!-- REMARK -->
-
-    <label>
-        Remark:
-    </label>
-    <textarea
-        name="remark"
-        class="refollowup-input"
-        rows="3"
-    ><?php
-        if ($current_status !== 'Completed') {
-            echo htmlspecialchars(
-                $current['remark']
-                ?? ''
-            );
-        }
-    ?></textarea>
-    <!-- =====================================================
-         SCHEDULE DROPDOWN
-    ====================================================== -->
-    <div class="schedule-dropdown-wrapper">
-        <button
-            type="button"
-            class="refollowup-search-btn schedule-dropdown-btn"
-            onclick="toggleScheduleDropdown(event)"
-        >
-            <i class="fa fa-calendar"></i>
-            <?php if (
-                $current_status === 'Completed'
-            ): ?>
-
-                Schedule Round
-                <?= $next_round; ?>
-
-            <?php else: ?>
-
-                Schedule
-
-            <?php endif; ?>
-
-
-            <span class="schedule-arrow">
-                ▼
-            </span>
-
-        </button>
-
-
-        <div
-            id="scheduleDropdown"
-            class="schedule-dropdown-menu"
-        >
-
-
-            <?php if (
-                $current_status === 'Completed'
-            ): ?>
-
-
-                <!-- SCHEDULE NEXT ROUND -->
-
-                <button
-                    type="button"
-                    class="schedule-dropdown-item"
-                    onclick="submitInterviewAction(
-                        'schedule_next'
-                    )"
+                <!-- =================================
+                     FORM
+                ================================== -->
+                <form
+                    action=""
+                    method="post"
+                    class="refollowup-form"
                 >
-
-                    <i class="fa fa-calendar"></i>
-
-                    Schedule Round
-                    <?= $next_round; ?>
-
-                </button>
-
-
-            <?php else: ?>
-
-
-                <!-- RESCHEDULE -->
-
-                <button
-                    type="button"
-                    class="schedule-dropdown-item reschedule-option"
-                    onclick="submitInterviewAction(
-                        'reschedule'
-                    )"
-                >
-
-                    <i class="fa fa-refresh"></i>
-
-                    Reschedule
-
-                </button>
-
-
-                <!-- COMPLETED -->
-
-                <button
-                    type="button"
-                    class="schedule-dropdown-item complete-option"
-                    onclick="submitInterviewAction(
-                        'complete'
-                    )">
-                    <i class="fa fa-check-circle"></i>
-                    Completed
-                </button>
-            <?php endif; ?>
+                    <!-- HIDDEN INVOICE ID -->
+                    <input
+                        type="hidden"
+                        name="invoice_id"
+                        value="<?= intval($row['id']); ?>"
+                    >
+                    <!-- =================================
+                         NAME
+                    ================================== -->
+                    <div class="form-group">
+                        <label>
+                            Name
+                        </label>
+                        <input
+                            type="text"
+                            value="<?= htmlspecialchars($row['name'] ?? ''); ?>"
+                            readonly
+                        >
+                    </div>
+                    <!-- =================================
+                         GST NUMBER
+                    ================================== -->
+                    <div class="form-group">
+                        <label>
+                            GST Number
+                        </label>
+                        <input
+                            type="text"
+                            value="<?= htmlspecialchars($row['gst_number'] ?? ''); ?>"
+                            readonly
+                        >
+                    </div>
+                    <!-- =================================
+                         INVOICE DATE + GST TYPE
+                    ================================== -->
+                    <div class="form-row">
+                        <!-- INVOICE DATE -->
+                        <div class="form-group">
+                            <label>
+                                Invoice Date <span>*</span>
+                            </label>
+                            <input
+                                type="date"
+                                name="invoice_date"
+                                value="<?= htmlspecialchars($row['invoice_date'] ?? ''); ?>"
+                                required
+                            >
+                        </div>
+                        <!-- GST TYPE -->
+                        <div class="form-group">
+                            <label>
+                                GST Type <span>*</span>
+                            </label>
+                            <select
+                                name="gst_type"
+                                id="gst_type"
+                                required
+                            >
+                                <option
+                                    value="exclusive"
+                                    <?= ($row['gst_type'] === 'exclusive') ? 'selected' : ''; ?>
+                                >
+                                    Add GST (18%)
+                                </option>
+                                <option
+                                    value="normal"
+                                    <?= ($row['gst_type'] === 'normal') ? 'selected' : ''; ?>
+                                >
+                                    No GST
+                                </option>
+                                <option
+                                    value="inclusive"
+                                    <?= ($row['gst_type'] === 'inclusive') ? 'selected' : ''; ?>
+                                >
+                                    GST Included
+                                </option>
+                                <option
+                                    value="igst"
+                                    <?= ($row['gst_type'] === 'igst') ? 'selected' : ''; ?>
+                                >
+                                    Add IGST (18%)
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- =================================
+                         AMOUNT
+                    ================================== -->
+                    <div class="form-group">
+                        <label>
+                            Amount (Basic) <span>*</span>
+                        </label>
+                        <input
+                            type="number"
+                            name="amount"
+                            id="amount"
+                            step="0.01"
+                            min="0"
+                            value="<?= htmlspecialchars($row['amount'] ?? '0'); ?>"
+                            required
+                        >
+                    </div>
+                    <!-- =================================
+                         GST DETAILS
+                    ================================== -->
+                    <div class="form-row">
+                        <!-- CGST -->
+                        <div class="form-group">
+                            <label>
+                                CGST
+                            </label>
+                            <input
+                                type="text"
+                                id="cgst"
+                                value="<?= number_format((float)$row['cgst'], 2); ?>"
+                                readonly
+                            >
+                        </div>
+                        <!-- SGST -->
+                        <div class="form-group">
+                            <label>
+                                SGST
+                            </label>
+                            <input
+                                type="text"
+                                id="sgst"
+                                value="<?= number_format((float)$row['sgst'], 2); ?>"
+                                readonly
+                            >
+                        </div>
+                    </div>
+                    <!-- =================================
+                         IGST + TOTAL
+                    ================================== -->
+                    <div class="form-row">
+                        <!-- IGST -->
+                        <div class="form-group">
+                            <label>
+                                IGST
+                            </label>
+                            <input
+                                type="text"
+                                id="igst"
+                                value="<?= number_format((float)$row['igst'], 2); ?>"
+                                readonly
+                            >
+                        </div>
+                        <!-- TOTAL -->
+                        <div class="form-group">
+                            <label>
+                                Total Amount
+                            </label>
+                            <input
+                                type="text"
+                                id="total"
+                                value="<?= number_format((float)$row['total_amount'], 2); ?>"
+                                readonly
+                            >
+                        </div>
+                    </div>
+                    <!-- =================================
+                         COMMENTS
+                    ================================== -->
+                    <div class="form-group">
+                        <label>
+                            Comments
+                        </label>
+                        <textarea
+                            name="comments"
+                            rows="4"
+                            placeholder="Enter comments..."
+                        ><?= htmlspecialchars($row['comments'] ?? ''); ?></textarea>
+                    </div>
+                    <!-- =================================
+                         SUBMIT
+                    ================================== -->
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                    >
+                        <span>🧾</span>
+                        Update & Print Invoice
+                    </button>
+                </form>
+            </div>
         </div>
-    </div>
-    <!-- CANCEL -->
-    <a
-        href="view-interview-schedule-student.php"
-        class="refollowup-clear-btn"
-    >
-        Cancel
-    </a>
-
-    <br><br>
-    <!-- FINAL DECISION -->
-    <div class="final-decision">
-        <h4>
-            Candidate Final Decision
-        </h4>
-        <a
-            href="placed-candidate.php?id=<?=
-                (int)$current['interview_id'];
-            ?>&status=Placed"
-            class="btn btn-success"
-            onclick="
-                return confirm(
-                    'Are you sure you want to mark this candidate as Placed?'
-                );">
-            <i class="fa fa-check-circle"></i>
-            Placed
-        </a>
-
-        <a
-            href="rejected-candidate.php?id=<?=
-                (int)$current['interview_id'];
-            ?>&status=Rejected"
-            class="btn btn-danger"
-            onclick="return confirm('Are you sure you want to mark this candidate as Rejected?');">
-            <i class="fa fa-times-circle"></i>
-            Rejected
-        </a>
-    </div>
-</form>
-</div>
+    </section>
 </section>
-<style>
-
-/* =========================================================
-   SCHEDULE NEXT INTERVIEW ROUND
-========================================================= */
-
-.next-round-page {
-    width: 600px;
-    max-width: calc(100% - 30px);
-    margin: 30px auto;
-    background: #fff;
-    border: 5px solid #3376e4;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    box-sizing: border-box;
-}
-
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.next-round-header {
-    min-height: 72px;
-    padding: 14px 18px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #1557d6, #6366f1);
-    color: #fff;
-    text-align: center;
-    box-sizing: border-box;
-}
-
-.next-round-header h1 {
-    margin: 0;
-    font-size: 20px;
-    line-height: 25px;
-    font-weight: 800;
-    color: #fff;
-}
-
-.next-round-header .candidate-name {
-    margin-top: 6px;
-    color: #fff;
-    font-size: 15px;
-    line-height: 19px;
-    font-weight: 700;
-}
-
-.next-round-header span {
-    margin-top: 4px;
-    font-size: 13px;
-    line-height: 16px;
-    font-weight: 500;
-    color: #eef2ff;
-}
-
-
-/* =========================================================
-   FORM CONTENT
-========================================================= */
-
-.next-round-page form {
-    padding: 22px 24px 25px;
-    box-sizing: border-box;
-}
-
-
-/* =========================================================
-   CURRENT ROUND
-========================================================= */
-
-.next-round-page .current-round {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    margin: 0 0 20px;
-    background: #f8fafc;
-    border: 2px solid #3376e4;
-    border-radius: 10px;
-    box-sizing: border-box;
-}
-
-
-/* =========================================================
-   INTERVIEW ROUND BUTTONS
-========================================================= */
-
-.round-buttons {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 7px;
-    margin: 0;
-}
-
-.round-small-btn {
-    height: 30px;
-    padding: 0 11px;
-    border: 1px solid #c7d2fe;
-    border-radius: 6px;
-    background: #6366f1;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    transition:
-        background .2s ease,
-        transform .15s ease;
-}
-
-.round-small-btn:hover {
-    background: #4f46e5;
-    transform: translateY(-1px);
-}
-
-.round-small-btn:active {
-    transform: translateY(0);
-}
-
-
-/* =========================================================
-   NEXT ROUND + STATUS
-========================================================= */
-
-.round-info-row {
-    width: 100%;
-    display: flex;
-    align-items: stretch;
-    gap: 10px;
-}
-
-
-.next-round-page .round-info {
-    flex: 1;
-    min-width: 0;
-    min-height: 62px;
-    padding: 10px 11px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-sizing: border-box;
-    transition:
-        border-color .2s ease,
-        box-shadow .2s ease;
-}
-
-.next-round-page .round-info:hover {
-    border-color: #c7d2fe;
-    box-shadow:
-        0 3px 10px rgba(99, 102, 241, .08);
-}
-
-.next-round-page .round-info > span {
-    display: block;
-    margin-bottom: 4px;
-    color: #64748b;
-    font-size: 11px;
-    line-height: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-}
-
-.next-round-page .round-info > strong {
-    display: block;
-    color: #1e293b;
-    font-size: 13px;
-    line-height: 18px;
-    font-weight: 700;
-    word-break: break-word;
-}
-
-
-.next-round-page .next-round-info {
-    background: #fff7ed;
-    border-color: #fdba74;
-}
-
-.next-round-page .next-round-info > span,
-.next-round-page .next-round-info > strong {
-    color: #ea580c;
-}
-
-
-/* =========================================================
-   FORM GROUPS
-========================================================= */
-
-.next-round-page .form-group,
-.next-round-page .form-group-small {
-    width: 100%;
-    min-width: 0;
-    margin-bottom: 15px;
-}
-
-
-/* =========================================================
-   LABELS
-========================================================= */
-
-.next-round-page label {
-    display: block;
-    margin: 0 0 7px;
-    color: #334155;
-    font-size: 14px;
-    line-height: 18px;
-    font-weight: 700;
-}
-
-
-/* =========================================================
-   INPUTS
-========================================================= */
-
-.next-round-page .refollowup-input {
-    width: 100%;
-    height: 42px;
-    margin: 0 0 10px;
-    padding: 0 12px;
-    box-sizing: border-box;
-    border: 1px solid #d5deeb;
-    border-radius: 7px;
-    background: #fff;
-    color: #334155;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    line-height: 20px;
-    outline: none;
-    transition:
-        border-color .2s ease,
-        box-shadow .2s ease;
-}
-
-.next-round-page .refollowup-input:focus {
-    border-color: #6366f1;
-    box-shadow:
-        0 0 0 3px rgba(99, 102, 241, .10);
-}
-
-
-/* =========================================================
-   DATE + TIME
-========================================================= */
-
-.next-round-page .date-time-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    width: 100%;
-}
-
-.next-round-page .date-time-row .form-group-small {
-    margin-bottom: 15px;
-}
-
-.next-round-page .form-group-small .refollowup-input {
-    width: 100%;
-    height: 42px;
-    padding-left: 10px;
-    padding-right: 8px;
-}
-
-
-/* =========================================================
-   TEXTAREA
-========================================================= */
-
-.next-round-page textarea.refollowup-input {
-    width: 100%;
-    height: 100px;
-    min-height: 100px;
-    padding: 10px 12px;
-    resize: vertical;
-    line-height: 1.5;
-    box-sizing: border-box;
-}
-
-.next-round-page .refollowup-input[name="remark"] {
-    height: 100px;
-    min-height: 100px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
-
-
-/* =========================================================
-   SCHEDULE BUTTON
-========================================================= */
-
-.next-round-page .refollowup-search-btn {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 20px;
-    border: none;
-    border-radius: 7px;
-    background: #f59e0b;
-    color: #fff !important;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition:
-        background .2s ease,
-        transform .15s ease;
-}
-
-.next-round-page .refollowup-search-btn:hover {
-    background: #d97706;
-    transform: translateY(-1px);
-}
-
-.next-round-page .refollowup-search-btn:active {
-    transform: translateY(0);
-}
-
-
-/* =========================================================
-   SCHEDULE DROPDOWN
-========================================================= */
-
-.schedule-dropdown-wrapper {
-    position: relative;
-    display: inline-flex;
-    vertical-align: middle;
-    margin-right: 6px;
-}
-
-.schedule-dropdown-btn {
-    gap: 8px;
-    margin: 0 !important;
-    position: relative;
-}
-
-.schedule-arrow {
-    font-size: 9px;
-    margin-left: 2px;
-    transition: transform .2s ease;
-}
-
-.schedule-dropdown-wrapper.open .schedule-arrow {
-    transform: rotate(180deg);
-}
-
-.schedule-dropdown-menu {
-    display: none;
-    position: absolute;
-    left: 0;
-    top: calc(100% + 6px);
-    min-width: 175px;
-    padding: 6px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow:
-        0 10px 25px rgba(15, 23, 42, .16);
-    z-index: 99999;
-    box-sizing: border-box;
-}
-
-.schedule-dropdown-wrapper.open
-.schedule-dropdown-menu {
-    display: block;
-}
-
-.schedule-dropdown-item {
-    width: 100%;
-    min-height: 36px;
-    padding: 8px 11px;
-    border: none;
-    border-radius: 6px;
-    background: #fff;
-    color: #334155;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    box-sizing: border-box;
-}
-
-.schedule-dropdown-item:hover {
-    background: #f1f5f9;
-}
-
-.schedule-dropdown-item i {
-    width: 15px;
-    text-align: center;
-}
-
-
-/* RESCHEDULE */
-
-.schedule-dropdown-item.reschedule-option {
-    color: #d97706;
-}
-
-.schedule-dropdown-item.reschedule-option:hover {
-    background: #fff7ed;
-}
-
-
-/* COMPLETED */
-
-.schedule-dropdown-item.complete-option {
-    color: #16a34a;
-}
-
-.schedule-dropdown-item.complete-option:hover {
-    background: #f0fdf4;
-}
-
-
-/* =========================================================
-   CANCEL
-========================================================= */
-
-.next-round-page .refollowup-clear-btn {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 17px;
-    margin-left: 0;
-    border: 1px solid #fecaca;
-    border-radius: 7px;
-    background: #fee2e2;
-    color: #dc2626 !important;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition:
-        background .2s ease,
-        transform .15s ease;
-}
-
-.next-round-page .refollowup-clear-btn:hover {
-    background: #fecaca;
-    transform: translateY(-1px);
-}
-
-
-/* =========================================================
-   FINAL DECISION
-========================================================= */
-
-.next-round-page .final-decision {
-    margin-top: 20px;
-    padding: 16px 0 0;
-    border-top: 1px solid #e2e8f0;
-}
-
-.next-round-page .final-decision h4 {
-    margin: 0 0 15px;
-    color: #111827;
-    font-size: 15px;
-    line-height: 20px;
-    font-weight: 700;
-}
-
-.next-round-page .final-decision .btn {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 20px;
-    border: none;
-    border-radius: 7px;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    white-space: nowrap;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition:
-        background .2s ease,
-        transform .15s ease;
-}
-
-.next-round-page .final-decision
-.placed-btn,
-.next-round-page .final-decision
-.btn-success {
-    min-width: 80px;
-    background: #16a34a;
-    color: #fff !important;
-}
-
-.next-round-page .final-decision
-.placed-btn:hover,
-.next-round-page .final-decision
-.btn-success:hover {
-    background: #15803d;
-    transform: translateY(-1px);
-}
-
-.next-round-page .final-decision
-.rejected-btn,
-.next-round-page .final-decision
-.btn-danger {
-    min-width: 92px;
-    background: #dc2626;
-    color: #fff !important;
-}
-
-.next-round-page .final-decision
-.rejected-btn:hover,
-.next-round-page .final-decision
-.btn-danger:hover {
-    background: #b91c1c;
-    transform: translateY(-1px);
-}
-
-
-/* =========================================================
-   ROUNDS MODAL
-========================================================= */
-
-.rounds-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, .72);
-    z-index: 99999;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
-    backdrop-filter: blur(3px);
-}
-
-.rounds-modal-content {
-    position: relative;
-    width: 100%;
-    max-width: 850px;
-    max-height: 88vh;
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow:
-        0 25px 60px rgba(15, 23, 42, .30),
-        0 5px 20px rgba(15, 23, 42, .15);
-    animation: roundsModalOpen .22s ease-out;
-    box-sizing: border-box;
-}
-
-@keyframes roundsModalOpen {
-
-    from {
-        opacity: 0;
-        transform: translateY(15px) scale(.98);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-
-}
-
-.rounds-modal-header {
-    min-height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
-    color: #fff;
-    box-sizing: border-box;
-}
-
-.rounds-modal-header h3 {
-    margin: 0;
-    color: #fff;
-    font-size: 18px;
-    line-height: 23px;
-    font-weight: 700;
-}
-
-.rounds-modal-header button {
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .18);
-    color: #fff;
-    font-size: 25px;
-    line-height: 30px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-        background .2s ease,
-        transform .15s ease;
-}
-
-.rounds-modal-header button:hover {
-    background: rgba(255, 255, 255, .30);
-    transform: rotate(90deg);
-}
-
-.round-details {
-    padding: 20px;
-    max-height: calc(88vh - 64px);
-    overflow-y: auto;
-    box-sizing: border-box;
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-}
-
-.round-details::-webkit-scrollbar {
-    width: 7px;
-}
-
-.round-details::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.round-details::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-
-.round-detail {
-    display: none;
-    animation: roundFade .18s ease;
-}
-
-@keyframes roundFade {
-
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-}
-
-.round-detail-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.round-detail-title h4 {
-    margin: 0;
-    color: #1e293b;
-    font-size: 17px;
-    line-height: 22px;
-    font-weight: 700;
-}
-
-.round-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 30px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    background: #dcfce7;
-    border: 1px solid #bbf7d0;
-    color: #166534;
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.round-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.round-box {
-    min-width: 0;
-    min-height: 70px;
-    padding: 12px 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 9px;
-    box-sizing: border-box;
-    transition:
-        background .2s ease,
-        border-color .2s ease,
-        box-shadow .2s ease;
-}
-
-.round-box:hover {
-    background: #fff;
-    border-color: #c7d2fe;
-    box-shadow:
-        0 3px 10px rgba(15, 23, 42, .06);
-}
-
-.round-box span {
-    display: block;
-    margin-bottom: 5px;
-    color: #64748b;
-    font-size: 11px;
-    line-height: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-}
-
-.round-box strong {
-    display: block;
-    color: #1e293b;
-    font-size: 13px;
-    line-height: 18px;
-    font-weight: 700;
-    word-break: break-word;
-}
-
-.round-box:first-child {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-}
-
-.round-box:first-child span {
-    color: #4f46e5;
-}
-
-.round-box:first-child strong {
-    color: #312e81;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 600px) {
-
-    .next-round-page {
-        width: calc(100% - 20px);
-        max-width: 600px;
-        margin: 20px auto;
-        border-radius: 10px;
-    }
-
-    .next-round-header {
-        min-height: 68px;
-        padding: 10px 14px;
-    }
-
-    .next-round-header h1 {
-        font-size: 18px;
-        line-height: 23px;
-    }
-
-    .next-round-header span {
-        font-size: 10px;
-    }
-
-    .next-round-page form {
-        padding: 18px 16px 20px;
-    }
-
-    .next-round-page .current-round {
-        gap: 8px;
-        padding: 9px;
-    }
-
-    .round-buttons {
-        gap: 6px;
-    }
-
-    .round-small-btn {
-        height: 29px;
-        padding: 0 10px;
-        font-size: 10px;
-    }
-
-    .round-info-row {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .next-round-page .round-info {
-        min-height: 55px;
-    }
-
-    .next-round-page .date-time-row {
-        grid-template-columns: 1fr;
-        gap: 0;
-    }
-
-    .next-round-page label {
-        font-size: 13px;
-    }
-
-    .next-round-page .refollowup-input {
-        height: 42px;
-        font-size: 13px;
-    }
-
-    .next-round-page textarea.refollowup-input {
-        height: 100px;
-    }
-
-    .schedule-dropdown-wrapper {
-        width: auto;
-    }
-
-    .schedule-dropdown-menu {
-        min-width: 165px;
-    }
-
-    .rounds-modal {
-        padding: 10px;
-    }
-
-    .rounds-modal-content {
-        width: 100%;
-        max-width: 100%;
-        max-height: 92vh;
-        border-radius: 13px;
-    }
-
-    .rounds-modal-header {
-        min-height: 58px;
-        padding: 12px 15px;
-    }
-
-    .rounds-modal-header h3 {
-        font-size: 16px;
-    }
-
-    .rounds-modal-header button {
-        width: 32px;
-        height: 32px;
-        font-size: 23px;
-    }
-
-    .round-details {
-        padding: 15px;
-        max-height: calc(92vh - 58px);
-    }
-
-    .round-detail-title {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 9px;
-        margin-bottom: 14px;
-    }
-
-    .round-detail-title h4 {
-        font-size: 16px;
-    }
-
-    .round-status {
-        min-height: 28px;
-        font-size: 11px;
-        padding: 4px 10px;
-    }
-
-    .round-detail-grid {
-        grid-template-columns: 1fr;
-        gap: 9px;
-    }
-
-    .round-box {
-        min-height: 62px;
-        padding: 11px 12px;
-    }
-
-    .round-box strong {
-        font-size: 13px;
-    }
-
-}
-
-
-/* =========================================================
-   VERY SMALL MOBILE
-========================================================= */
-
-@media (max-width: 380px) {
-
-    .next-round-page {
-        width: calc(100% - 12px);
-    }
-
-    .next-round-page form {
-        padding: 15px 12px 18px;
-    }
-
-    .next-round-header h1 {
-        font-size: 16px;
-    }
-
-    .next-round-page .refollowup-input {
-        font-size: 12px;
-    }
-
-    .next-round-page label {
-        font-size: 12px;
-    }
-
-    .next-round-page .refollowup-search-btn,
-    .next-round-page .refollowup-clear-btn {
-        font-size: 12px;
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-
-    .next-round-page .final-decision .btn {
-        font-size: 12px;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-
-    .rounds-modal {
-        padding: 6px;
-    }
-
-    .rounds-modal-content {
-        border-radius: 10px;
-    }
-
-    .rounds-modal-header {
-        padding: 10px 12px;
-    }
-
-    .round-details {
-        padding: 12px;
-    }
-
-    .round-box {
-        padding: 10px;
-    }
-
-    .round-small-btn {
-        height: 28px;
-        padding: 0 9px;
-        font-size: 10px;
-    }
-
-}
-</style>
+<!-- =========================================
+     GST CALCULATION
+========================================= -->
 <script>
-
-/* =========================================================
-   ROUND MODAL
-========================================================= */
-
-function openRoundDetails(index) {
-    const modal = document.getElementById("roundsModal");
-    modal.style.display = "flex";
-    showRound(index);
-}
-
-function closeRounds() {
-    const modal = document.getElementById("roundsModal");
-    modal.style.display = "none";
-}
-
-function showRound(index) {
-    const rounds = document.querySelectorAll(".round-detail");
-    rounds.forEach(function(round) {
-        round.style.display = "none";
-    });
-
-    if (rounds[index]) {
-        rounds[index].style.display = "block";
-    }
-}
-
-window.addEventListener("click", function(event) {
-    const modal = document.getElementById("roundsModal");
-    if (event.target === modal) {
-        closeRounds();
-    }
-});
-
-/* =========================================================
-   SCHEDULE DROPDOWN
-========================================================= */
-
-function toggleScheduleDropdown(event) {
-    event.stopPropagation();
-    const wrapper =
-        document.querySelector(
-            ".schedule-dropdown-wrapper"
-        );
-    if (!wrapper) {
-        return;
-    }
-    wrapper.classList.toggle("open");
-}
-
-/* =========================================================
-   CLOSE DROPDOWN OUTSIDE CLICK
-========================================================= */
-document.addEventListener(
-    "click",
-    function(event) {
-        const wrapper =
-            document.querySelector(
-                ".schedule-dropdown-wrapper"
+const gstType =
+    document.getElementById('gst_type');
+const amountInput =
+    document.getElementById('amount');
+const cgstInput =
+    document.getElementById('cgst');
+const sgstInput =
+    document.getElementById('sgst');
+const igstInput =
+    document.getElementById('igst');
+const totalInput =
+    document.getElementById('total');
+function calculateGST() {
+    let amount =
+        parseFloat(amountInput.value) || 0;
+    let type =
+        gstType.value;
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+    let total = 0;
+    /* =========================
+       EXCLUSIVE
+    ========================= */
+    if (type === 'exclusive') {
+        cgst =
+            parseFloat(
+                (amount * 0.09).toFixed(2)
             );
-        if (!wrapper) {
-            return;
-        }
-        if (!wrapper.contains(event.target)) {
-            wrapper.classList.remove("open");
-        }
+        sgst =
+            parseFloat(
+                (amount * 0.09).toFixed(2)
+            );
+        igst = 0;
+        total =
+            amount + cgst + sgst;
     }
-);
-
-/* =========================================================
-   SUBMIT INTERVIEW ACTION
-========================================================= */
-
-function submitInterviewAction(action) {
-
-    const form =
-        document.querySelector(
-            ".next-round-page form"
-        );
-
-    const actionInput =
-        document.getElementById(
-            "interviewAction"
-        );
-
-    if (!form || !actionInput) {
-        return;
+    /* =========================
+       NORMAL
+    ========================= */
+    else if (type === 'normal') {
+        cgst = 0;
+        sgst = 0;
+        igst = 0;
+        total =
+            amount;
     }
-
-    /* -----------------------------------------
-       COMPLETE CONFIRMATION
-    ----------------------------------------- */
-
-    if (action === "complete") {
-
-        const confirmComplete = confirm(
-            "Are you sure you want to mark this interview as Completed?"
-        );
-
-        if (!confirmComplete) {
-            return;
-        }
-
+    /* =========================
+       INCLUSIVE
+    ========================= */
+    else if (type === 'inclusive') {
+        const basicAmount =
+            amount / 1.18;
+        cgst =
+            parseFloat(
+                (basicAmount * 0.09).toFixed(2)
+            );
+        sgst =
+            parseFloat(
+                (basicAmount * 0.09).toFixed(2)
+            );
+        igst = 0;
+        total =
+            amount;
     }
-
-    /* -----------------------------------------
-       RESCHEDULE CONFIRMATION
-    ----------------------------------------- */
-
-    if (action === "reschedule") {
-
-        const confirmReschedule = confirm(
-            "Are you sure you want to Reschedule this interview?"
-        );
-
-        if (!confirmReschedule) {
-            return;
-        }
-
+    /* =========================
+       IGST
+    ========================= */
+    else if (type === 'igst') {
+        cgst = 0;
+        sgst = 0;
+        igst =
+            parseFloat(
+                (amount * 0.18).toFixed(2)
+            );
+        total =
+            amount + igst;
     }
-    /* -----------------------------------------
-       NEXT ROUND CONFIRMATION
-    ----------------------------------------- */
-    if (action === "schedule_next") {
-
-        const confirmNextRound = confirm(
-            "Schedule the next interview round?"
-        );
-        if (!confirmNextRound) {
-            return;
-        }
-    }
-    /* -----------------------------------------
-       Set Action
-    ----------------------------------------- */
-    actionInput.value = action;
-    /* -----------------------------------------
-       Submit
-    ----------------------------------------- */
-    form.submit();
+    /* =========================
+       DISPLAY
+    ========================= */
+    cgstInput.value =
+        cgst.toFixed(2);
+    sgstInput.value =
+        sgst.toFixed(2);
+    igstInput.value =
+        igst.toFixed(2);
+    totalInput.value =
+        total.toFixed(2);
 }
+/* =========================
+   EVENTS
+========================= */
+gstType.addEventListener(
+    'change',
+    calculateGST
+);
+amountInput.addEventListener(
+    'input',
+    calculateGST
+);
+/* =========================
+   INITIAL CALCULATION
+========================= */
+calculateGST();
 </script>
+<!-- =========================================
+     OTHER JS
+========================================= -->
 <script src="js/bootstrap.js"></script>
 <script src="js/jquery.dcjqaccordion.2.7.js"></script>
 <script src="js/scripts.js"></script>
@@ -2297,9 +1391,468 @@ function submitInterviewAction(action) {
 </html>
 <?php
 mysqli_close($conn);
-?>
-" 
+ob_end_flush();
+?>" and ask for confirmation before updating data . 
 
-Update interview is working perfectly but there is one problem as we schedule next round after completing previous (example 1 round and 2ns is Schedule) , in 
-interview scheduled page two records of the same candidate are apperring (Attaching Screenshot). But this not happening in Seniors even thought we schedule next round the same candidate 
-record is updating .     
+
+currently after updating the data we are also opening print window ,I didn't told you to add this functionality . 
+Remove it first we already have Dedicated Print button in the Action drop down so print window should only be 
+open after user clicks print button .After that we will implement Print button , Current we have Self Created
+invoice page view which is not official . As user Click on the Print Button ,code generate invoice and open in new
+browser tab with download (As user click on download the invoice should download ) and print(As user click on this 
+button Print window should open) buttons . I am also attaching Sample invoce generated by seniors project 
+our generated incvoice should be exact copy of this invoice. Seniors Code file print-tax-invoice-edit.php ----> "
+<?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+require_once 'db_connect.php';
+
+$invoice_number = isset($_GET['invoice_number']) ? intval($_GET['invoice_number']) : 0;
+
+$show_amc = isset($_GET['show_amc'])
+    ? (int) $_GET['show_amc']
+    : 0;
+
+if (!$invoice_number) {
+    die("Invoice number missing.");
+}
+
+// Fetch GST invoice info by invoice_number
+$invSql = "SELECT * FROM tbl_gst_invoice WHERE invoice_number = ?";
+$invStmt = $conn->prepare($invSql);
+$invStmt->bind_param("i", $invoice_number);
+$invStmt->execute();
+$invResult = $invStmt->get_result();
+if ($invResult->num_rows === 0) {
+    die("GST Invoice not found.");
+}
+$invoice = $invResult->fetch_assoc();
+
+$invoice_year = date('Y', strtotime($invoice['invoice_date']));
+
+
+// Get source_type safely
+$source_type = isset($invoice['source_type']) ? strtolower(trim($invoice['source_type'])) : null;
+
+if (!$source_type) {
+    die("Source type not specified in invoice.");
+}
+
+// Identify source_type and entity_id from invoice, so you can fetch accordingly
+$entity_id = $invoice['entity_id'];
+$joining_date = null;
+$entity = null;
+$client = null;
+
+
+// Fetch entity info based on source_type
+if ($source_type === 'placement') {
+    $sql = "SELECT * FROM tbl_agreement WHERE Id = ?";
+} elseif ($source_type === 'consultant') {
+    $sql = "SELECT * FROM tbl_associate WHERE Id = ?";
+} else {
+    die("Unknown source type.");
+}
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $entity_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($result->num_rows === 0) {
+    die(ucfirst($source_type) . " not found.");
+}
+$entity = $result->fetch_assoc();
+
+
+ // Fetch all non-zero payments
+// Fetch payments for the invoice year
+$payments = [];
+$total_paid = 0;
+$total_invoice_amount = 0;
+
+if ($source_type === 'placement' || $source_type === 'consultant') {
+
+    $interview_id = (int)($invoice['placement_interview_id'] ?? 0);
+
+    $paymentSql = "
+        SELECT *
+        FROM tbl_payment
+        WHERE interview_id = ?
+          AND YEAR(payment_date) = ?
+          AND (
+              COALESCE(paid_amount, 0) > 0
+              OR COALESCE(tds_amount, 0) > 0
+          )
+          AND payment_gateway IS NOT NULL
+          AND TRIM(payment_gateway) NOT IN ('', '0')
+        ORDER BY payment_date ASC, Id ASC
+    ";
+
+    $paymentStmt = $conn->prepare($paymentSql);
+    $paymentStmt->bind_param("ii", $interview_id, $invoice_year);
+
+} else {
+
+    $paymentSql = "
+        SELECT *
+        FROM tbl_payment
+        WHERE client_Id = ?
+          AND YEAR(payment_date) = ?
+          AND (
+              COALESCE(paid_amount, 0) > 0
+              OR COALESCE(tds_amount, 0) > 0
+          )
+          AND payment_gateway IS NOT NULL
+          AND TRIM(payment_gateway) NOT IN ('', '0')
+        ORDER BY payment_date ASC, Id ASC
+    ";
+
+    $paymentStmt = $conn->prepare($paymentSql);
+    $paymentStmt->bind_param("si", $entity_id, $invoice_year);
+}
+
+$paymentStmt->execute();
+$paymentResult = $paymentStmt->get_result();
+
+while ($row = $paymentResult->fetch_assoc()) {
+
+    // Total amount from tbl_payment
+    $total_invoice_amount = max(
+        $total_invoice_amount,
+        (float)($row['total_amount'] ?? 0)
+    );
+
+    // Add instalments paid
+    $total_paid += (float)($row['paid_amount'] ?? 0)
+                 + (float)($row['tds_amount'] ?? 0);
+
+    $payments[] = $row;
+}
+
+// Calculate remaining balance
+$balance_amount = $total_invoice_amount - $total_paid;
+
+
+// ✅ Get Joining Date
+$joining_date = '';
+
+if (!empty($invoice['placement_interview_id'])) {
+    $interview_id = intval($invoice['placement_interview_id']);
+    $sql2 = "SELECT joining_date FROM tbl_placement WHERE interview_id = $interview_id";
+    $res2 = mysqli_query($conn, $sql2);
+    if ($row2 = mysqli_fetch_assoc($res2)) {
+        $joining_date = $row2['joining_date'];
+    }
+}
+
+// Function to convert numbers to Indian words
+function convertToWords($number) {
+    // (Keep your convertToWords function here as in your original code)
+    $words = array(
+        '0' => '', '1' => 'One', '2' => 'Two', '3' => 'Three',
+        '4' => 'Four', '5' => 'Five', '6' => 'Six',
+        '7' => 'Seven', '8' => 'Eight', '9' => 'Nine',
+        '10' => 'Ten', '11' => 'Eleven', '12' => 'Twelve',
+        '13' => 'Thirteen', '14' => 'Fourteen', '15' => 'Fifteen',
+        '16' => 'Sixteen', '17' => 'Seventeen', '18' => 'Eighteen',
+        '19' => 'Nineteen', '20' => 'Twenty', '30' => 'Thirty',
+        '40' => 'Forty', '50' => 'Fifty', '60' => 'Sixty',
+        '70' => 'Seventy', '80' => 'Eighty', '90' => 'Ninety'
+    );
+
+    $digits = array('', 'Hundred', 'Thousand', 'Lakh', 'Crore');
+
+    if ($number == 0) return 'Zero';
+
+    $no = floor($number);
+    $decimal = round($number - $no, 2) * 100;
+    $i = 0;
+    $str = array();
+
+    while ($no > 0) {
+        $divider = ($i == 2) ? 10 : 100;
+        $number_part = $no % $divider;
+        $no = floor($no / $divider);
+        $i += ($divider == 10) ? 1 : 2;
+
+        if ($number_part) {
+            $plural = (($counter = count($str)) && $number_part > 9) ? 's' : null;
+            $hundred = ($counter == 1 && $str[0]) ? ' and ' : null;
+            $str [] = ($number_part < 21) ? $words[$number_part] . " " . $digits[$counter] . $plural . " " . $hundred
+            : $words[floor($number_part / 10) * 10] . " " . $words[$number_part % 10] . " " . $digits[$counter] . $plural . " " . $hundred;
+        } else {
+            $str[] = null;
+        }
+    }
+
+    $Rupees = implode('', array_reverse($str));
+    $paise = ($decimal > 0) ? "And " . convertToWords($decimal) . " Paise" : '';
+    return trim("Rupees " . $Rupees . $paise);
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tax Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        .invoice-box {
+            width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+        }
+        .company-details {
+            text-align: right;
+            margin-top: 10px;
+        }
+        .invoice-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-decoration: underline;
+        }
+        .details, .items, .total {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .details td, .items th, .items td, .total td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        .items th {
+            background-color: #005580;
+            color: #ffffff;
+        }
+        .items td {
+            text-align: center;
+        }
+        .highlight {
+            font-weight: bold;
+            background-color: #ff8080;
+            font-size: 16px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-total{
+            text-align: right;
+            background-color: #c2f0f0;
+        }
+        hr{
+            height: 5px;
+            border-width:0;
+            color: #99dea5;
+            background-color: #99dea5;
+        }
+        footer {
+            background-color: white;
+            color: #000;
+            padding: 20px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .footer {
+            max-width: 100%;
+            margin: 0;
+            padding: 0 50px;
+            box-sizing: border-box;
+        }
+        .footer .cont {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            line-height: 1.6;
+        }
+        .footer .cont p,
+        .footer .cont a,
+        .add, .cin {
+            margin: 0;
+            font-size: 16px;
+            color: black;
+            text-decoration: none;
+        }
+        .footer .cont a:hover {
+            color: #1e90ff;
+        }
+        .add, .cin {
+            text-align: center;
+        }
+        
+          #logo {
+    width: 100%;
+    height: 90px;
+    padding-left: 0;
+    padding-top: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+#logo img {
+    width: 400px;
+    height: auto;
+    margin: -60px 0 0 -60px;
+}
+
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="invoice-box">
+        <div id="logo">
+            <img src="img/SHUL.png"  alt="Company Logo" />
+        </div>
+        <hr>
+        <div class="company-details">
+            <strong>Shul Ventures Pvt. Ltd.</strong><br>
+            Bank A/C Number: 920020001745664<br>
+            IFSC: UTIB0001242<br>
+            Bank Name: AXIS Bank Ltd.<br>
+            Branch: Swavalambi Nagar, Nagpur<br>
+            GSTIN: 27ABACS2141Q1Z3<br>
+        </div>
+
+        <div class="invoice-title">TAX INVOICE</div>
+
+        <strong>Invoice Date:</strong> <?= htmlspecialchars($invoice['invoice_date']) ?><br><br>
+        <strong>Invoice No:</strong> <?= htmlspecialchars($invoice['invoice_number']) ?><br><br>
+
+        <strong>Invoice To:</strong>
+        <table class="items">
+            <tr>
+                <th>Billing Address</th>
+                <th>Shipping Address</th>
+            </tr>
+            <tr>
+                <td>
+                    <?= htmlspecialchars($entity['cust_name'] ?? $entity['name'] ?? $entity['company_name']) ?><br>
+                    <?= nl2br(htmlspecialchars($entity['cust_address'] ?? $entity['shipping_address'] ?? '')) ?><br>
+                    GSTIN: <?= htmlspecialchars($entity['gst_number'] ?? '') ?>
+                </td>
+                <td>
+                    <?= htmlspecialchars($entity['cust_name'] ?? $entity['name'] ?? $entity['company_name']) ?><br>
+                    <?= nl2br(htmlspecialchars($entity['cust_address'] ?? $entity['shipping_address'] ?? '')) ?><br>
+                    GSTIN: <?= htmlspecialchars($entity['gst_number'] ?? '') ?>
+                </td>
+            </tr>
+        </table>
+
+        <table class="items">
+            <tr>
+                <th>Service</th>
+               <th>
+        <?= ($source_type === 'consultant' || $source_type === 'placement') ? 'Joining Date' : 'Service Date'; ?>
+    </th>
+                <th>Description</th>
+                <th>Service Charges</th>
+            </tr>
+            <tr>
+                <td>
+    <?php
+        if ($source_type === 'consultant') {
+            echo 'Consultant';
+        } elseif ($source_type === 'placement') {
+            echo 'Placement';
+        } else {
+            echo htmlspecialchars($entity['services'] ?? 'Service');
+        }
+    ?>
+</td>
+
+                <td>
+    <?php        if (($source_type === 'consultant' || $source_type === 'placement') && !empty($joining_date)) {
+                        echo date('d-m-Y', strtotime($joining_date));
+                    } else {
+                        echo date('d-m-Y', strtotime($invoice['invoice_date']));
+                    }
+                    ?>
+</td>
+                
+
+                <td class="text-right">₹<?= number_format($invoice['amount'], 2) ?></td>
+            </tr>
+           <?php if ($invoice['gst_type'] === 'igst'): ?>
+                <tr>
+                    <td colspan="3" style="text-align:center;">IGST (18%)</td>
+                    <td class="text-right">₹<?= number_format($invoice['igst'], 2) ?></td>
+                </tr>
+            <?php elseif ($invoice['gst_type'] === 'exclusive' || $invoice['gst_type'] === 'inclusive'): ?>
+                <tr>
+                    <td colspan="3" style="text-align:center;">CGST (9%)</td>
+                    <td class="text-right">₹<?= number_format($invoice['cgst'], 2) ?></td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align:center;">SGST (9%)</td>
+                    <td class="text-right">₹<?= number_format($invoice['sgst'], 2) ?></td>
+                </tr>
+            <?php endif; ?>
+            <tr>
+                <td class="text-total" colspan="3"><strong>Total Amount</strong></td>
+                <td class="text-total"><strong>₹<?= number_format($invoice['total_amount'], 2) ?></strong></td>
+            </tr>
+            <tr>
+                <td colspan="4" style="text-align:center; color:#333;">
+                    <strong>(In Words: <?= convertToWords($invoice['total_amount']); ?> Only)</strong>
+                </td>
+            </tr>
+        </table><br>
+        
+
+
+        
+
+        <p style="text-align:center;">
+            <strong>(This is system generated PDF; signature & stamp not required)</strong>
+        </p>
+
+        <footer>
+            <hr>
+            <div class="footer">
+                <div class="cont">
+                    <p>+91-9764385996</p>
+                    <a href="https://shulventures.com/">www.shulventures.com</a>
+                    <p>support@shulventures.com</p>
+                </div>
+                <div class="add">
+                    <p>Shree Ganesh Apartment, Ring Road, Plot No. 32, above Rajat Wines, Khamla, Nagpur, Maharashtra 440015</p>
+                </div>
+                <div class="cin">
+                    <p>CIN: U74999MH2018PTC308404</p>
+                </div>
+            </div>
+            <hr>
+        </footer>
+    </div>
+</body>
+</html>"  
+
+
+
+i restart the srping boot project and got Error in build in GstInvoicePdfService.java ----> "
+java: cannot find symbol
+  symbol:   class BaseColor
+  location: package org.openpdf.text
+java: cannot find symbol
+  symbol:   class BaseColor
+  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
+java: cannot find symbol
+  symbol:   class BaseColor
+  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
+java: cannot find symbol
+  symbol:   class BaseColor
+  location: class com.shulventures.consultancymanagement.service.GstInvoicePdfService
+" 

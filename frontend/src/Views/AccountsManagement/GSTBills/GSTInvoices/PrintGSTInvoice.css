@@ -1,0 +1,265 @@
+.gst-print-page {
+    padding: 20px 16px 40px;
+    background: #eef2f6;
+}
+
+.gst-print-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    max-width: 850px;
+    margin: 0 auto 16px;
+}
+
+.gst-print-toolbar button {
+    border: 0;
+    border-radius: 7px;
+    padding: 11px 18px;
+    color: #fff;
+    background: #2459d3;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.gst-print-toolbar button:first-of-type {
+    background: #188343;
+}
+
+.gst-print-toolbar button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.gst-print-document {
+    box-sizing: border-box;
+    width: min(100%, 800px);
+    min-height: 900px;
+    margin: 0 auto;
+    padding: 30px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #111;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+.gst-print-company-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    min-height: 112px;
+}
+
+.gst-print-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0px;
+    max-width: 55%;
+    color: #075699;
+}
+
+.gst-print-logo-wrap img {
+    width: 120px;
+    height:150px;
+    object-fit: contain;
+}
+
+.gst-print-company-details {
+    text-align: right;
+    line-height: 1.45;
+}
+
+.gst-print-rule {
+    height: 5px;
+    margin: 9px 0;
+    background: #99dea5;
+}
+
+.gst-print-title {
+    margin: 20px 0;
+    text-align: center;
+    font-size: 24px;
+    text-decoration: underline;
+}
+
+.gst-print-invoice-to {
+    margin: 18px 0 0;
+}
+
+.gst-print-address-table,
+.gst-print-items-table {
+    width: 100%;
+    margin-top: 14px;
+    border-collapse: collapse;
+}
+
+.gst-print-address-table th,
+.gst-print-address-table td,
+.gst-print-items-table th,
+.gst-print-items-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+.gst-print-address-table th,
+.gst-print-items-table th {
+    color: #fff;
+    background: #005580;
+    text-align: center;
+}
+
+.gst-print-address-table td {
+    width: 50%;
+    vertical-align: top;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.gst-print-items-table td {
+    text-align: center;
+}
+
+.gst-print-items-table td.gst-print-number {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.gst-print-tax-label {
+    text-align: center;
+}
+
+.gst-print-total td {
+    background: #c2f0f0;
+    text-align: right;
+}
+
+.gst-print-words {
+    color: #333;
+    text-align: center !important;
+}
+
+.gst-print-system-note {
+    margin: 22px 0;
+    text-align: center;
+}
+
+.gst-print-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.gst-print-contact {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.gst-print-footer p {
+    margin: 7px 0;
+}
+
+.gst-print-loading,
+.gst-print-error {
+    padding: 30px;
+    text-align: center;
+}
+
+.gst-print-error,
+.gst-print-toolbar [role="alert"] {
+    color: #b42318;
+}
+
+@media (max-width: 650px) {
+    .gst-print-company-header {
+        flex-direction: column;
+    }
+
+    .gst-print-logo-wrap {
+        max-width: 100%;
+    }
+
+    .gst-print-company-details {
+        align-self: stretch;
+        text-align: left;
+    }
+
+    .gst-print-document {
+        padding: 18px;
+        overflow-x: auto;
+    }
+
+    .gst-print-address-table,
+    .gst-print-items-table {
+        min-width: 620px;
+    }
+
+    .gst-print-contact {
+        flex-direction: column;
+    }
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .gst-print-document,
+    .gst-print-document * {
+        visibility: visible !important;
+    }
+
+    .gst-print-page {
+        position: static !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .gst-print-document {
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        min-height: 0;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        font-size: 11px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .gst-print-toolbar {
+        display: none !important;
+    }
+
+    .gst-print-company-header {
+        min-height: 90px;
+    }
+
+    .gst-print-logo-wrap img {
+        width: 72px;
+        height: 65px;
+    }
+
+    .gst-print-title {
+        font-size: 20px;
+    }
+
+    .gst-print-address-table,
+    .gst-print-items-table {
+        page-break-inside: avoid;
+    }
+
+    .gst-print-footer {
+        page-break-inside: avoid;
+    }
+}
