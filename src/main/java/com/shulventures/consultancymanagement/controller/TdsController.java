@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import com.shulventures.consultancymanagement.dto.payment.TdsPaidResponse;
 import java.util.List;
 
 @RestController
@@ -27,5 +27,12 @@ public class TdsController {
     @PreAuthorize("@permissionService.hasPage(authentication, 'ACCOUNTS', 'TDS_DUE')")
     public void markTdsPaid(@PathVariable Long paymentId) {
         tdsService.markTdsPaid(paymentId);
+    }
+
+
+    @GetMapping("/paid")
+    @PreAuthorize("@permissionService.hasPage(authentication, 'ACCOUNTS', 'TDS_PAID')")
+    public List<TdsPaidResponse> getPaidTds() {
+        return tdsService.getPaidTds();
     }
 }

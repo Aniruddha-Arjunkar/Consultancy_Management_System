@@ -10,7 +10,7 @@ import com.shulventures.consultancymanagement.repository.InterviewPlacementRepos
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.shulventures.consultancymanagement.dto.payment.TdsPaidResponse;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -127,5 +127,72 @@ public class TdsService {
             }
         }
         return "";
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<TdsPaidResponse> getPaidTds() {
+        List<ConsultancyPayment> payments =
+                paymentRepository.findCompanyTdsPaid();
+
+        List<Long> interviewIds = payments.stream()
+                .map(ConsultancyPayment::getInterviewId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+
+        Map<Long, InterviewPlacement> placements = new HashMap<>();
+        placementRepository.findAllById(interviewIds).forEach(placement ->
+                placements.put(placement.getInterviewId(), placement)
+        );
+
+        List<Long> candidateIds = placements.values().stream()
+                .map(InterviewPlacement::getCandidateId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+
+        Map<Long, Agreement> candidates = new HashMap<>();
+        agreementRepository.findAllById(candidateIds).forEach(candidate ->
+                candidates.put(candidate.getId(), candidate)
+        );
+
+        return payments.stream()
+                .filter(payment -> payment.getInterviewId() != null)
+                .map(payment -> {
+                    InterviewPlacement placement =
+                            placements.get(payment.getInterviewId());
+
+                    if (placement == null) {
+                        return null;
+                    }
+
+                    Agreement candidate =
+                            candidates.get(placement.getCandidateId());
+
+                    String companyName = firstNonBlank(
+                            placement.getCompanyName(),
+                            "Unknown Company"
+                    );
+
+                    String candidateName = firstNonBlank(
+                            placement.getCandidateName(),
+                            candidate == null ? null : candidate.getName(),
+                            "Unknown Candidate"
+                    );
+
+                    BigDecimal tdsAmount = payment.getTdsAmount() == null
+                            ? BigDecimal.ZERO
+                            : payment.getTdsAmount();
+
+                    return new TdsPaidResponse(
+                            payment.getId(),
+                            companyName + " (" + candidateName + ")",
+                            tdsAmount,
+                            payment.getPaymentDate()
+                    );
+                })
+                .filter(response -> response != null)
+                .toList();
     }
 }

@@ -20,6 +20,7 @@ public interface ConsultancyPaymentRepository
 
     List<ConsultancyPayment> findByClientId(String clientId);
 
+
     List<ConsultancyPayment> findByStatusOrderByDueDateAscIdAsc(String status);
 
     @Query("""
@@ -31,5 +32,15 @@ public interface ConsultancyPaymentRepository
         order by p.paymentDate desc, p.id desc
         """)
     List<ConsultancyPayment> findCompanyTdsDue();
+
+    @Query("""
+        select p
+        from ConsultancyPayment p
+        where p.paymentType = 'Company Pay'
+          and p.tdsAmount > 0
+          and p.tdsPaid = true
+        order by p.paymentDate desc, p.id desc
+        """)
+    List<ConsultancyPayment> findCompanyTdsPaid();
 
 }

@@ -35,4 +35,14 @@ const markTdsPaid = async (paymentId) => {
     if (!response.ok) throw new Error(await readError(response));
 };
 
-export default { getDueTds, markTdsPaid };
+const getPaidTds = async () => {
+    const response = await fetch(`${API_BASE_URL}/accounts/tds/paid`, {
+        method: "GET",
+        credentials: "include",
+    });
+
+    if (!response.ok) throw new Error(await readError(response));
+    return response.json();
+};
+
+export default { getDueTds, markTdsPaid, getPaidTds }; 
