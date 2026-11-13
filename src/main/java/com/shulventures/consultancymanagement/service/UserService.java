@@ -45,7 +45,7 @@ public class UserService {
                         ? "ACTIVE"
                         : request.getStatus().toUpperCase()
         );
-
+        user.setPresenceStatus("OFFLINE");
         User savedUser = userRepository.save(user);
 
         return toResponse(savedUser);
@@ -161,6 +161,11 @@ public class UserService {
                 .accessModules(user.getAccessModules())
                 .status(user.getStatus())
                 .lastActive(user.getLastActive())
+                .presenceStatus(
+                        user.getPresenceStatus() == null
+                                ? "OFFLINE"
+                                : user.getPresenceStatus()
+                )
                 .build();
     }
 

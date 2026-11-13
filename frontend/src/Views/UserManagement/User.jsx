@@ -11,68 +11,6 @@ const INITIAL_FORM = {
     branch: "",
 };
 
-// const MODULE_GROUPS = [
-//     {
-//         id: "accountsBox",
-//         title: "Accounts",
-//         parent: "ACCOUNTS",
-//         options: [
-//             { label: "All Account", value: "ACCOUNTS" },
-//             { label: "Payments View", value: "ACCOUNTS:PAYMENTS_VIEW" },
-//             // { label: "Payments Due (All)", value: "ACCOUNTS:PAYMENTS_DUE" },
-//             {
-//                 label: "Payments Due",
-//                 value: "CONSULTANCY:PAYMENTS_DUE",
-//             },
-//             {
-//                 label: "Defaulter",
-//                 value: "ACCOUNTS:PAYMENTS_DEFAULTER",
-//             },
-//             { label: "GST Generate", value: "ACCOUNTS:GST_GENERATE" },
-//             { label: "GST View", value: "ACCOUNTS:GST_VIEW" },
-//             {
-//                 label: "Expenses Add/View",
-//                 value: "ACCOUNTS:EXPENSES",
-//             },
-//             {
-//                 label: "Advance View/Add",
-//                 value: "ACCOUNTS:ADVANCE",
-//             },
-//             {
-//                 label: "TDS Due/paid",
-//                 value: "ACCOUNTS:TDS",
-//             }
-//         ],
-//     },
-//     {
-//         id: "employeeBox",
-//         title: "Employee Management",
-//         parent: "EMPLOYEE",
-//         options: [
-//             { label: "ALL Employee", value: "EMPLOYEE" },
-//             { label: "Add Employee", value: "EMPLOYEE:ADD" },
-//             { label: "View Employee", value: "EMPLOYEE:VIEW" },
-//             { label: "Add Salary", value: "EMPLOYEE:ADD_SALARY" },
-//         ],
-//     },
-//     {
-//         id: "attendanceBox",
-//         title: "Attendance Management",
-//         parent: "ATTENDANCE",
-//         options: [
-//             { label: "Attendance", value: "ATTENDANCE" },
-//         ],
-//     },
-//     {
-//         id: "consultantBox",
-//         title: "Consultancy Modules",
-//         parent: "CONSULTANCY",
-//         options: [
-//             { label: "Consultancy", value: "CONSULTANCY" },
-//         ],
-//     },
-// ];
-
 const MODULE_GROUPS = [
     {
         id: "accountsBox",

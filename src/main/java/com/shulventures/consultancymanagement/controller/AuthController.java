@@ -14,6 +14,9 @@ import org.springframework.security.core.context.*;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
+import com.shulventures.consultancymanagement.repository.UserRepository;
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
+    private final UserRepository userRepository;
 
     @PostMapping("/login")
     public LoginResponse login(
@@ -50,6 +54,10 @@ public class AuthController {
 
         var user = userDetails.getUser();
 
+        user.setLastActive(LocalDateTime.now());
+        user.setPresenceStatus("ONLINE");
+        user = userRepository.save(user);
+
         return LoginResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -60,6 +68,7 @@ public class AuthController {
                 .phone(user.getPhone())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
+                .presenceStatus(user.getPresenceStatus())
                 .build();
     }
 
@@ -80,18 +89,41 @@ public class AuthController {
                 .phone(user.getPhone())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
+                .presenceStatus(user.getPresenceStatus())
                 .build();
     }
 
+//    @PostMapping("/logout")
+//    public void logout(HttpServletRequest request) {
+//
+//        SecurityContextHolder.clearContext();
+//
+//        var session = request.getSession(false);
+//
+//        if (session != null) {
+//            session.invalidate();
+//        }
+//    }
+
+
     @PostMapping("/logout")
-    public void logout(HttpServletRequest request) {
-
-        SecurityContextHolder.clearContext();
-
-        var session = request.getSession(false);
-
-        if (session != null) {
-            session.invalidate();
+    public void logout(
+            HttpServletRequest request,
+            Authentication authentication
+    ) {
+        try {
+            if (authentication != null
+                    && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+                var user = userDetails.getUser();
+                user.setPresenceStatus("OFFLINE");
+                userRepository.save(user);
+            }
+        } finally {
+            SecurityContextHolder.clearContext();
+            var session = request.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
         }
     }
 }

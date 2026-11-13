@@ -17,4 +17,5 @@ public class UserResponse {
     private String accessModules;
     private String status;
     private LocalDateTime lastActive;
+    private String presenceStatus;
 }

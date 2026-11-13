@@ -31,7 +31,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setStatus("ACTIVE");
             admin.setPhone(null);
             admin.setAccessModules("ALL");
-
+            admin.setPresenceStatus("OFFLINE");
             userRepository.save(admin);
 
             System.out.println("========================================");

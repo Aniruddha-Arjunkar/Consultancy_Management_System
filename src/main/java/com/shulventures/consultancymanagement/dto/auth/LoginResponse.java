@@ -17,4 +17,5 @@ public class LoginResponse {
     private String phone;
     private String status;
     private LocalDateTime createdAt;
+    private String presenceStatus;
 }

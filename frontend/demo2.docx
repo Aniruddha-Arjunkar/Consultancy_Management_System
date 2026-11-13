@@ -134,6 +134,12 @@ $profile_info = [
 </div>
 </div>
 </body>
-</html>"
-dont make any changes yourself give me code 
+</html>
+dont make any changes yourself give me code"
 
+
+
+Now the profile page is done lets move forword , Till now we are not tracking Last Active (we have column users 
+table) and Status (We set it as Active by default) . Seniors project store Last Active As last Login Date and Time
+and In status Column track whether the user in Active (Log-in) or Offline (Log Out) Later we will use this in the 
+implemmentation of chat module. Don't make any changes yourself give me code . 
