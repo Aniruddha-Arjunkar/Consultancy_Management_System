@@ -13,6 +13,10 @@ import GuestRoute from "./GuestRoute";
 import PermissionRoute from "./PermissionRoute";
 import { useAuth } from "../context/AuthContext";
 
+
+// ================ User Profile ==========================
+import UserProfile from "./../Views/UserProfile/UserProfile.jsx";
+
 //=============== Chat ==========================
 import Chat from "./../Views/Chat/Chat.jsx"
 
@@ -172,6 +176,8 @@ function AppRoutes() {
 
                     {/* Chat: available to all authenticated users */}
                     <Route path="chat" element={<Chat />} />
+
+                    <Route path="profile" element={<UserProfile />} />
 
     
                     {/* Accounts */}

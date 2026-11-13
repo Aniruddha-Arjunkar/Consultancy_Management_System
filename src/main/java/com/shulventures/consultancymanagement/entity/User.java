@@ -2,7 +2,7 @@ package com.shulventures.consultancymanagement.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -45,4 +45,8 @@ public class User {
 
     @Column(name = "last_active")
     private LocalDateTime lastActive;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }

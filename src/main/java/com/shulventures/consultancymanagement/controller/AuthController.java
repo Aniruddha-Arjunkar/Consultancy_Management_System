@@ -57,6 +57,9 @@ public class AuthController {
                 .role(user.getRole())
                 .branch(user.getBranch())
                 .accessModules(user.getAccessModules())
+                .phone(user.getPhone())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
@@ -74,6 +77,9 @@ public class AuthController {
                 .role(user.getRole())
                 .branch(user.getBranch())
                 .accessModules(user.getAccessModules())
+                .phone(user.getPhone())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
