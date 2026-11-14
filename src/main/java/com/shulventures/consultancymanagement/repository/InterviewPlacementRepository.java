@@ -22,4 +22,15 @@ public interface InterviewPlacementRepository
 
     List<InterviewPlacement>
     findByCandidateIdOrderByInterviewRoundAscInterviewIdAsc(Long candidateId);
+
+    List<InterviewPlacement>
+    findByCompanyNameIgnoreCaseAndInterviewStatusOrderByInterviewIdDesc(
+            String companyName,
+            String interviewStatus
+    );
+
+    List<InterviewPlacement>
+    findByCompanyNameIgnoreCaseOrderByInterviewDateAscInterviewTimeAscInterviewIdAsc(
+            String companyName
+    );
 }

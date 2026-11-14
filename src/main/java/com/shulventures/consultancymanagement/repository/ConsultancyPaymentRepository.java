@@ -23,6 +23,13 @@ public interface ConsultancyPaymentRepository
 
     List<ConsultancyPayment> findByStatusOrderByDueDateAscIdAsc(String status);
 
+
+    List<ConsultancyPayment> findByInterviewIdInAndPaymentType(
+            List<Long> interviewIds,
+            String paymentType
+    );
+
+
     @Query("""
         select p
         from ConsultancyPayment p

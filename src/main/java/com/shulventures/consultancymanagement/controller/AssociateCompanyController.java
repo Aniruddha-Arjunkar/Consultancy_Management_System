@@ -23,12 +23,19 @@ import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyResp
 import java.util.List;
 import java.util.Map;
 
+import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyPaymentResponse;
+import com.shulventures.consultancymanagement.service.AssociateCompanyPaymentService;
+import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyCandidateResponse;
+import com.shulventures.consultancymanagement.service.AssociateCompanyCandidateService;
+
 @RestController
 @RequestMapping("/api/associate-companies")
 @RequiredArgsConstructor
 public class AssociateCompanyController {
 
     private final AssociateCompanyService associateCompanyService;
+    private final AssociateCompanyPaymentService paymentService;
+    private final AssociateCompanyCandidateService candidateService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -100,5 +107,27 @@ public class AssociateCompanyController {
             @Valid @ModelAttribute UpdateAssociateCompanyRequest request
     ) {
         return associateCompanyService.update(id, request);
+    }
+
+
+    @GetMapping("/{id}/payment-details")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'ASSOCIATE_COMPANY_VIEW') "
+                    + "and @permissionService.hasPage(authentication, 'ACCOUNTS', 'PAYMENTS_VIEW')"
+    )
+    public List<AssociateCompanyPaymentResponse> getPaymentDetails(
+            @PathVariable Long id
+    ) {
+        return paymentService.getPaymentDetails(id);
+    }
+
+    @GetMapping("/{id}/candidate-details")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'ASSOCIATE_COMPANY_VIEW')"
+    )
+    public List<AssociateCompanyCandidateResponse> getCandidateDetails(
+            @PathVariable Long id
+    ) {
+        return candidateService.getCandidateDetails(id);
     }
 }

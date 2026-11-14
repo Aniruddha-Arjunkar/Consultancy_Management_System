@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams , useNavigate} from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import API_BASE_URL from "../../../../services/api";
 import associateCompanyService from "../../../../services/associateCompanyService";
 import "./ViewAssociateDetail.css";
@@ -25,54 +25,76 @@ const paymentCategories = [
     { id: "defaulted", label: "Defaulted", className: "defaulted" },
 ];
 
+
 const candidateSections = [
     {
         id: "scheduled",
         label: "Scheduled Candidates",
+        statuses: ["Scheduled", "Rescheduled"],
         columns: [
-            "Candidate Name",
-            "Interview Date",
-            "Position",
-            "Interview Time",
-            "Remark",
+            { key: "candidateName", label: "Candidate Name" },
+            { key: "interviewDate", label: "Interview Date" },
+            { key: "position", label: "Position" },
+            { key: "interviewTime", label: "Interview Time" },
+            { key: "interviewStatus", label: "Interview Status" },
+            { key: "remark", label: "Remark" },
         ],
     },
     {
         id: "completed",
         label: "Completed Candidates",
+        statuses: ["Completed"],
         columns: [
-            "Candidate Name",
-            "Interview Date",
-            "Position",
-            "Interview Time",
-            "Remark",
+            { key: "candidateName", label: "Candidate Name" },
+            { key: "interviewDate", label: "Interview Date" },
+            { key: "position", label: "Position" },
+            { key: "interviewTime", label: "Interview Time" },
+            { key: "interviewStatus", label: "Interview Status" },
+            { key: "remark", label: "Remark" },
         ],
     },
     {
         id: "placed",
         label: "Placed Candidates",
+        statuses: ["Placed"],
         columns: [
-            "Candidate Name",
-            "Salary Package",
-            "Position",
-            "Joining Date",
-            "HR Name",
-            "Remark",
+            { key: "candidateName", label: "Candidate Name" },
+            { key: "salaryPackage", label: "Salary Package" },
+            { key: "position", label: "Position" },
+            { key: "joiningDate", label: "Joining Date" },
+            { key: "hrName", label: "HR Name" },
+            { key: "remark", label: "Remark" },
         ],
     },
     {
         id: "rejected",
         label: "Rejected Candidates",
+        statuses: ["Rejected"],
         columns: [
-            "Candidate Name",
-            "Interview Date",
-            "Position",
-            "Interview Time",
-            "Rejection Reason",
-            "Remark",
+            { key: "candidateName", label: "Candidate Name" },
+            { key: "interviewDate", label: "Interview Date" },
+            { key: "position", label: "Position" },
+            { key: "interviewTime", label: "Interview Time" },
+            { key: "rejectionReason", label: "Rejection Reason" },
+            { key: "remark", label: "Remark" },
         ],
     },
 ];
+
+
+const formatCurrency = (value) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 2,
+    }).format(Number(value ?? 0));
+
+const categoryLabels = {
+    paid: "Paid",
+    partial: "Partially Paid",
+    unpaid: "Unpaid",
+    defaulted: "Defaulted",
+};
 
 const ViewAssociateDetails = () => {
     const { associateId } = useParams();
@@ -81,6 +103,16 @@ const ViewAssociateDetails = () => {
     const [error, setError] = useState("");
     const [activePaymentCategory, setActivePaymentCategory] = useState("paid");
     const [activeCandidateSection, setActiveCandidateSection] = useState("");
+
+    const [paymentRecords, setPaymentRecords] = useState([]);
+    const [paymentLoading, setPaymentLoading] = useState(true);
+    const [paymentError, setPaymentError] = useState("");
+
+    const [candidateRecords, setCandidateRecords] = useState([]);
+    const [candidateLoading, setCandidateLoading] = useState(true);
+    const [candidateError, setCandidateError] = useState("");
+    const [candidateSearch, setCandidateSearch] = useState({});
+    const [showAllCandidates, setShowAllCandidates] = useState({});
 
     const navigate = useNavigate();
 
@@ -110,6 +142,76 @@ const ViewAssociateDetails = () => {
         };
 
         loadCompany();
+
+        return () => {
+            current = false;
+        };
+    }, [associateId]);
+
+    useEffect(() => {
+        let current = true;
+
+        const loadPaymentRecords = async () => {
+            setPaymentLoading(true);
+            setPaymentError("");
+
+            try {
+                const data =
+                    await associateCompanyService
+                        .getAssociateCompanyPaymentDetails(associateId);
+
+                if (current) {
+                    setPaymentRecords(Array.isArray(data) ? data : []);
+                }
+            } catch (loadError) {
+                if (current) {
+                    setPaymentError(
+                        loadError.message || "Could not load payment details."
+                    );
+                }
+            } finally {
+                if (current) {
+                    setPaymentLoading(false);
+                }
+            }
+        };
+
+        loadPaymentRecords();
+
+        return () => {
+            current = false;
+        };
+    }, [associateId]);
+
+    useEffect(() => {
+        let current = true;
+
+        const loadCandidateRecords = async () => {
+            setCandidateLoading(true);
+            setCandidateError("");
+
+            try {
+                const data =
+                    await associateCompanyService
+                        .getAssociateCompanyCandidateDetails(associateId);
+
+                if (current) {
+                    setCandidateRecords(Array.isArray(data) ? data : []);
+                }
+            } catch (loadError) {
+                if (current) {
+                    setCandidateError(
+                        loadError.message || "Could not load candidate details."
+                    );
+                }
+            } finally {
+                if (current) {
+                    setCandidateLoading(false);
+                }
+            }
+        };
+
+        loadCandidateRecords();
 
         return () => {
             current = false;
@@ -154,6 +256,38 @@ const ViewAssociateDetails = () => {
 
     const selectedCandidateSection = candidateSections.find(
         (section) => section.id === activeCandidateSection
+    );
+
+    const candidateRowsForSection = selectedCandidateSection
+        ? candidateRecords
+            .filter((record) =>
+                selectedCandidateSection.statuses.includes(record.interviewStatus)
+            )
+            .filter((record) => {
+                const query = (
+                    candidateSearch[selectedCandidateSection.id] || ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+                if (!query) {
+                    return true;
+                }
+
+                return selectedCandidateSection.columns.some(({ key }) =>
+                    String(record[key] ?? "").toLowerCase().includes(query)
+                );
+            })
+        : [];
+
+    const visibleCandidateRows = selectedCandidateSection
+        ? showAllCandidates[selectedCandidateSection.id]
+            ? candidateRowsForSection
+            : candidateRowsForSection.slice(0, 5)
+        : [];
+
+    const visiblePayments = paymentRecords.filter(
+        (payment) => payment.category === activePaymentCategory
     );
 
     return (
@@ -294,11 +428,10 @@ const ViewAssociateDetails = () => {
                                 aria-selected={
                                     activePaymentCategory === category.id
                                 }
-                                className={`associate-category-button ${category.className} ${
-                                    activePaymentCategory === category.id
-                                        ? "active"
-                                        : ""
-                                }`}
+                                className={`associate-category-button ${category.className} ${activePaymentCategory === category.id
+                                    ? "active"
+                                    : ""
+                                    }`}
                                 onClick={() =>
                                     setActivePaymentCategory(category.id)
                                 }
@@ -324,15 +457,50 @@ const ViewAssociateDetails = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td
-                                        colSpan="9"
-                                        className="associate-empty-cell"
-                                    >
-                                        Payment records will appear here when
-                                        the payment module is implemented.
-                                    </td>
-                                </tr>
+                                {paymentLoading ? (
+                                    <tr>
+                                        <td colSpan="9" className="associate-empty-cell">
+                                            Loading payment details…
+                                        </td>
+                                    </tr>
+                                ) : paymentError ? (
+                                    <tr>
+                                        <td colSpan="9" className="associate-empty-cell">
+                                            {paymentError}
+                                        </td>
+                                    </tr>
+                                ) : visiblePayments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="9" className="associate-empty-cell">
+                                            No {categoryLabels[activePaymentCategory].toLowerCase()} records.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    visiblePayments.map((payment) => (
+                                        <tr key={payment.interviewId}>
+                                            <td>{payment.candidateName}</td>
+                                            <td>{formatCurrency(payment.baseAmount)}</td>
+                                            <td>{formatCurrency(payment.gstAmount)}</td>
+                                            <td>{formatCurrency(payment.totalAmount)}</td>
+                                            <td>{formatCurrency(payment.paidAmount)}</td>
+                                            <td>
+                                                {Number(payment.tdsAmount) > 0
+                                                    ? `${formatCurrency(payment.tdsAmount)}${payment.tdsPaid ? " (Paid)" : " (Unpaid)"
+                                                    }`
+                                                    : "—"}
+                                            </td>
+                                            <td>{formatCurrency(payment.balanceAmount)}</td>
+                                            <td>{payment.dueDate || "—"}</td>
+                                            <td>
+                                                <span
+                                                    className={`associate-payment-status ${payment.category}`}
+                                                >
+                                                    {categoryLabels[payment.category]}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -343,11 +511,10 @@ const ViewAssociateDetails = () => {
                         <button
                             key={section.id}
                             type="button"
-                            className={`associate-candidate-button ${
-                                activeCandidateSection === section.id
-                                    ? "active"
-                                    : ""
-                            }`}
+                            className={`associate-candidate-button ${activeCandidateSection === section.id
+                                ? "active"
+                                : ""
+                                }`}
                             aria-expanded={
                                 activeCandidateSection === section.id
                             }
@@ -366,34 +533,93 @@ const ViewAssociateDetails = () => {
                     <section className="associate-detail-card associate-related-card">
                         <h2>{selectedCandidateSection.label}</h2>
 
+                        <div className="associate-candidate-search">
+                            <input
+                                type="search"
+                                value={candidateSearch[selectedCandidateSection.id] || ""}
+                                placeholder={`Search ${selectedCandidateSection.label.toLowerCase()}...`}
+                                aria-label={`Search ${selectedCandidateSection.label}`}
+                                onChange={(event) =>
+                                    setCandidateSearch((current) => ({
+                                        ...current,
+                                        [selectedCandidateSection.id]: event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+
                         <div className="associate-table-wrapper">
                             <table className="associate-related-table">
                                 <thead>
                                     <tr>
-                                        {selectedCandidateSection.columns.map(
-                                            (column) => (
-                                                <th key={column}>{column}</th>
-                                            )
-                                        )}
+                                        {selectedCandidateSection.columns.map((column) => (
+                                            <th key={column.key}>{column.label}</th>
+                                        ))}
                                     </tr>
                                 </thead>
+
                                 <tbody>
-                                    <tr>
-                                        <td
-                                            colSpan={
-                                                selectedCandidateSection.columns
-                                                    .length
-                                            }
-                                            className="associate-empty-cell"
-                                        >
-                                            Candidate records will appear here
-                                            when the candidate module is
-                                            implemented.
-                                        </td>
-                                    </tr>
+                                    {candidateLoading ? (
+                                        <tr>
+                                            <td
+                                                colSpan={selectedCandidateSection.columns.length}
+                                                className="associate-empty-cell"
+                                            >
+                                                Loading candidate details…
+                                            </td>
+                                        </tr>
+                                    ) : candidateError ? (
+                                        <tr>
+                                            <td
+                                                colSpan={selectedCandidateSection.columns.length}
+                                                className="associate-empty-cell"
+                                            >
+                                                {candidateError}
+                                            </td>
+                                        </tr>
+                                    ) : candidateRowsForSection.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={selectedCandidateSection.columns.length}
+                                                className="associate-empty-cell"
+                                            >
+                                                No matching candidates.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        visibleCandidateRows.map((record) => (
+                                            <tr key={record.interviewId}>
+                                                {selectedCandidateSection.columns.map((column) => (
+                                                    <td key={column.key}>
+                                                        {record[column.key] || "—"}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
+
+                        {!candidateLoading &&
+                            !candidateError &&
+                            candidateRowsForSection.length > 5 && (
+                                <button
+                                    type="button"
+                                    className="associate-candidate-more"
+                                    onClick={() =>
+                                        setShowAllCandidates((current) => ({
+                                            ...current,
+                                            [selectedCandidateSection.id]:
+                                                !current[selectedCandidateSection.id],
+                                        }))
+                                    }
+                                >
+                                    {showAllCandidates[selectedCandidateSection.id]
+                                        ? "Show Less"
+                                        : `See More (${candidateRowsForSection.length - 5})`}
+                                </button>
+                            )}
                     </section>
                 )}
             </div>

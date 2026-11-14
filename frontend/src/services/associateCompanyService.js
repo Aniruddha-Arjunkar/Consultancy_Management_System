@@ -77,9 +77,45 @@ const updateAssociateCompany = async (associateId, formData) => {
     return response.json();
 };
 
+
+const getAssociateCompanyPaymentDetails = async (associateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/associate-companies/${encodeURIComponent(associateId)}/payment-details`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
+
+const getAssociateCompanyCandidateDetails = async (associateId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/associate-companies/${encodeURIComponent(associateId)}/candidate-details`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+
+    return response.json();
+};
+
 export default {
     createAssociateCompany,
     getAssociateCompanies,
     getAssociateCompanyById,
-    updateAssociateCompany
+    updateAssociateCompany,
+    getAssociateCompanyPaymentDetails,
+    getAssociateCompanyCandidateDetails
 };
