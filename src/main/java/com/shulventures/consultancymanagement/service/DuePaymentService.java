@@ -140,6 +140,9 @@ public class DuePaymentService {
             duePayments.add(new DuePaymentResponse(
                     payment.getId(),
                     payment.getClientId(),
+                    paymentType,
+                    placement.getCandidateId(),
+                    company == null ? null : company.getId(),
                     "—",
                     "Consultancy",
                     payerName,

@@ -6,6 +6,9 @@ import java.time.LocalDate;
 public record DuePaymentResponse(
         Long paymentId,
         String clientId,
+        String paymentType,
+        Long candidateId,
+        Long associateId,
         String branch,
         String service,
         String name,

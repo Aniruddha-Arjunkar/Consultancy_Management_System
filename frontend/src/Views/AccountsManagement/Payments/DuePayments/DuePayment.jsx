@@ -9,17 +9,33 @@ const formatAmount = (value) =>
         maximumFractionDigits: 2,
     });
 
+
+
+const getPaymentDetailUrl = (payment) => {
+    const paymentType = payment.paymentType?.trim().toLowerCase();
+
+    if (paymentType === "company pay" && payment.associateId) {
+        return `/consultancy/view-associate-details/${payment.associateId}`;
+    }
+
+    if (paymentType === "candidate pay" && payment.candidateId) {
+        return `/consultancy/view-candidate-detail/${payment.candidateId}`;
+    }
+
+    return null;
+};
+
 const DuePayment = () => {
     const [payments, setPayments] = useState([]);
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const navigate = useNavigate();
-const [openActionId, setOpenActionId] = useState(null);
-const [defaulterTarget, setDefaulterTarget] = useState(null);
-const [defaulterNote, setDefaulterNote] = useState("");
-const [defaulterError, setDefaulterError] = useState("");
-const [markingDefaulter, setMarkingDefaulter] = useState(false);
+    const [openActionId, setOpenActionId] = useState(null);
+    const [defaulterTarget, setDefaulterTarget] = useState(null);
+    const [defaulterNote, setDefaulterNote] = useState("");
+    const [defaulterError, setDefaulterError] = useState("");
+    const [markingDefaulter, setMarkingDefaulter] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -75,34 +91,34 @@ const [markingDefaulter, setMarkingDefaulter] = useState(false);
     );
 
     const submitDefaulter = async (event) => {
-    event.preventDefault();
-    if (!defaulterTarget || markingDefaulter) return;
+        event.preventDefault();
+        if (!defaulterTarget || markingDefaulter) return;
 
-    setMarkingDefaulter(true);
-    setDefaulterError("");
+        setMarkingDefaulter(true);
+        setDefaulterError("");
 
-    try {
-        await paymentService.markClientDefaulter(
-            defaulterTarget.clientId,
-            defaulterNote.trim()
-        );
+        try {
+            await paymentService.markClientDefaulter(
+                defaulterTarget.clientId,
+                defaulterNote.trim()
+            );
 
-        setPayments((current) =>
-            current.filter(
-                (payment) =>
-                    payment.clientId !== defaulterTarget.clientId
-            )
-        );
-        setDefaulterTarget(null);
-        setDefaulterNote("");
-    } catch (submitError) {
-        setDefaulterError(
-            submitError.message || "Could not mark this client as a defaulter."
-        );
-    } finally {
-        setMarkingDefaulter(false);
-    }
-};
+            setPayments((current) =>
+                current.filter(
+                    (payment) =>
+                        payment.clientId !== defaulterTarget.clientId
+                )
+            );
+            setDefaulterTarget(null);
+            setDefaulterNote("");
+        } catch (submitError) {
+            setDefaulterError(
+                submitError.message || "Could not mark this client as a defaulter."
+            );
+        } finally {
+            setMarkingDefaulter(false);
+        }
+    };
 
     return (
         <section id="main-content">
@@ -176,11 +192,21 @@ const [markingDefaulter, setMarkingDefaulter] = useState(false);
                                         <tbody>
                                             {filteredPayments.length > 0 ? (
                                                 filteredPayments.map(
-                                                    (payment , index) => (
+                                                    (payment, index) => (
                                                         <tr key={payment.paymentId}>
                                                             <td>{index + 1}</td>
                                                             <td className="view-client-name" style={{ fontWeight: "600" }}>
-                                                                {payment.name || "—"}
+                                                                {getPaymentDetailUrl(payment) ? (
+                                                                    <a
+                                                                        href={getPaymentDetailUrl(payment)}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        {payment.name || "—"}
+                                                                    </a>
+                                                                ) : (
+                                                                    payment.name || "—"
+                                                                )}
                                                             </td>
                                                             <td className="view-client-phone">
                                                                 {payment.phone || "—"}
@@ -198,52 +224,52 @@ const [markingDefaulter, setMarkingDefaulter] = useState(false);
                                                                 {payment.dueDate || "—"}
                                                             </td>
                                                             <td className="view-client-action">
-    <button
-        type="button"
-        className="view-client-action-btn"
-        onClick={() =>
-            setOpenActionId((current) =>
-                current === payment.paymentId
-                    ? null
-                    : payment.paymentId
-            )
-        }
-    >
-        Action
-        <span className="view-client-action-arrow">
-            {openActionId === payment.paymentId ? "▲" : "▼"}
-        </span>
-    </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="view-client-action-btn"
+                                                                    onClick={() =>
+                                                                        setOpenActionId((current) =>
+                                                                            current === payment.paymentId
+                                                                                ? null
+                                                                                : payment.paymentId
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Action
+                                                                    <span className="view-client-action-arrow">
+                                                                        {openActionId === payment.paymentId ? "▲" : "▼"}
+                                                                    </span>
+                                                                </button>
 
-    {openActionId === payment.paymentId && (
-        <div className="view-client-action-buttons show">
-            <button
-                type="button"
-                className="view-client-view-btn"
-                onClick={() =>
-                    navigate(
-                        `/accounts/due-payment/update/${payment.paymentId}`
-                    )
-                }
-            >
-                Update
-            </button>
+                                                                {openActionId === payment.paymentId && (
+                                                                    <div className="view-client-action-buttons show">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="view-client-view-btn"
+                                                                            onClick={() =>
+                                                                                navigate(
+                                                                                    `/accounts/due-payment/update/${payment.paymentId}`
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Update
+                                                                        </button>
 
-            <button
-                type="button"
-                className="view-client-defaulter-btn"
-                onClick={() => {
-                    setOpenActionId(null);
-                    setDefaulterTarget(payment);
-                    setDefaulterNote("");
-                    setDefaulterError("");
-                }}
-            >
-                Mark Defaulter
-            </button>
-        </div>
-    )}
-</td>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="view-client-defaulter-btn"
+                                                                            onClick={() => {
+                                                                                setOpenActionId(null);
+                                                                                setDefaulterTarget(payment);
+                                                                                setDefaulterNote("");
+                                                                                setDefaulterError("");
+                                                                            }}
+                                                                        >
+                                                                            Mark Defaulter
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </td>
                                                         </tr>
                                                     )
                                                 )
@@ -276,64 +302,64 @@ const [markingDefaulter, setMarkingDefaulter] = useState(false);
             </section>
 
             {defaulterTarget && (
-    <div
-        className="defaulter-modal-overlay"
-        onClick={(event) => {
-            if (event.target === event.currentTarget && !markingDefaulter) {
-                setDefaulterTarget(null);
-            }
-        }}
-    >
-        <form
-            className="defaulter-modal"
-            onSubmit={submitDefaulter}
-        >
-            <h2>Mark Client as Defaulter</h2>
+                <div
+                    className="defaulter-modal-overlay"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget && !markingDefaulter) {
+                            setDefaulterTarget(null);
+                        }
+                    }}
+                >
+                    <form
+                        className="defaulter-modal"
+                        onSubmit={submitDefaulter}
+                    >
+                        <h2>Mark Client as Defaulter</h2>
 
-            <label>Client Name</label>
-            <input
-                type="text"
-                value={defaulterTarget.name || ""}
-                readOnly
-            />
+                        <label>Client Name</label>
+                        <input
+                            type="text"
+                            value={defaulterTarget.name || ""}
+                            readOnly
+                        />
 
-            <label htmlFor="defaulter-note">Reason</label>
-            <textarea
-                id="defaulter-note"
-                rows={4}
-                value={defaulterNote}
-                onChange={(event) => setDefaulterNote(event.target.value)}
-                maxLength={1000}
-                required
-            />
+                        <label htmlFor="defaulter-note">Reason</label>
+                        <textarea
+                            id="defaulter-note"
+                            rows={4}
+                            value={defaulterNote}
+                            onChange={(event) => setDefaulterNote(event.target.value)}
+                            maxLength={1000}
+                            required
+                        />
 
-            {defaulterError && (
-                <p role="alert">{defaulterError}</p>
+                        {defaulterError && (
+                            <p role="alert">{defaulterError}</p>
+                        )}
+
+                        <div className="defaulter-modal-actions">
+                            <button
+                                type="button"
+                                className="defaulter-cancel-btn"
+                                disabled={markingDefaulter}
+                                onClick={() => setDefaulterTarget(null)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="defaulter-submit-btn"
+                                disabled={markingDefaulter}
+                            >
+                                {markingDefaulter ? "Saving..." : "Submit"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             )}
-
-            <div className="defaulter-modal-actions">
-                <button
-                    type="button"
-                    className="defaulter-cancel-btn"
-                    disabled={markingDefaulter}
-                    onClick={() => setDefaulterTarget(null)}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    className="defaulter-submit-btn"
-                    disabled={markingDefaulter}
-                >
-                    {markingDefaulter ? "Saving..." : "Submit"}
-                </button>
-            </div>
-        </form>
-    </div>
-)}
         </section>
 
-        
+
     );
 };
 export default DuePayment;
