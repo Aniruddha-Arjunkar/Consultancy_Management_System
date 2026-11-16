@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams , useLocation } from "react-router";
 import paymentService from "../../../../../services/paymentService";
 import "./UpdateDuePayment.css";
 
@@ -31,6 +31,10 @@ const UpdateDuePayment = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+
+
+    const location = useLocation();
+    const returnTo = location.state?.returnTo || "/accounts/due-payment";
 
     useEffect(() => {
         let active = true;
@@ -160,7 +164,7 @@ const UpdateDuePayment = () => {
                 tdsPaid: form.applyTds && form.tdsPaid,
             });
             window.alert("Payment installment recorded successfully.");
-            navigate("/accounts/due-payment");
+            navigate(returnTo, { replace: true });
         } catch (saveError) {
             setError(saveError.message || "Could not record this payment.");
         } finally {
@@ -185,7 +189,7 @@ const UpdateDuePayment = () => {
                     <p role="alert">{error}</p>
                     <button
                         type="button"
-                        onClick={() => navigate("/accounts/due-payment")}
+                       onClick={() => navigate(returnTo)}
                     >
                         Back to Due Payments
                     </button>

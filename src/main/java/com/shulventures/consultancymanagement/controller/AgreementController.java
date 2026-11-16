@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 import com.shulventures.consultancymanagement.dto.agreement.UpdateAgreementRequest;
@@ -27,12 +26,17 @@ import org.springframework.http.HttpStatus;
 
 import com.shulventures.consultancymanagement.dto.agreement.CandidateInterviewDetailResponse;
 
+import com.shulventures.consultancymanagement.dto.payment.CandidatePaymentDetailsResponse;
+import com.shulventures.consultancymanagement.service.CandidatePaymentService;
+
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class AgreementController {
 
     private final AgreementService agreementService;
+    private final CandidatePaymentService candidatePaymentService;
 
     @PostMapping("/students/{studentId}/agreement")
     @PreAuthorize(
@@ -140,5 +144,16 @@ public class AgreementController {
             @PathVariable Long id
     ) {
         return agreementService.getCandidateInterviews(id);
+    }
+
+
+    @GetMapping("/agreements/{id}/payments")
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'CANDIDATES_VIEW')"
+    )
+    public CandidatePaymentDetailsResponse getCandidatePayments(
+            @PathVariable Long id
+    ) {
+        return candidatePaymentService.getCandidatePayments(id);
     }
 }

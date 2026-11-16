@@ -1,940 +1,411 @@
-Now Associate company detail payment detail section is done now lets move to candidate section (Bottom section of 
-ViewAssociateDetail.jsx Schedule Candidate , Completed candidate , placed candidate and rejeted candidate) . Review 
-the seniors code first and we will implement it view-associate-details.php -----------> "
-<?php
+lets move to next funtionality unimplemented in consultancy management module in All candidate sub-module > Action
+column > view Button > ViewCandidateDetail.jsx > Payment detail section . First we analyze seniors code properlly
+identify how she implemented it and future error possibilities. seniors code file view-agreement-detail.php ------>
+"<?php
 session_start();
+
+// Check if the user is logged in
 if (!isset($_SESSION['email'])) {
     $_SESSION['msg'] = "You must log in first";
-    header('location: login.php');
+    header('location:login.php');
     exit();
 }
+
+// Handle logout
 if (isset($_GET['logout'])) {
     session_destroy();
     unset($_SESSION['email']);
-    header('location: login.php');
+    header('location:login.php');
     exit();
 }
 
+// Include database connection
 require_once 'db_connect.php';
 include 'header.php';
 
-$max_rows_to_show = 5; // Show 5 rows by default
+// Check if 'id' is set in the URL and is numeric
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $id = $_GET['id'];
 
-// Validate and sanitize the ID parameter from the URL
-if (isset($_GET['id'])) {
-    $id = mysqli_real_escape_string($conn, $_GET['id']);
-
-    // Fetch associate details from the database
-    $sql = "SELECT * FROM tbl_associate WHERE Id = $id";
+    // Fetch the agreement details from the database
+    $sql = "SELECT * FROM tbl_agreement WHERE Id = $id";
     $result = mysqli_query($conn, $sql);
+
+    if (!$result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
 
     if (mysqli_num_rows($result) > 0) {
         $row = mysqli_fetch_assoc($result);
-        // Associate details
-        $company_name = $row['company_name'];
-        $location = $row['location'];
-        $shipping_address = $row['shipping_address'];
-        $gst_number = $row['gst_number'];
-        $working_domain = $row['working_domain'];
-        $working_technology = $row['working_technology'];
-        $no_of_employee = $row['no_of_employee'];
-        $contact_person = $row['contact_person'];
-        $phone = $row['phone'];
-        $email = $row['email'];
-        $manager_name  = $row['manager_name'] ?? '';
-        $manager_phone = $row['manager_phone'] ?? '';
-        $manager_email = $row['manager_email'] ?? '';
-        $pay_package_fresher = $row['pay_package_fresher'];
-        $pay_package_experienced = $row['pay_package_experienced'];
-        $sla_agreed = $row['sla_agreed'];
-        $pay_for_fresher = $row['pay_for_fresher'];
-        $pay_for_experienced = $row['pay_for_experienced'];
-
-        // Fetch candidates from the tbl_placement table, join with tbl_agreement to get candidate name
-        $placement_sql = "
-    SELECT 
-        p.*,
-        a.name AS candidate_name,
-        -- Total paid from installments
-    SUM(
-        CASE 
-            WHEN pay.payment_type = 'Company Pay'
-            THEN pay.paid_amount 
-            ELSE 0 
-        END
-    ) AS total_paid,
-    MAX(
-    CASE 
-        WHEN pay.payment_type = 'Company Pay'
-        THEN pay.tds_amount 
-        ELSE 0 
-    END
-) AS total_tds,
-
-    -- Total invoice amount (only once)
-    MAX(
-        CASE 
-             WHEN pay.payment_type = 'Company Pay' 
-            THEN pay.total_amount 
-            ELSE 0 
-        END
-    ) AS invoice_total,
-
-    MAX(pay.status) AS payment_status,
-   GROUP_CONCAT(
-    CASE 
-        WHEN pay.payment_type = 'Company Pay'
-        THEN CONCAT(
-            IFNULL(pay.paid_amount, 0),
-            ' (Due: ',
-            IFNULL(pay.due_date, 'N/A'),
-            ')'
-        )
-    END
-    SEPARATOR '<br>'
-) AS payments_detail
-,
-
-        gi.cgst,
-    gi.sgst,
-    gi.igst,
-    gi.total_amount AS gst_total_amount
-    
-    FROM tbl_placement p
-    JOIN tbl_agreement a ON p.candidate_id = a.id
-    LEFT JOIN tbl_payment pay ON pay.client_Id = p.candidate_id
-    AND pay.interview_id = p.interview_id
-    
-    LEFT JOIN tbl_gst_invoice gi 
-    ON gi.placement_interview_id = p.interview_id
-    AND gi.source_type = 'Consultant'
-    
-    WHERE p.company_name = '$company_name'
-    GROUP BY p.candidate_id, a.name, p.company_pay_amount, p.company_gst_amount, p.company_pay_date, p.pay_remark, p.interview_id
-";
-
-
-
-
-        $placement_result = mysqli_query($conn, $placement_sql);
-
-        // Separate candidates based on interview status
-        $placed_candidates = [];
-        $scheduled_candidates = [];
-        $completed_candidates = [];
-        $rejected_candidates = [];
-
-        while ($candidate = mysqli_fetch_assoc($placement_result)) {
-            if ($candidate['interview_status'] === 'Placed') {
-                $placed_candidates[] = $candidate;
-            } elseif ($candidate['interview_status'] === 'Scheduled') {
-                $scheduled_candidates[] = $candidate;
-            } elseif ($candidate['interview_status'] === 'Completed') {
-              $completed_candidates[] = $candidate;         
-            } elseif ($candidate['interview_status'] === 'Rejected') {
-                $rejected_candidates[] = $candidate;
-            }
-        }
-        
     } else {
-        echo "No associate found with the given ID.";
+        echo "<p>No agreement found with the given ID.</p>";
         exit();
     }
+
+    // Fetch placement details based on candidate_id
+    $placement_sql = "SELECT * FROM tbl_placement WHERE candidate_id = $id";
+    $placement_result = mysqli_query($conn, $placement_sql);
+
+    if (!$placement_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Fetch interview details based on interview_id from tbl_placement
+    $interview_sql = "SELECT * FROM tbl_interview WHERE interview_id IN (SELECT interview_id FROM tbl_placement WHERE candidate_id = $id)";
+    $interview_result = mysqli_query($conn, $interview_sql);
+
+    if (!$interview_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Step 1: Check if the candidate ever had a "Company Pay" payment
+    $check_company_pay_sql = "SELECT 1 FROM tbl_payment WHERE client_Id = $id AND payment_type = 'Company Pay' LIMIT 1";
+    $check_company_pay_result = mysqli_query($conn, $check_company_pay_sql);
+
+    if (!$check_company_pay_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Step 2: Set flag if the candidate has "Company Pay" history
+    $had_company_pay = mysqli_num_rows($check_company_pay_result) > 0;
+
+    // Step 3: Fetch payment records (exclude "Company Pay" if the candidate had one)
+    if ($had_company_pay) {
+        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id AND payment_type != 'Company Pay'";
+    } else {
+        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id ";
+    }
+    
+    $payment_result = mysqli_query($conn, $payment_sql);
+
+    if (!$payment_result) {
+        die("Query failed: " . mysqli_error($conn));
+    }
+
+    // Calculate the total paid amount
+    $total_paid_amount = 0;
+    while ($payment = mysqli_fetch_assoc($payment_result)) {
+        $total_paid_amount += (float)$payment['paid_amount'];
+    }
+
+    // Reset the pointer to the start of the result set for displaying the payment details
+    mysqli_data_seek($payment_result, 0);  // Rewind the result set pointer
 } else {
-    echo "ID parameter is missing.";
+    echo "<p>Invalid ID provided.</p>";
     exit();
 }
-
-
-// Prepare Payment categories
-$paid_candidates = $partial_candidates = $unpaid_candidates = $defaulted_candidates = [];
-
-foreach ($placed_candidates as $candidate) {
-    $total_paid   = (float)($candidate['total_paid'] ?? 0);
-    $invoice_total = (float)($candidate['invoice_total'] ?? 0);
-    $status = strtolower($candidate['payment_status'] ?? '');
-
-    if ($status === 'defaulted') {
-        $defaulted_candidates[] = $candidate;
-    } elseif ($total_paid >= $invoice_total && $invoice_total > 0) {
-        $paid_candidates[] = $candidate;
-    } elseif ($total_paid > 0 && $total_paid < $invoice_total) {
-        $partial_candidates[] = $candidate;
-    } else {
-        $unpaid_candidates[] = $candidate;
-    }
-}
-
-// Function to render Payment table
-function renderPaymentTable($candidates, $max_rows_to_show) {
-    if (count($candidates) === 0) {
-        echo "<tr><td colspan='8'>No candidates in this category.</td></tr>";
-        return;
-    }
-    
-     // ðŸ”¹ Check if any candidate has TDS
-    $show_tds_column = false;
-    foreach ($candidates as $c) {
-        if (!empty($c['total_tds']) && $c['total_tds'] > 0) {
-            $show_tds_column = true;
-            break;
-        }
-    }
-
-    foreach ($candidates as $index => $candidate) {
-        $base = (float)($candidate['company_pay_amount'] ?? 0);
-        $company_gst = (float)($candidate['company_gst_amount'] ?? 0);
-        $total = $base + $company_gst;
-        
-        $total_paid   = (float)($candidate['total_paid'] ?? 0);
-        $invoice_total = (float)($candidate['invoice_total'] ?? 0);
-         $total_tds = (float)($candidate['total_tds'] ?? 0);
-       // âœ… Balance calculation including TDS
-        $balance_amount = max($invoice_total - $total_paid - $total_tds, 0);
-        
-        $payments = $candidate['payments_detail'] ?? '-';
-        $paid_amounts = ['-'];
-        $due_dates = ['-'];
-        if (!empty($payments) && $payments !== '-') {
-            $parts = explode('<br>', $payments);
-            $paid_amounts = [];
-            $due_dates = [];
-            foreach ($parts as $p) {
-                if (preg_match('/([\d\.]+)\s*\(Due:\s*([^)]+)\)/', trim($p), $matches)) {
-                    $paid_amounts[] = $matches[1];
-                    $due_dates[] = $matches[2];
-                }
-            }
-        }
-        if (empty($paid_amounts)) $paid_amounts = ['-'];
-        if (empty($due_dates)) $due_dates = ['-'];
-        
-        
-        $rows = max(count($paid_amounts), 1);
-
-        $row_class = ($index >= $max_rows_to_show) ? 'extra-row' : '';
-
-        for ($i = 0; $i < $rows; $i++):
 ?>
-<tr class="<?= $row_class ?>">
-    <?php if ($i === 0): ?>
-    <td><?= htmlspecialchars($candidate['candidate_name']); ?></td>
-    <td><?= number_format($base,2); ?></td>
-    <td><?= $company_gst > 0 ? number_format($company_gst,2) : '-'; ?></td>
-    <td><strong><?= number_format($total,2); ?></strong></td>
-     <?php endif; ?>
-    <td><?= number_format((float)$paid_amounts[$i],2); ?></td>
-    
-
-
-<?php if ($show_tds_column && $i === 0): ?>
-    <td rowspan="<?= $rows ?>">
-        <?= number_format($total_tds,2); ?>
-    </td>
-<?php endif; ?>
-    
-    <td><?= number_format($balance_amount,2); ?></td>
-    <td><?= htmlspecialchars($due_dates[$i]); ?></td>
-
-    <?php if ($i === 0): ?>
-    <td rowspan="<?= $rows ?>">
-        <?php
-        
-        $status = strtolower($candidate['payment_status'] ?? '');
-        if ($status === 'defaulted') echo "<span class='badge badge-danger'>Defaulted</span>";
-        elseif ($total_paid >= $invoice_total && $invoice_total > 0) echo "<span class='btn btn-success'>Paid</span>";
-        elseif ($total_paid > 0 && $total_paid < $invoice_total) echo "<span class='btn btn-info'>Partially Paid</span>";
-        else echo "<span class='btn btn-warning'>Unpaid</span>";
-        ?>
-    </td>
-    <?php endif; ?>
-</tr>
-<?php
-        endfor;
-    }
-
-    // Show "See More" if more rows
-    if (count($candidates) > $max_rows_to_show) {
-        echo "<tr class='see-more-row'><td colspan='8' style='text-align:center;'>
-              <button class='btn btn-primary btn-sm' onclick='showMoreRows(this)'>See More</button>
-              </td></tr>";
-    }
-}
-
-// Function to render simple candidate tables (Scheduled / Placed / Rejected)
-function renderCandidateTable($candidates, $columns, $max_rows_to_show) {
-    if (count($candidates) === 0) {
-        echo "<tr><td colspan='".count($columns)."'>No records found.</td></tr>";
-        return;
-    }
-
-    foreach ($candidates as $index => $candidate) {
-        $row_class = ($index >= $max_rows_to_show) ? 'extra-row' : '';
-        echo "<tr class='{$row_class}'>";
-        foreach ($columns as $col) {
-            echo "<td>".htmlspecialchars($candidate[$col] ?? '-')."</td>";
-        }
-        echo "</tr>";
-    }
-
-    if (count($candidates) > $max_rows_to_show) {
-        echo "<tr class='see-more-row'><td colspan='".count($columns)."' style='text-align:center;'>
-              <button class='btn btn-primary btn-sm' onclick='showMoreRows(this)'>See More</button>
-              </td></tr>";
-    }
-}
-?>
-
-
 
 <body>
-    <!-- Main content start -->
-    <section id="main-content">
-        <section class="wrapper">
-            <div class="form-w3layouts">
-                <!-- Associate Details -->
-                <div class="row">
-                    <div class="col-lg-12">
-                        <section class="panel">
-                            <header class="panel-heading">
-                                Associate Details
-                            </header>
-                            <div class="panel-body">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Company Name</th>
-                                            <th>Address</th>
-                                            <th>Shipping Address</th>
-                                            <th>GST Number</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td><?= htmlspecialchars($company_name); ?></td>
-                                            <td><?= htmlspecialchars($location); ?></td>
-                                            <td><?= htmlspecialchars($shipping_address); ?></td>
-                                            <td><?= htmlspecialchars($gst_number); ?></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </div>
-                </div>    
-                
-                
-                
-                <div class="row">
-    <div class="col-lg-12">
-        <section class="panel">
-            <header class="panel-heading">
-                Company Work Details
-            </header>
-            <div class="panel-body">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Working Domain</th>
-                            <th>Working Technology</th>
-                            <th>No. of Employees</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><?= htmlspecialchars($working_domain); ?></td>
-                            <td><?= htmlspecialchars($working_technology); ?></td>
-                            <td><?= htmlspecialchars($no_of_employee); ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+<!-- Main content start -->
+<section id="main-content">
+    <section class="wrapper">
+       <div class="form-w3layouts">
+          <div style="margin-top: 10px; text-align: right;">
+    <div class="btn-group">
+
+        <a href="delete_candidate.php?id=<?= $id; ?>" 
+           class="btn btn-danger"
+           onclick="return confirm('Are you sure you want to permanently delete this candidate?');">
+            Delete Candidate
+        </a>
+
+        <a href="edit_agreement.php?id=<?= $id; ?>" 
+           class="btn btn-warning">
+            Edit & Update Details
+        </a>
+
+        <?php if ($row['status'] != 'Blacklisted'): ?>
+
+            <a href="blacklist_candidate.php?id=<?= $id; ?>" 
+               class="btn btn-danger"
+               onclick="return confirm('Are you sure you want to blacklist this candidate?');">
+                Blacklist Candidate
+            </a>
+
+        <?php else: ?>
+
+            <span class="btn btn-danger">Already Blacklisted</span>
+
+        <?php endif; ?>
+
     </div>
 </div>
-
-                
-                
-                
-
-                <div class="row">
-                    <div class="col-lg-12">
-                        <section class="panel">
-                            <header class="panel-heading">
-                                Contact Person Details
-                            </header>
-                            <br>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Type</th>
-                                        <th>Contact Person</th>
-                                        <th>Phone</th>
-                                        <th>Email</th>
-                                        
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>HR</strong></td>
-                                        <td><?= htmlspecialchars($contact_person); ?></td>
-                                        <td><?= htmlspecialchars($phone); ?></td>
-                                        <td><?= htmlspecialchars($email); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Manager</strong></td>
-                        <td><?= htmlspecialchars($manager_name); ?></td>
-                        <td><?= htmlspecialchars($manager_phone); ?></td>
-                        <td><?= htmlspecialchars($manager_email); ?></td>
-                    </tr>
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-12">
-                        <section class="panel">
-                            <header class="panel-heading">
-                                Packages Details
-                            </header>
-                            <br>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Pay Package Fresher</th>
-                                        <th>Pay Package Experienced</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><?= htmlspecialchars($pay_package_fresher); ?></td>
-                                        <td><?= htmlspecialchars($pay_package_experienced); ?></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
-                
-                
-                <div class="row">
-    <div class="col-lg-12">
-        <section class="panel">
-            <header class="panel-heading">
-                SLA & Invoice Details
-            </header>
-            <br>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>SLA Agreed</th>
-                        <th>Pay For Fresher</th>
-                        <th>Pay For Experienced</th>
-                        <th>Invoice Send Text</th>
-                        <th>SLA Document</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><?= htmlspecialchars($sla_agreed); ?></td>
-                        
-                        <?php if ($sla_agreed === 'YES'): ?>
-                            <td><?= htmlspecialchars($pay_for_fresher); ?></td>
-                            <td><?= htmlspecialchars($pay_for_experienced); ?></td>
-                        <?php else: ?>
-                            <td>-</td>
-                            <td>-</td>
-                        <?php endif; ?>
-                        
-                        <td><?= htmlspecialchars($row['invoice_send_text'] ?? '-'); ?></td>
-                        
-                        <td>
-                            <?php if (!empty($row['sla_document']) && file_exists('uploads/sla/' . $row['sla_document'])): ?>
-                                <a href="uploads/sla/<?= $row['sla_document']; ?>" target="_blank">
-                                    View / Download
-                                </a>
-                            <?php else: ?>
-                                Not Uploaded
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-    </div>
-</div>
-                
-                
-                
-                
-                
-<!-- Payment Details -->
-<div class="row">
-<div class="col-lg-12">
-<section class="panel">
-<header class="panel-heading">Payment Details</header>
 <br>
+            <!-- Personal Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Personal Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Mobile No.</th>
+                                    <th>Email</th>
+                                    <th>Date of Birth</th>
+                                    <th>Address</th>
+                                    <th>Gender</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["name"]); ?></td>
+                                    <td><?= htmlspecialchars($row["phone"]); ?></td>
+                                    <td><?= htmlspecialchars($row["email"]); ?></td>
+                                    <td><?= htmlspecialchars($row["dob"]); ?></td>
+                                    <td><?= htmlspecialchars($row["address"]); ?></td>
+                                    <td><?= htmlspecialchars($row["gender"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
 
-<div class="btn-group">
-    <button class="btn btn-success" onclick="showPaymentSection('paidSection')">Paid</button>
-    <button class="btn btn-info" onclick="showPaymentSection('partialSection')">Partially Paid</button>
-    <button class="btn btn-warning" onclick="showPaymentSection('unpaidSection')">Unpaid</button>
-    <button class="btn btn-danger" onclick="showPaymentSection('defaultedSection')">Defaulted</button>
+            <!-- Education Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Education Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Qualification</th>
+                                    <th>Year Of Passing</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["ten_th"]); ?></td>
+                                    <td><?= htmlspecialchars($row["ten_th_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["ten_th_percentage"]); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["twelve_th"]); ?></td>
+                                    <td><?= htmlspecialchars($row["twelve_th_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["twelve_th_percentage"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Graduation Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Graduation Details
+                        </header>
+                        <br>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Qualification</th>
+                                    <th>Year Of Passing</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["graduation"]); ?></td>
+                                    <td><?= htmlspecialchars($row["graduation_year_of_passing"]); ?></td>
+                                    <td><?= htmlspecialchars($row["graduation_percentage"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Experience and Skills -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Experience/Skills
+                        </header>
+                        <br>
+
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Experience</th>
+                                    <th>Skills</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= htmlspecialchars($row["experience"]); ?></td>
+                                    <td><?= htmlspecialchars($row["skills"]); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Interview and Placement Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Interview and Placement Details
+                        </header>
+                        <BR>
+                        <?php if (mysqli_num_rows($placement_result) > 0): ?>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Company</th>
+                                        <th>Position</th>
+                                        <th>Interview Date</th>
+                                        <th>Interview Round</th>
+                                        <th>Remark</th>
+                                        <th>Interview Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($placement = mysqli_fetch_assoc($placement_result)): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($placement["company_name"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["position"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_date"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_round"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["remark"]); ?></td>
+                                            <td><?= htmlspecialchars($placement["interview_status"]); ?></td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                            <p>No interview or placement details available for this candidate.</p>
+                        <?php endif; ?>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <section class="panel">
+                        <header class="panel-heading">
+                            Payment Details
+                        </header>
+                        <br>
+                        <?php if (mysqli_num_rows($payment_result) > 0): ?>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Total Amount</th>
+                                        <th>Paid Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Gateway</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                              <tbody>
+<?php while ($payment = mysqli_fetch_assoc($payment_result)): ?>
+    <?php
+        $paid = (float)$payment["paid_amount"];
+        $total = (float)$payment["total_amount"];
+
+      
+
+        // Calculate payment status
+        if ($paid >= $total) {
+            $status = "Paid";
+        } elseif ($paid > 0 && $paid < $total) {
+            $status = "Partial";
+        } else {
+            $status = "Unpaid";
+        }
+    ?>
+    <tr>
+        <td><?= number_format($total, 2); ?></td>
+        <td><?= number_format($paid, 2); ?></td>
+        <td><?= htmlspecialchars($payment["payment_date"] ?? ''); ?></td>
+        <td><?= htmlspecialchars($payment["payment_gateway"] ?? ''); ?></td>
+        <td><strong><?= $status; ?></strong></td>
+        <td>
+           <a href="update-candidate-payment.php?payment_id=<?= $payment['Id']; ?>" class="btn-warning">
+    Update Payment
+</a>
+        </td>
+    </tr>
+<?php endwhile; ?>
+</tbody>
+
+                            </table>
+                            <!-- Total Paid Amount -->
+                            <div class="panel-footer">
+                                <strong>Total Paid Amount: </strong>
+                                <?= number_format($total_paid_amount, 2); ?>
+                            </div>
+                        <?php else: ?>
+                            <p>No payment details available for this candidate.</p>
+                        <?php endif; ?>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Schedule Placement Button -->
+           <div class="row"> 
+    <div class="col-lg-12"> 
+        <section class="panel"> 
+            <div class="panel-body" style="text-align: center;"> 
+                <?php if($row['status'] != 'Blacklisted'): ?> 
+                    <a href="interview-schedule.php?id=<?= $id; ?>" 
+                       class="btn-primary">
+                        Schedule Placement
+                    </a>
+                <?php endif; ?> 
+            </div> 
+        </section> 
+    </div> 
 </div>
-<br><br>
+    </section>
+</section>
+
+<!-- JS Scripts -->
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.dcjqaccordion.2.7.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/jquery.slimscroll.js"></script>
+<script src="js/jquery.nicescroll.js"></script>
+<script src="js/jquery.scrollTo.js"></script>
+
+</body>
+</html>
 
 <?php
-$payment_categories = [
-    'paidSection' => $paid_candidates,
-    'partialSection' => $partial_candidates,
-    'unpaidSection' => $unpaid_candidates,
-    'defaultedSection' => $defaulted_candidates
-];
-
-foreach($payment_categories as $id => $candidates):
-?>
-<div id="<?= $id ?>" class="payment-category" style="display:none;">
-<table class="table table-bordered">
-<thead>
-<tr>
-    <th>Candidate Name</th>
-    <th>Base Amount</th>
-    <th>GST Amount</th>
-    <th>Total Amount</th>
-    <th>Paid Amount</th>
-     <?php
-    $show_tds = false;
-    foreach ($candidates as $c) {
-        if (!empty($c['total_tds']) && $c['total_tds'] > 0) {
-            $show_tds = true;
-            break;
-        }
-    }
-    if ($show_tds) {
-        echo "<th>TDS Amount</th>";
-    }
-    ?>
-    <th>Balance Amount</th>   <!-- âœ… NEW -->
-    <th>Due Date</th>
-    <th>Status</th>
-</tr>
-</thead>
-<tbody>
-<?php renderPaymentTable($candidates, $max_rows_to_show); ?>
-</tbody>
-</table>
-</div>
-<?php endforeach; ?>
-
-</section>
-</div>
-</div>
-
-
-                <!-- Split Button Dropdown for Candidates -->
-     <div class="row">
-    <div class="col-lg-12">
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-scheduled" id="toggleScheduledCandidates">
-                Show Scheduled Candidates
-            </button>
-            <button type="button" class="btn btn-info" id="toggleCompletedCandidates">
-                Show Completed Candidates
-            </button>
-            <button type="button" class="btn btn-placed" id="togglePlacedCandidates">
-                Show Placed Candidates
-            </button>
-            <button type="button" class="btn btn-rejected" id="toggleRejectedCandidates">
-                Show Rejected Candidates
-            </button>
-        </div>
-    </div>
-</div>
-                <br>
-
-
-                <!-- Scheduled Candidates Section -->
-                <div class="row" id="scheduledCandidatesSection" style="display:none;">
-                    <div class="col-lg-12">
-                        <section class="panel">
-                            <header class="panel-heading">
-                                Scheduled Candidates
-                            </header>
-                            
-                             <div class="panel-body">
-
-    <!-- LEFT SEARCH BAR -->
-    <div class="row" style="margin-bottom:10px;">
-        <div class="col-md-4">
-            <div class="search-box">
-                    <i class="glyphicon glyphicon-search"></i>
-                </span>
-                <input type="text"
-                       id="scheduledSearch"
-                       placeholder="Search Scheduled Candidates..."
-                       onkeyup="searchTable('scheduledSearch','scheduledTable')">
-            </div>
-        </div>
-    </div>
-                            
-                            <table class="table" id="scheduledTable">
-                                <thead>
-                                    <tr>
-                                        <th>Candidate Name</th>
-                                        <th>Interview Date</th>
-                                        <th>Position</th>
-                                        <th>Interview Time</th>
-                                        <th>Interview Status</th>
-                                        <th>Remark</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (count($scheduled_candidates) > 0): ?>
-                                        <?php foreach ($scheduled_candidates as $candidate): ?>
-                                            <tr>
-                                                <td><?= htmlspecialchars($candidate['candidate_name']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['interview_date']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['position']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['interview_time']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['interview_status']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['remark']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="6">No scheduled candidates.</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
-                
-                <!-- Completed Candidates Section -->
-<div class="row" id="completedCandidatesSection" style="display:none;">
-    <div class="col-lg-12">
-        <section class="panel">
-
-            <header class="panel-heading">
-                Completed Candidates
-            </header>
-
-            <div class="panel-body">
-
-                <div class="row" style="margin-bottom:10px;">
-                    <div class="col-md-4">
-                        <div class="search-box">
-                            <i class="glyphicon glyphicon-search"></i>
-
-                            <input type="text"
-                                   id="completedSearch"
-                                   placeholder="Search Completed Candidates..."
-                                   onkeyup="searchTable('completedSearch','completedTable')">
-                        </div>
-                    </div>
-                </div>
-
-                <table class="table" id="completedTable">
-
-                    <thead>
-                        <tr>
-                            <th>Candidate Name</th>
-                            <th>Interview Date</th>
-                            <th>Position</th>
-                            <th>Interview Time</th>
-                            <th>Interview Status</th>
-                            <th>Remark</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                    <?php if (count($completed_candidates) > 0): ?>
-
-                        <?php foreach ($completed_candidates as $candidate): ?>
-
-                            <tr>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['candidate_name']); ?>
-                                </td>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['interview_date']); ?>
-                                </td>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['position']); ?>
-                                </td>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['interview_time']); ?>
-                                </td>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['interview_status']); ?>
-                                </td>
-
-                                <td>
-                                    <?= htmlspecialchars($candidate['remark']); ?>
-                                </td>
-
-                            </tr>
-
-                        <?php endforeach; ?>
-
-                    <?php else: ?>
-
-                        <tr>
-                            <td colspan="6">
-                                No completed candidates.
-                            </td>
-                        </tr>
-
-                    <?php endif; ?>
-
-                    </tbody>
-
-                </table>
-
-                <footer class="panel-footer">
-
-                    <span class="badge badge-info" style="font-size:16px;">
-                        Total Completed:
-                        <?= count($completed_candidates); ?>
-                    </span>
-
-                </footer>
-
-            </div>
-
-        </section>
-    </div>
-</div>
+// Close the connection
+mysqli_close($conn);
+?>"
 
 
 
-                <!-- Placed Candidates Section -->
-<div class="row" id="placedCandidatesSection" style="display:none;">
-    <div class="col-lg-12">
-        <section class="panel">
-            <header class="panel-heading">
-                Placed Candidates
-            </header>
-            
-            <div class="panel-body">
-
-<div class="row" style="margin-bottom:10px;">
-    <div class="col-md-4">
-        <div class="search-box">
-                <i class="glyphicon glyphicon-search"></i>
-            </span>
-            <input type="text"
-                   id="placedSearch"
-                   placeholder="Search Placed Candidates..."
-                   onkeyup="searchTable('placedSearch','placedTable')">
-        </div>
-    </div>
-</div>
-            
-            <table class="table" id="placedTable">
-                <thead>
-                    <tr>
-                        <th>Candidate Name</th>
-                        <!--<th>Interview Date</th>-->
-                        <th>Salary Package</th>
-                        <th>Position</th>
-                        <th>Joining Date</th>
-                        <th>HR Name</th>
-                        <th>Remark</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($placed_candidates) > 0): ?>
-                        <?php foreach ($placed_candidates as $candidate): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($candidate['candidate_name']); ?></td>
-                                <!--<td><?= htmlspecialchars($candidate['interview_date']); ?></td>-->
-                                <td><?= htmlspecialchars($candidate['salary_package']); ?></td>
-                                <td><?= htmlspecialchars($candidate['position']); ?></td>
-                                <td><?= htmlspecialchars($candidate['joining_date']); ?></td>
-                                <td><?= htmlspecialchars($candidate['hr_name']); ?></td>
-                                <td><?= htmlspecialchars($candidate['remark']); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="7">No placed candidates.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-            <!-- Display Total Placed Candidates Below the Table -->
-            <footer class="panel-footer">
-                <span class="badge badge-info" style="font-size: 16px;" >
-                    Total Placed: <?= count($placed_candidates); ?>
-                </span>
-            </footer>
-        </section>
-    </div>
-</div>
+okey , 3 you ask 3 thing to settle first and later start start implementaion . We will match seniors company pay 
+exclution because it is candidate deatl page so there is no need to display company pay we have already implemented 
+it in view associate . Nest is For Defaulters we add one extar column called candidate status with values "ACTIVE" 
+or "DEFAULTER" and if it is defaulter we make update payment disable (Suggestif you have any better optimize approch 
+). And Nest is a update payment button implementation i think we already have payment update page in our project 
+(UpdateDuePayment.jsx) so can we use it instead of creating new page (It shouldn't cause any Confilict as we 
+updateing payment doing same thing , right ? or to create new page would be better ?) . lets start implementing it
+carefully and properlly . Dont make any chages by yourself . 
 
 
-                <!-- Rejected Candidates Section -->
-                <div class="row" id="rejectedCandidatesSection" style="display:none;">
-                    <div class="col-lg-12">
-                        <section class="panel">
-                            <header class="panel-heading">
-                                Rejected Candidates
-                            </header>
-                            
-                            <div class="panel-body">
 
-<div class="row" style="margin-bottom:10px;">
-    <div class="col-md-4">
-        <div class="search-box">
-                <i class="glyphicon glyphicon-search"></i>
-            </span>
-            <input type="text"
-                   id="rejectedSearch"
-                   placeholder="Search Rejected Candidates..."
-                   onkeyup="searchTable('rejectedSearch','rejectedTable')">
-        </div>
-    </div>
-</div>
-                            
-                            
-                            <table class="table" id="rejectedTable">
-                                <thead>
-                                    <tr>
-                                        <th>Candidate Name</th>
-                                        <th>Interview Date</th>
-                                        <th>Position</th>
-                                        <th>Interview Time</th>
-                                        <th>Rejection Reason</th>
-                                        <th>Remark</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (count($rejected_candidates) > 0): ?>
-                                        <?php foreach ($rejected_candidates as $candidate): ?>
-                                            <tr>
-                                                <td><?= htmlspecialchars($candidate['candidate_name']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['interview_date']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['position']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['interview_time']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['rejection_reason']); ?></td>
-                                                <td><?= htmlspecialchars($candidate['remark']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="6">No rejected candidates.</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
 
-                <!-- Update Button -->
-                <a href="update-associate.php?id=<?= $row['Id']; ?>" class="btn btn-warning">Update</a>
-            </div>
-        </section>
-    </section>
-    <!-- Main content end -->
-
-    <script src="js/bootstrap.js"></script>
-    <script src="js/jquery.dcjqaccordion.2.7.js"></script>
-    <script src="js/scripts.js"></script>
-    <script src="js/jquery.slimscroll.js"></script>
-    <script src="js/jquery.nicescroll.js"></script>
-    <script src="js/jquery.scrollTo.js"></script>
-
-    <script>
-    
-    function showPaymentSection(id){
-    document.querySelectorAll('.payment-category').forEach(s => s.style.display='none');
-    document.getElementById(id).style.display='block';
-}
-showPaymentSection('paidSection');
-
-function showMoreRows(button) {
-    const table = button.closest('table');
-    table.querySelectorAll('.extra-row').forEach(r => r.style.display='table-row');
-    button.closest('.see-more-row').style.display = 'none';
-}
-        
-        /* ================================
-   ONLY ONE CANDIDATE SECTION OPEN
-================================ */
-function toggleOnlyOne(sectionId) {
-    const sections = [
-        'scheduledCandidatesSection',
-        'completedCandidatesSection',
-        'placedCandidatesSection',
-        'rejectedCandidatesSection'
-    ];
-
-    sections.forEach(id => {
-        const el = document.getElementById(id);
-        if (id === sectionId) {
-            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
-        } else {
-            el.style.display = 'none';
-        }
-    });
-}
-
-/* ================================
-   DROPDOWN CLICK EVENTS
-================================ */
-document.getElementById('toggleScheduledCandidates').addEventListener('click', function(e) {
-    e.preventDefault();
-    toggleOnlyOne('scheduledCandidatesSection');
-});
-
-document.getElementById('toggleCompletedCandidates').addEventListener('click', function(e) {
-    e.preventDefault();
-    toggleOnlyOne('completedCandidatesSection');
-});
-
-document.getElementById('togglePlacedCandidates').addEventListener('click', function(e) {
-    e.preventDefault();
-    toggleOnlyOne('placedCandidatesSection');
-});
-
-document.getElementById('toggleRejectedCandidates').addEventListener('click', function(e) {
-    e.preventDefault();
-    toggleOnlyOne('rejectedCandidatesSection');
-});
-        
-        
-    
-function searchTable(inputId, tableId) {
-    const input = document.getElementById(inputId);
-    const filter = input.value.toLowerCase();
-    const table = document.getElementById(tableId);
-    const tr = table.getElementsByTagName("tr");
-
-    for (let i = 1; i < tr.length; i++) {
-        let found = false;
-        const td = tr[i].getElementsByTagName("td");
-
-        for (let j = 0; j < td.length; j++) {
-            if (td[j].innerText.toLowerCase().includes(filter)) {
-                found = true;
-                break;
-            }
-        }
-        tr[i].style.display = found ? "" : "none";
-    }
-}
-
-    </script>
-</body>
-</html>"
+now candidate detail > payment detail is woking perfectlly . Now lets move to another functionality , in Due payment 
+page . 

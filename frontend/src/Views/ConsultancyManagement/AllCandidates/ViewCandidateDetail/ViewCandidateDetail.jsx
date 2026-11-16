@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
+import { useAuth } from "../../../../context/AuthContext";
 import agreementService from "../../../../services/agreementService";
 import "./ViewCandidateDetail.css";
 
@@ -11,9 +12,35 @@ const formatPercent = (value) =>
         ? "—"
         : `${value}%`;
 
+        const formatCurrency = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
 const ViewCandidateDetail = () => {
     const { candidateId } = useParams();
     const navigate = useNavigate();
+
+    const location = useLocation();
+const { user } = useAuth();
+
+const [paymentData, setPaymentData] = useState(null);
+const [paymentsLoading, setPaymentsLoading] = useState(true);
+const [paymentError, setPaymentError] = useState("");
+
+const grants = (user?.accessModules || "")
+    .split(",")
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+
+const canUpdatePayments =
+    user?.role?.trim().toUpperCase() === "SUPER_ADMIN" ||
+    grants.includes("ALL") ||
+    grants.includes("ACCOUNTS") ||
+    grants.includes("ACCOUNTS:PAYMENTS_DUE");
+
+
     const [candidate, setCandidate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -84,6 +111,40 @@ const ViewCandidateDetail = () => {
             active = false;
         };
     }, [candidateId]);
+
+    useEffect(() => {
+    let active = true;
+
+    const loadPayments = async () => {
+        setPaymentsLoading(true);
+        setPaymentError("");
+
+        try {
+            const data =
+                await agreementService.getCandidatePayments(candidateId);
+
+            if (active) {
+                setPaymentData(data);
+            }
+        } catch (loadError) {
+            if (active) {
+                setPaymentError(
+                    loadError.message || "Could not load payment details."
+                );
+            }
+        } finally {
+            if (active) {
+                setPaymentsLoading(false);
+            }
+        }
+    };
+
+    loadPayments();
+
+    return () => {
+        active = false;
+    };
+}, [candidateId]);
 
     if (loading) {
         return (
@@ -386,12 +447,106 @@ const ViewCandidateDetail = () => {
                             )}
                         </section>
 
-                        <section className="candidate-detail-section">
-                            <h2>💳 Payment Details</h2>
-                            <p className="candidate-detail-empty">
-                                No payment details available for this candidate.
-                            </p>
-                        </section>
+                       <section className="candidate-detail-section">
+    <h2>💳 Payment Details</h2>
+
+    {paymentsLoading ? (
+        <p className="candidate-detail-empty">Loading payment details...</p>
+    ) : paymentError ? (
+        <p className="candidate-detail-empty" role="alert">
+            {paymentError}
+        </p>
+    ) : (
+        <>
+            <p className="candidate-payment-summary">
+                Candidate Status:{" "}
+                <strong
+                    className={
+                        paymentData?.candidateStatus === "DEFAULTER"
+                            ? "candidate-payment-defaulter"
+                            : "candidate-payment-active"
+                    }
+                >
+                    {paymentData?.candidateStatus || "ACTIVE"}
+                </strong>
+            </p>
+
+            {paymentData?.payments?.length > 0 ? (
+                <>
+                    <div className="view-clients-table-wrapper">
+                        <table className="view-clients-table candidate-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Total Amount</th>
+                                    <th>Paid Amount</th>
+                                    <th>Payment Date</th>
+                                    <th>Gateway</th>
+                                    <th>Payment Status</th>
+                                    <th>Candidate Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paymentData.payments.map((payment) => {
+                                    const isDefaulter = paymentData.candidateStatus === "DEFAULTER";
+
+                                    return (
+                                        <tr key={payment.paymentId}>
+                                            <td>{formatCurrency(payment.totalAmount)}</td>
+                                            <td>{formatCurrency(payment.paidAmount)}</td>
+                                            <td>{display(payment.paymentDate)}</td>
+                                            <td>{display(payment.paymentGateway)}</td>
+                                            <td>{payment.paymentStatus}</td>
+                                            <td>{paymentData.candidateStatus}</td>
+                                            <td>
+                                                {canUpdatePayments ? (
+                                                    <button
+                                                        className="view-candidate-detail-payment-update-btn"
+                                                        type="button"
+                                                        disabled={isDefaulter}
+                                                        title={
+                                                            isDefaulter
+                                                                ? "Payments cannot be updated while this candidate is a defaulter."
+                                                                : "Update payment"
+                                                        }
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/accounts/due-payment/update/${payment.paymentId}`,
+                                                                {
+                                                                    state: {
+                                                                        returnTo: location.pathname,
+                                                                    },
+                                                                }
+                                                            )
+                                                        }
+                                                    >
+                                                        Update Payment
+                                                    </button>
+                                                ) : (
+                                                    <span>Accounts payment access required</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p className="candidate-payment-total">
+                        <strong>Total Paid Amount:</strong>{" "}
+                        {formatCurrency(paymentData.totalPaidAmount)}
+                    </p>
+                </>
+            ) : (
+                <p className="candidate-detail-empty">
+                    No candidate payment details available.
+                </p>
+            )}
+        </>
+    )}
+</section>
+
                         {candidate.status !== "Blacklisted" && (
                             <div className="candidate-detail-schedule">
                                 <button

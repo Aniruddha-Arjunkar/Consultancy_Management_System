@@ -151,6 +151,24 @@
     opacity: 0.7;
 }
 
+.view-candidate-detail-payment-update-btn{
+    background-color:rgb(1, 166, 1);
+    color:white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+
+.view-candidate-detail-payment-update-btn:hover {
+    transform: scale(1.02);
+    background-color: #008d00;
+}
+
 @media (max-width: 768px) {
     .candidate-detail-page {
         padding: 12px;
