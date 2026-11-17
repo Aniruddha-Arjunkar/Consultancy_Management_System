@@ -1,2051 +1,509 @@
-lets move to next funtionality unimplemented in consultancy management module in All candidate sub-module > Action
-column > view Button > ViewCandidateDetail.jsx > Payment detail section . First we analyze seniors code properlly
-identify how she implemented it and future error possibilities. seniors code file view-agreement-detail.php ------>
-"<?php
-session_start();
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
+import paymentService from "../../../../services/paymentService";
+import "./DuePayment.css";
 
-// Check if the user is logged in
-if (!isset($_SESSION['email'])) {
-    $_SESSION['msg'] = "You must log in first";
-    header('location:login.php');
-    exit();
-}
+const formatAmount = (value) =>
+    Number(value || 0).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 
-// Handle logout
-if (isset($_GET['logout'])) {
-    session_destroy();
-    unset($_SESSION['email']);
-    header('location:login.php');
-    exit();
-}
 
-// Include database connection
-require_once 'db_connect.php';
-include 'header.php';
 
-// Check if 'id' is set in the URL and is numeric
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $id = $_GET['id'];
+const getPaymentDetailUrl = (payment) => {
+    const paymentType = payment.paymentType?.trim().toLowerCase();
 
-    // Fetch the agreement details from the database
-    $sql = "SELECT * FROM tbl_agreement WHERE Id = $id";
-    $result = mysqli_query($conn, $sql);
-
-    if (!$result) {
-        die("Query failed: " . mysqli_error($conn));
+    if (paymentType === "company pay" && payment.associateId) {
+        return `/consultancy/view-associate-details/${payment.associateId}`;
     }
 
-    if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-    } else {
-        echo "<p>No agreement found with the given ID.</p>";
-        exit();
+    if (paymentType === "candidate pay" && payment.candidateId) {
+        return `/consultancy/view-candidate-detail/${payment.candidateId}`;
     }
 
-    // Fetch placement details based on candidate_id
-    $placement_sql = "SELECT * FROM tbl_placement WHERE candidate_id = $id";
-    $placement_result = mysqli_query($conn, $placement_sql);
-
-    if (!$placement_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Fetch interview details based on interview_id from tbl_placement
-    $interview_sql = "SELECT * FROM tbl_interview WHERE interview_id IN (SELECT interview_id FROM tbl_placement WHERE candidate_id = $id)";
-    $interview_result = mysqli_query($conn, $interview_sql);
-
-    if (!$interview_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Step 1: Check if the candidate ever had a "Company Pay" payment
-    $check_company_pay_sql = "SELECT 1 FROM tbl_payment WHERE client_Id = $id AND payment_type = 'Company Pay' LIMIT 1";
-    $check_company_pay_result = mysqli_query($conn, $check_company_pay_sql);
-
-    if (!$check_company_pay_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Step 2: Set flag if the candidate has "Company Pay" history
-    $had_company_pay = mysqli_num_rows($check_company_pay_result) > 0;
-
-    // Step 3: Fetch payment records (exclude "Company Pay" if the candidate had one)
-    if ($had_company_pay) {
-        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id AND payment_type != 'Company Pay'";
-    } else {
-        $payment_sql = "SELECT * FROM tbl_payment WHERE client_Id = $id ";
-    }
-    
-    $payment_result = mysqli_query($conn, $payment_sql);
-
-    if (!$payment_result) {
-        die("Query failed: " . mysqli_error($conn));
-    }
-
-    // Calculate the total paid amount
-    $total_paid_amount = 0;
-    while ($payment = mysqli_fetch_assoc($payment_result)) {
-        $total_paid_amount += (float)$payment['paid_amount'];
-    }
-
-    // Reset the pointer to the start of the result set for displaying the payment details
-    mysqli_data_seek($payment_result, 0);  // Rewind the result set pointer
-} else {
-    echo "<p>Invalid ID provided.</p>";
-    exit();
-}
-?>
-
-<body>
-<!-- Main content start -->
-<section id="main-content">
-    <section class="wrapper">
-       <div class="form-w3layouts">
-          <div style="margin-top: 10px; text-align: right;">
-    <div class="btn-group">
-
-        <a href="delete_candidate.php?id=<?= $id; ?>" 
-           class="btn btn-danger"
-           onclick="return confirm('Are you sure you want to permanently delete this candidate?');">
-            Delete Candidate
-        </a>
-
-        <a href="edit_agreement.php?id=<?= $id; ?>" 
-           class="btn btn-warning">
-            Edit & Update Details
-        </a>
-
-        <?php if ($row['status'] != 'Blacklisted'): ?>
-
-            <a href="blacklist_candidate.php?id=<?= $id; ?>" 
-               class="btn btn-danger"
-               onclick="return confirm('Are you sure you want to blacklist this candidate?');">
-                Blacklist Candidate
-            </a>
-
-        <?php else: ?>
-
-            <span class="btn btn-danger">Already Blacklisted</span>
-
-        <?php endif; ?>
-
-    </div>
-</div>
-<br>
-            <!-- Personal Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Personal Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Mobile No.</th>
-                                    <th>Email</th>
-                                    <th>Date of Birth</th>
-                                    <th>Address</th>
-                                    <th>Gender</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["name"]); ?></td>
-                                    <td><?= htmlspecialchars($row["phone"]); ?></td>
-                                    <td><?= htmlspecialchars($row["email"]); ?></td>
-                                    <td><?= htmlspecialchars($row["dob"]); ?></td>
-                                    <td><?= htmlspecialchars($row["address"]); ?></td>
-                                    <td><?= htmlspecialchars($row["gender"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Education Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Education Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Qualification</th>
-                                    <th>Year Of Passing</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["ten_th"]); ?></td>
-                                    <td><?= htmlspecialchars($row["ten_th_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["ten_th_percentage"]); ?></td>
-                                </tr>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["twelve_th"]); ?></td>
-                                    <td><?= htmlspecialchars($row["twelve_th_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["twelve_th_percentage"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Graduation Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Graduation Details
-                        </header>
-                        <br>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Qualification</th>
-                                    <th>Year Of Passing</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["graduation"]); ?></td>
-                                    <td><?= htmlspecialchars($row["graduation_year_of_passing"]); ?></td>
-                                    <td><?= htmlspecialchars($row["graduation_percentage"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Experience and Skills -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Experience/Skills
-                        </header>
-                        <br>
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Experience</th>
-                                    <th>Skills</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($row["experience"]); ?></td>
-                                    <td><?= htmlspecialchars($row["skills"]); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Interview and Placement Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Interview and Placement Details
-                        </header>
-                        <BR>
-                        <?php if (mysqli_num_rows($placement_result) > 0): ?>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Company</th>
-                                        <th>Position</th>
-                                        <th>Interview Date</th>
-                                        <th>Interview Round</th>
-                                        <th>Remark</th>
-                                        <th>Interview Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php while ($placement = mysqli_fetch_assoc($placement_result)): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($placement["company_name"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["position"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_date"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_round"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["remark"]); ?></td>
-                                            <td><?= htmlspecialchars($placement["interview_status"]); ?></td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        <?php else: ?>
-                            <p>No interview or placement details available for this candidate.</p>
-                        <?php endif; ?>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Payment Details -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <section class="panel">
-                        <header class="panel-heading">
-                            Payment Details
-                        </header>
-                        <br>
-                        <?php if (mysqli_num_rows($payment_result) > 0): ?>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Total Amount</th>
-                                        <th>Paid Amount</th>
-                                        <th>Payment Date</th>
-                                        <th>Gateway</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                              <tbody>
-<?php while ($payment = mysqli_fetch_assoc($payment_result)): ?>
-    <?php
-        $paid = (float)$payment["paid_amount"];
-        $total = (float)$payment["total_amount"];
-
-      
-
-        // Calculate payment status
-        if ($paid >= $total) {
-            $status = "Paid";
-        } elseif ($paid > 0 && $paid < $total) {
-            $status = "Partial";
-        } else {
-            $status = "Unpaid";
-        }
-    ?>
-    <tr>
-        <td><?= number_format($total, 2); ?></td>
-        <td><?= number_format($paid, 2); ?></td>
-        <td><?= htmlspecialchars($payment["payment_date"] ?? ''); ?></td>
-        <td><?= htmlspecialchars($payment["payment_gateway"] ?? ''); ?></td>
-        <td><strong><?= $status; ?></strong></td>
-        <td>
-           <a href="update-candidate-payment.php?payment_id=<?= $payment['Id']; ?>" class="btn-warning">
-    Update Payment
-</a>
-        </td>
-    </tr>
-<?php endwhile; ?>
-</tbody>
-
-                            </table>
-                            <!-- Total Paid Amount -->
-                            <div class="panel-footer">
-                                <strong>Total Paid Amount: </strong>
-                                <?= number_format($total_paid_amount, 2); ?>
-                            </div>
-                        <?php else: ?>
-                            <p>No payment details available for this candidate.</p>
-                        <?php endif; ?>
-                    </section>
-                </div>
-            </div>
-
-            <!-- Schedule Placement Button -->
-           <div class="row"> 
-    <div class="col-lg-12"> 
-        <section class="panel"> 
-            <div class="panel-body" style="text-align: center;"> 
-                <?php if($row['status'] != 'Blacklisted'): ?> 
-                    <a href="interview-schedule.php?id=<?= $id; ?>" 
-                       class="btn-primary">
-                        Schedule Placement
-                    </a>
-                <?php endif; ?> 
-            </div> 
-        </section> 
-    </div> 
-</div>
-    </section>
-</section>
-
-<!-- JS Scripts -->
-<script src="js/bootstrap.js"></script>
-<script src="js/jquery.dcjqaccordion.2.7.js"></script>
-<script src="js/scripts.js"></script>
-<script src="js/jquery.slimscroll.js"></script>
-<script src="js/jquery.nicescroll.js"></script>
-<script src="js/jquery.scrollTo.js"></script>
-
-</body>
-</html>
-
-<?php
-// Close the connection
-mysqli_close($conn);
-?>"
-
-
-
-okey , 3 you ask 3 thing to settle first and later start start implementaion . We will match seniors company pay 
-exclution because it is candidate deatl page so there is no need to display company pay we have already implemented 
-it in view associate . Nest is For Defaulters we add one extar column called candidate status with values "ACTIVE" 
-or "DEFAULTER" and if it is defaulter we make update payment disable (Suggestif you have any better optimize approch 
-). And Nest is a update payment button implementation i think we already have payment update page in our project 
-(UpdateDuePayment.jsx) so can we use it instead of creating new page (It shouldn't cause any Confilict as we 
-updateing payment doing same thing , right ? or to create new page would be better ?) . lets start implementing it
-carefully and properlly . Dont make any chages by yourself . 
-
-
-
-
-now candidate detail > payment detail is woking perfectlly . Now lets move to another functionality , in Due payment 
-page (DuePayment.jsx). In Name column have values placed-candidate-name(Company-name) if payment type is candidate pay
-and Company-name(placed-candidate-name) if payment type is Company pay , right ? . Now we have to make that value 
-clickable (link) and as user click on the value it should open detail page (for company pay it should open that company
-detail page and for candidate pay it should open candidate detatil page) in new tab . i am not sure seniors have also 
-implemented that or not lets analyze seniors code first and then we will implement it . senior code file 
-due-payment.php   ---> "<?php
-session_start();
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-if (!isset($_SESSION['email'])) {
-    $_SESSION['msg'] = "You must log in first";
-    header('location:login.php');
-    exit();
-}
-
-require_once 'db_connect.php';
-include 'header.php';
-
-$role = $_SESSION['role'] ?? '';
-$branch = $_SESSION['branch'] ?? '';
-
-$serviceCondition = '';
-
-/* =========================================================
-   ROLE BASED SERVICE CONDITION
-========================================================= */
-
-if ($role == 'support_team') {
-
-    $serviceCondition = " AND c.services != 'Consultancy' ";
-
-} elseif ($role == 'HR' || $role == 'trainer') {
-
-    $serviceCondition = " AND c.services = 'Consultancy' ";
-
-}
-
-
-/* =========================================================
-   TOTAL / COUNT
-========================================================= */
-
-$total_due_amount = 0;
-$total_records = 0;
-
-?>
-
-<section id="main-content">
-
-    <section class="wrapper">
-
-        <div class="view-clients-page">
-
-
-            <!-- =================================================
-                 PAGE HEADER
-            ================================================== -->
-
-            <div class="view-clients-header">
-
-                <div class="view-clients-title-wrap">
-
-                    <h1 class="view-clients-title">
-
-                        <span class="view-clients-title-icon">
-                            💰
-                        </span>
-
-                        Due Payments
-
-                    </h1>
-
-                    <p class="view-clients-subtitle">
-                        View and manage due payment records
-                    </p>
-
-                </div>
-
-
-                <!-- RECORD COUNT -->
-
-                <span class="view-clients-count">
-
-                    Due Records:
-                    <span id="record-count">0</span>
-
-                </span>
-
-            </div>
-
-
-            <!-- =================================================
-                 CARD
-            ================================================== -->
-
-            <div class="view-clients-card">
-
-
-                <!-- =================================================
-                     SEARCH
-                ================================================== -->
-
-                <div class="view-clients-filter">
-
-                    <div class="view-client-search-wrap">
-
-                        <span class="view-client-search-icon">
-                            🔍
-                        </span>
-
-                        <input
-                            type="text"
-                            id="txt_searchall"
-                            class="view-client-search"
-                            placeholder="Search by Name, Branch or Phone"
-                            autocomplete="off"
-                        >
-
-                    </div>
-
-                </div>
-
-
-                <!-- =================================================
-                     TABLE
-                ================================================== -->
-
-                <div
-                    class="view-clients-table-wrapper"
-                    id="scrollable-content"
-                >
-
-                    <table
-                        class="view-clients-table"
-                        id="payments-table"
-                    >
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    Branch
-                                </th>
-
-                                <th>
-                                    Service
-                                </th>
-
-                                <th>
-                                    Name
-                                </th>
-
-                                <th>
-                                    Phone No
-                                </th>
-
-                                <th>
-                                    Total Amount
-                                </th>
-
-                                <th>
-                                    Paid Amount
-                                </th>
-
-                                <th>
-                                    Due Amount
-                                </th>
-
-                                <th>
-                                    Due Date
-                                </th>
-
-                                <th>
-                                    Action
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-<?php
-
-/* =========================================================
-   PAYMENT QUERY
-========================================================= */
-
-$sql = "
-
-SELECT
-
-    MAX(p.Id) AS payment_id,
-
-    p.client_Id,
-
-    'Nagpur' AS branch,
-
-    'Consultancy' AS services,
-
-    IF(
-        p.payment_type = 'Company Pay',
-
-        CONCAT(
-            pl.company_name,
-            ' (',
-            pl.candidate_name,
-            ')'
-        ),
-
-        CONCAT(
-            pl.candidate_name,
-            ' (',
-            pl.company_name,
-            ')'
-        )
-    ) AS cust_name,
-
-
-    /* Associate ID - name matching */
-(
-    SELECT a2.Id
-    FROM tbl_associate a2
-    WHERE LOWER(TRIM(a2.company_name)) =
-          LOWER(TRIM(pl.company_name))
-    LIMIT 1
-) AS associate_id,
-
-
-
-    IF(
-        p.payment_type = 'Company Pay',
-
-        COALESCE(
-            ag.phone,
-            a.phone
-        ),
-
-        COALESCE(
-            a.phone,
-            ag.phone
-        )
-    ) AS cust_phone,
-
-
-    p.total_amount,
-
-    SUM(p.paid_amount) AS total_paid,
-
-
-    (
-        p.total_amount
-        - SUM(p.paid_amount)
-        - SUM(
-            CASE
-                WHEN p.tds_paid = 0
-                THEN p.tds_amount
-                ELSE 0
-            END
-        )
-    ) AS due_amount,
-
-
-    MAX(p.due_date) AS due_date
-
-
-FROM tbl_payment p
-
-
-LEFT JOIN tbl_placement pl
-    ON p.interview_id = pl.interview_id
-
-
-LEFT JOIN tbl_agreement ag
-    ON pl.candidate_id = ag.id
-
-
-LEFT JOIN tbl_associate a
-    ON pl.candidate_id = a.Id
-
-
-WHERE p.status != 'defaulted'
-
-
-GROUP BY
-    p.client_Id,
-    p.total_amount
-
-
-HAVING due_amount > 0
-
-
-
-ORDER BY due_date ASC
-
-";
-
-
-$result = mysqli_query(
-    $conn,
-    $sql
-);
-
-
-if (!$result) {
-
-    echo '
-
-    <tr>
-
-        <td
-            colspan="9"
-            class="view-client-no-data"
-        >
-
-            Error:
-            ' .
-            htmlspecialchars(
-                mysqli_error($conn)
-            )
-            . '
-
-        </td>
-
-    </tr>
-
-    ';
-
-} elseif (
-    mysqli_num_rows($result) > 0
-) {
-
-
-    while (
-        $row = mysqli_fetch_assoc($result)
-    ) {
-
-
-        /* =================================================
-           SKIP EMPTY NAME
-        ================================================= */
-
-        if (
-            empty(
-                $row['cust_name']
-            )
-        ) {
-
-            continue;
-
-        }
-
-
-        /* =================================================
-           TOTAL
-        ================================================= */
-
-        $total_due_amount +=
-            (float)(
-                $row['due_amount'] ?? 0
-            );
-
-
-        $total_records++;
-
-
-        /* =================================================
-           DUE DATE
-        ================================================= */
-
-        $dueDate = null;
-
-        if (
-            !empty(
-                $row['due_date']
-            )
-        ) {
-
+    return null;
+};
+
+const DuePayment = () => {
+    const [payments, setPayments] = useState([]);
+    const [search, setSearch] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
+    const [openActionId, setOpenActionId] = useState(null);
+    const [defaulterTarget, setDefaulterTarget] = useState(null);
+    const [defaulterNote, setDefaulterNote] = useState("");
+    const [defaulterError, setDefaulterError] = useState("");
+    const [markingDefaulter, setMarkingDefaulter] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadPayments = async () => {
             try {
+                const data = await paymentService.getDuePayments();
 
-                $dueDate =
-                    new DateTime(
-                        $row['due_date']
+                if (active) {
+                    setPayments(Array.isArray(data) ? data : []);
+                }
+            } catch (loadError) {
+                if (active) {
+                    setError(
+                        loadError.message || "Could not load due payments."
                     );
-
-            } catch (
-                Exception $e
-            ) {
-
-                $dueDate = null;
-
+                }
+            } finally {
+                if (active) setLoading(false);
             }
+        };
 
-        }
+        loadPayments();
 
+        return () => {
+            active = false;
+        };
+    }, []);
 
-        /* =================================================
-           BRANCH COLOR LOGIC
-        ================================================= */
+    const filteredPayments = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        if (!query) return payments;
 
-        $branchClass = 'blue';
+        return payments.filter((payment) =>
+            [
+                payment.name,
+                payment.branch,
+                payment.service,
+                payment.phone,
+                payment.dueDate,
+            ]
+                .filter((value) => value !== null && value !== undefined)
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+        );
+    }, [payments, search]);
 
-        $branchLower =
-            strtolower(
-                trim(
-                    $row['branch'] ?? ''
-                )
+    const totalDuePaise = filteredPayments.reduce(
+        (sum, payment) =>
+            sum + Math.round(Number(payment.dueAmount || 0) * 100),
+        0
+    );
+
+    const submitDefaulter = async (event) => {
+        event.preventDefault();
+        if (!defaulterTarget || markingDefaulter) return;
+
+        setMarkingDefaulter(true);
+        setDefaulterError("");
+
+        try {
+            await paymentService.markClientDefaulter(
+                defaulterTarget.clientId,
+                defaulterNote.trim()
             );
 
-
-        if (
-            $branchLower === 'nagpur'
-        ) {
-
-            $branchClass = 'blue';
-
-        } elseif (
-            $branchLower === 'bramhapuri'
-        ) {
-
-            $branchClass = 'green';
-
-        } elseif (
-            $branchLower === 'chandrapur'
-            ||
-            $branchLower === 'chandreapur'
-        ) {
-
-            $branchClass = 'orange';
-
-        } else {
-
-            $branchClass = 'blue';
-
+            setPayments((current) =>
+                current.filter(
+                    (payment) =>
+                        payment.clientId !== defaulterTarget.clientId
+                )
+            );
+            setDefaulterTarget(null);
+            setDefaulterNote("");
+        } catch (submitError) {
+            setDefaulterError(
+                submitError.message || "Could not mark this client as a defaulter."
+            );
+        } finally {
+            setMarkingDefaulter(false);
         }
+    };
 
-?>
+    return (
+        <section id="main-content">
+            <section className="wrapper">
+                <div className="view-clients-page due-payment-page">
+                    <div className="view-clients-header">
+                        <div className="view-clients-title-wrap">
+                            <h1 className="view-clients-title">
+                                <span className="view-clients-title-icon">
+                                    💰
+                                </span>
+                                Due Payments
+                            </h1>
+                            <p className="view-clients-subtitle">
+                                View and manage due payment records
+                            </p>
+                        </div>
 
-<tr>
-
-
-    <!-- =================================================
-         BRANCH
-    ================================================== -->
-
-    <td>
-
-        <span
-            class="
-                view-client-branch
-                <?= $branchClass; ?>
-            "
-        >
-
-            <?= htmlspecialchars(
-                $row['branch'] ?? '',
-                ENT_QUOTES,
-                'UTF-8'
-            ); ?>
-
-        </span>
-
-    </td>
-
-
-    <!-- =================================================
-         SERVICE
-    ================================================== -->
-
-    <td class="view-client-service">
-
-        <?= htmlspecialchars(
-            $row['services'] ?? '',
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>
-
-    </td>
-
-
-    <!-- =================================================
-         NAME
-    ================================================== -->
-
-    <td class="view-client-name">
-
-        <a
-            href="view-associate-details.php?id=<?= (int)$row['associate_id']; ?>"
-            target="_blank"
-        >
-
-            <?= htmlspecialchars(
-                $row['cust_name'] ?? '',
-                ENT_QUOTES,
-                'UTF-8'
-            ); ?>
-
-        </a>
-
-    </td>
-
-
-    <!-- =================================================
-         PHONE
-    ================================================== -->
-
-    <td class="view-client-phone">
-
-        <?= htmlspecialchars(
-            $row['cust_phone'] ?? '',
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>
-
-    </td>
-
-
-    <!-- =================================================
-         TOTAL AMOUNT
-    ================================================== -->
-
-    <td class="view-client-total-amount">
-
-        ₹
-        <?= htmlspecialchars(
-            number_format(
-                (float)(
-                    $row['total_amount'] ?? 0
-                ),
-                2
-            ),
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>
-
-    </td>
-
-
-    <!-- =================================================
-         PAID AMOUNT
-    ================================================== -->
-
-    <td class="view-client-paid-amount">
-
-        ₹
-        <?= htmlspecialchars(
-            number_format(
-                (float)(
-                    $row['total_paid'] ?? 0
-                ),
-                2
-            ),
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>
-
-    </td>
-
-
-    <!-- =================================================
-         DUE AMOUNT
-    ================================================== -->
-
-    <td class="view-client-due-amount">
-
-        ₹
-        <?= htmlspecialchars(
-            number_format(
-                (float)(
-                    $row['due_amount'] ?? 0
-                ),
-                2
-            ),
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?>
-
-    </td>
-
-
-    <!-- =================================================
-         DUE DATE
-    ================================================== -->
-
-    <td class="view-client-date-cell">
-
-        <span
-            class="due-date"
-            data-due-date="<?= $dueDate
-                ? $dueDate->format('Y-m-d')
-                : ''
-            ?>"
-        >
-            <?= htmlspecialchars(
-                (string)(
-                    $row['due_date'] ?? ''
-                ),
-                ENT_QUOTES,
-                'UTF-8'
-            ); ?>
-        </span>
-    </td>
-   <td class="view-client-action">
-
-    <button
-        type="button"
-        class="view-client-action-btn toggle-action-btn"
-    >
-        Action
-        <span class="view-client-action-arrow">▼</span>
-    </button>
-
-    <div class="view-client-action-buttons">
-
-        <a
-            href="add-payment.php?payment_id=<?= urlencode($row['payment_id']); ?>"
-            class="view-client-update-btn"
-        >
-            Update
-        </a>
-
-        <button 
-    type="button" 
-    class="view-client-defaulter-btn open-defaulter-modal" 
-    data-clientid="<?= htmlspecialchars($row['client_Id']); ?>" 
-    data-name="<?= htmlspecialchars($row['cust_name']); ?>"
->
-    Mark Defaulter
-</button>
-    </div>
-</td>
-</tr>
-<?php
-    }
-} else {
-?>
-<tr>
-    <td
-        colspan="9"
-        class="view-client-no-data"
-    >
-        No results found
-    </td>
-</tr>
-<?php
-}
-?>
-
-                        </tbody>
-                    </table>
-                </div>
-                <!-- =================================================
-                     BOTTOM HORIZONTAL SCROLL
-                ================================================== -->
-                <div
-                    class="view-client-bottom-scroll"
-                    id="viewClientBottomScroll"
-                >
-                    <div
-                        class="view-client-bottom-scroll-inner"
-                        id="viewClientBottomScrollInner"
-                    ></div>
-                </div>
-                <!-- =================================================
-                     TOTAL DUE
-                ================================================== -->
-                <section id="total-due-amount">
-                    <h4>
-                        Total Due Amount (INR):
-                        <span id="total-due">
-                            <?= htmlspecialchars(
-                                number_format(
-                                    $total_due_amount,
-                                    2
-                                ),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ); ?>
+                        <span className="view-clients-count">
+                            Due Records: {filteredPayments.length}
                         </span>
-                    </h4>
-                </section>
-            </div>
-        </div>
-    </section>
-</section>
-<!-- =========================================================
-     DEFAULTER MODAL
-========================================================= -->
-<div
-    class="modal fade"
-    id="defaulterModal"
-    tabindex="-1"
-    role="dialog"
-    aria-labelledby="defaulterModalLabel"
->
-    <div
-        class="modal-dialog"
-        role="document"
-    >
+                    </div>
 
-        <form
-            method="POST"
-            action="mark-defaulter.php"
-        >
+                    <div className="view-clients-card">
+                        <div className="view-clients-filter">
+                            <div className="view-client-search-wrap">
+                                <span className="view-client-search-icon">
+                                    🔍
+                                </span>
+                                <input
+                                    type="text"
+                                    id="txt_searchall"
+                                    className="view-client-search"
+                                    placeholder="Search by Name or Phone"
+                                    value={search}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
+                                    autoComplete="off"
+                                    aria-label="Search due payments"
+                                />
+                            </div>
+                        </div>
 
-            <div class="modal-content">
+                        {loading && <p>Loading due payments...</p>}
+                        {!loading && error && <p role="alert">{error}</p>}
 
+                        {!loading && !error && (
+                            <>
+                                <div
+                                    className="view-clients-table-wrapper"
+                                    id="scrollable-content"
+                                >
+                                    <table
+                                        className="view-clients-table"
+                                        id="payments-table"
+                                    >
+                                        <thead>
+                                            <tr>
+                                                <th>Sr. No.</th>
+                                                <th style={{ minWidth: "280px" }}>Name</th>
+                                                <th>Phone No</th>
+                                                <th>Total Amount</th>
+                                                <th>Paid Amount</th>
+                                                <th>Due Amount</th>
+                                                <th>Due Date</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
 
-                <div class="modal-header">
+                                        <tbody>
+                                            {filteredPayments.length > 0 ? (
+                                                filteredPayments.map(
+                                                    (payment, index) => (
+                                                        <tr key={payment.paymentId}>
+                                                            <td>{index + 1}</td>
+                                                            <td className="view-client-name" style={{ fontWeight: "600" }}>
+                                                                {getPaymentDetailUrl(payment) ? (
+                                                                    <a
+                                                                        href={getPaymentDetailUrl(payment)}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                    >
+                                                                        {payment.name || "—"}
+                                                                    </a>
+                                                                ) : (
+                                                                    payment.name || "—"
+                                                                )}
+                                                            </td>
+                                                            <td className="view-client-phone">
+                                                                {payment.phone || "—"}
+                                                            </td>
+                                                            <td className="view-client-total-amount">
+                                                                ₹{formatAmount(payment.totalAmount)}
+                                                            </td>
+                                                            <td className="view-client-paid-amount">
+                                                                ₹{formatAmount(payment.paidAmount)}
+                                                            </td>
+                                                            <td className="view-client-due-amount" style={{ fontWeight: "600" }}>
+                                                                ₹{formatAmount(payment.dueAmount)}
+                                                            </td>
+                                                            <td className="view-client-date-cell">
+                                                                {payment.dueDate || "—"}
+                                                            </td>
+                                                            <td className="view-client-action">
+                                                                <button
+                                                                    type="button"
+                                                                    className="view-client-action-btn"
+                                                                    onClick={() =>
+                                                                        setOpenActionId((current) =>
+                                                                            current === payment.paymentId
+                                                                                ? null
+                                                                                : payment.paymentId
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Action
+                                                                    <span className="view-client-action-arrow">
+                                                                        {openActionId === payment.paymentId ? "▲" : "▼"}
+                                                                    </span>
+                                                                </button>
 
-                    <h4
-                        class="modal-title"
-                        id="defaulterModalLabel"
-                    >
-                        Mark Client as Defaulter
-                    </h4>
+                                                                {openActionId === payment.paymentId && (
+                                                                    <div className="view-client-action-buttons show">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="view-client-view-btn"
+                                                                            onClick={() =>
+                                                                                navigate(
+                                                                                    `/accounts/due-payment/update/${payment.paymentId}`
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Update
+                                                                        </button>
 
+                                                                        <button
+                                                                            type="button"
+                                                                            className="view-client-defaulter-btn"
+                                                                            onClick={() => {
+                                                                                setOpenActionId(null);
+                                                                                setDefaulterTarget(payment);
+                                                                                setDefaulterNote("");
+                                                                                setDefaulterError("");
+                                                                            }}
+                                                                        >
+                                                                            Mark Defaulter
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        colSpan={9}
+                                                        className="view-client-no-data"
+                                                    >
+                                                        No due payment records found.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                    <button
-                        type="button"
-                        class="close"
-                        data-dismiss="modal"
-                        aria-label="Close"
-                    >
-
-                        &times;
-
-                    </button>
-
+                                <section id="total-due-amount">
+                                    <h4>
+                                        Total Due Amount (INR):{" "}
+                                        <span id="total-due">
+                                            {formatAmount(totalDuePaise / 100)}
+                                        </span>
+                                    </h4>
+                                </section>
+                            </>
+                        )}
+                    </div>
                 </div>
+            </section>
 
-
-                <div class="modal-body">
-
-
-                    <input
-                        type="hidden"
-                        name="client_Id"
-                        id="modal-client-id"
+            {defaulterTarget && (
+                <div
+                    className="defaulter-modal-overlay"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget && !markingDefaulter) {
+                            setDefaulterTarget(null);
+                        }
+                    }}
+                >
+                    <form
+                        className="defaulter-modal"
+                        onSubmit={submitDefaulter}
                     >
+                        <h2>Mark Client as Defaulter</h2>
 
-
-                    <div class="form-group">
-
-                        <label>
-                            Client Name:
-                        </label>
-
+                        <label>Client Name</label>
                         <input
                             type="text"
-                            class="form-control"
-                            id="modal-client-name"
-                            readonly
-                        >
+                            value={defaulterTarget.name || ""}
+                            readOnly
+                        />
+                        
+            Now there is a urgent requirement (Funtionality change) came from seniors , To add a Edit base ammount button 
+            in both View Associate > Associate Details > Payement detail section and All candidate > Candidate Details
+            > payment section So User able to change Base Amount (without GST) (Candidate and Company pay amount 
+            tbl_placement) of both (comapany and candidate) respectively . As User enter edited base amount and submit Candidate or
+            Company pay amount will be update . As the base amount change and if that record is GST enabled (also have 
+            GST amount) will also recalculate GST on the bases of new base amount means Total Amount (tbl_payment) will be 
+            change means Due Amount also change only Paid amount will be constant. This is core finance related 
+            functionslity so we have to implemet it properly best way possible . So lets start from the candidate
+            detail page > Payment detail section add one column with edit amount button and after clicking that button
+            a model should appear showing current base amount , GST Amount (if the record is GST enabled) and 
+            total amount and input field to enter new base amount , there should be a messege to the user like "total amount 
+            will be calculated after Added GST" and if GST is enable so we have to show calculated total amount in real time .
+            UI should be match to our project UI . and dont make any changes by yourself.
 
-                    </div>
+            Edit Base amount is working perfectly for candidate but a i try to enter less amount than paid amount i am getting
+            internal server error 500 in browser console (Failed to load resource: the server responded with a status of 500 (Internal Server Error)),instead of only showing error messege in model it also say internal
+            server error as i attached screenshot and intellj console says "Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0 where ip1_0.candidate_id=? order by ip1_0.interview_round,ip1_0.interview_id
+Hibernate: select cp1_0.id,cp1_0.client_id,cp1_0.defaulter_note,cp1_0.due_amount,cp1_0.due_date,cp1_0.interview_id,cp1_0.paid_amount,cp1_0.payment_date,cp1_0.payment_gateway,cp1_0.payment_type,cp1_0.status,cp1_0.tds_amount,cp1_0.tds_paid,cp1_0.total_amount from tbl_payment cp1_0 where cp1_0.client_id=?
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0 where ip1_0.interview_id in (?)
+Hibernate: select count(*) from tbl_agreement a1_0 where a1_0.id=?
+Hibernate: select cp1_0.id,cp1_0.client_id,cp1_0.defaulter_note,cp1_0.due_amount,cp1_0.due_date,cp1_0.interview_id,cp1_0.paid_amount,cp1_0.payment_date,cp1_0.payment_gateway,cp1_0.payment_type,cp1_0.status,cp1_0.tds_amount,cp1_0.tds_paid,cp1_0.total_amount from tbl_payment cp1_0 where cp1_0.id=?
+Hibernate: select ip1_0.interview_id,ip1_0.candidate_gst_amount,ip1_0.candidate_id,ip1_0.candidate_name,ip1_0.candidate_pay_amount,ip1_0.candidate_pay_date,ip1_0.company_gst_amount,ip1_0.company_name,ip1_0.company_pay_amount,ip1_0.company_pay_date,ip1_0.hr_name,ip1_0.interview_date,ip1_0.interview_round,ip1_0.interview_status,ip1_0.interview_time,ip1_0.joining_date,ip1_0.pay_remark,ip1_0.payment_type,ip1_0.position,ip1_0.rejection_reason,ip1_0.remark,ip1_0.salary_package from tbl_placement ip1_0 where ip1_0.interview_id=?
+2026-11-17T13:36:39.170+05:30 ERROR 17712 --- [consultancy-management] [nio-8080-exec-5] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.IllegalArgumentException: The new total amount cannot be less than the amount already paid.] with root cause
+
+java.lang.IllegalArgumentException: The new total amount cannot be less than the amount already paid.
+	at com.shulventures.consultancymanagement.service.PlacementPaymentAmountService.updateCandidateBaseAmount(PlacementPaymentAmountService.java:97) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.shulventures.consultancymanagement.service.PlacementPaymentAmountService$$SpringCGLIB$$0.updateCandidateBaseAmount(<generated>) ~[classes/:na]
+	at com.shulventures.consultancymanagement.controller.AgreementController.updateCandidatePaymentBaseAmount(AgreementController.java:175) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor.proceed(AuthorizationManagerBeforeMethodInterceptor.java:271) ~[spring-security-core-7.1.1.jar:7.1.1]
+	at org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor.attemptAuthorization(AuthorizationManagerBeforeMethodInterceptor.java:266) ~[spring-security-core-7.1.1.jar:7.1.1]
+	at org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor.invoke(AuthorizationManagerBeforeMethodInterceptor.java:197) ~[spring-security-core-7.1.1.jar:7.1.1]
+	at org.springframework.security.config.annotation.method.configuration.DeferringMethodInterceptor.invoke(DeferringMethodInterceptor.java:44) ~[spring-security-config-7.1.1.jar:7.1.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.9.jar:7.0.9]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.9.jar:7.0.9]
+	at com.shulventures.consultancymanagement.controller.AgreementController$$SpringCGLIB$$0.updateCandidatePaymentBaseAmount(<generated>) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:252) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:184) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:117) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:934) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:853) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:86) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:963) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:866) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1000) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at org.springframework.web.servlet.FrameworkServlet.doPut(FrameworkServlet.java:914) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:650) ~[tomcat-embed-core-11.0.24.jar:6.1]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:874) ~[spring-webmvc-7.0.9.jar:7.0.9]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710) ~[tomcat-embed-core-11.0.24.jar:6.1]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:132) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:59) ~[tomcat-embed-websocket-11.0.24.jar:11.0.24]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:111) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:108) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$2(FilterChainProxy.java:235) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:376) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:101) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:132) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:86) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:181) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.session.ConcurrentSessionFilter.doFilter(ConcurrentSessionFilter.java:153) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.session.ConcurrentSessionFilter.doFilter(ConcurrentSessionFilter.java:131) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:110) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:96) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:385) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:237) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:195) ~[spring-security-web-7.1.1.jar:7.1.1]
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.ServletRequestPathFilter.doFilter(ServletRequestPathFilter.java:52) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.CompositeFilter.doFilter(CompositeFilter.java:74) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration$CompositeFilterChainProxy.doFilter(WebSecurityConfiguration.java:317) ~[spring-security-config-7.1.1.jar:7.1.1]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:355) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:272) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:111) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:111) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:111) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:199) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.9.jar:7.0.9]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:111) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:77) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:535) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:86) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:71) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:347) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:406) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:71) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:1307) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:2036) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:74) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:949) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:483) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:74) ~[tomcat-embed-core-11.0.24.jar:11.0.24]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]"
 
 
-                    <div class="form-group">
 
-                        <label
-                            for="defaulter_note"
-                        >
-                            Reason:
-                        </label>
-
-                        <textarea
-                            class="form-control"
-                            name="defaulter_note"
-                            id="defaulter_note"
-                            rows="4"
-                            required
-                        ></textarea>
-
-                    </div>
-
-
-                </div>
-
-
-                <div class="modal-footer">
-
-                    <button
-                        type="submit"
-                        class="btn btn-danger"
-                    >
-                        Submit
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        data-dismiss="modal"
-                    >
-                        Cancel
-                    </button>
-
-                </div>
-
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
-
-
-<style>
 
     
-    /* =========================================================
-   DEFAULTER MODAL - MODERN DESIGN
-========================================================= */
+                        <label htmlFor="defaulter-note">Reason</label>
+                        <textarea
+                            id="defaulter-note"
+                            rows={4}
+                            value={defaulterNote}
+                            onChange={(event) => setDefaulterNote(event.target.value)}
+                            maxLength={1000}
+                            required
+                        />
 
-#defaulterModal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 99999;
+                        {defaulterError && (
+                            <p role="alert">{defaulterError}</p>
+                        )}
 
-    background: rgba(15, 23, 42, 0.62);
-    backdrop-filter: blur(4px);
-
-    overflow-y: auto;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-#defaulterModal.show {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* MODAL BOX */
-#defaulterModal .modal-dialog {
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-    animation: defaulterModalIn 0.25s ease;
-}
-
-@keyframes defaulterModalIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.97);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-#defaulterModal .modal-content {
-    position: relative;
-
-    background: #ffffff;
-
-    border: none;
-    border-radius: 16px;
-
-    overflow: hidden;
-
-    box-shadow:
-        0 25px 60px rgba(0, 0, 0, 0.25),
-        0 8px 25px rgba(0, 0, 0, 0.12);
-}
+                        <div className="defaulter-modal-actions">
+                            <button
+                                type="button"
+                                className="defaulter-cancel-btn"
+                                disabled={markingDefaulter}
+                                onClick={() => setDefaulterTarget(null)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="defaulter-submit-btn"
+                                disabled={markingDefaulter}
+                            >
+                                {markingDefaulter ? "Saving..." : "Submit"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+        </section>
 
 
-/* =========================================================
-   MODAL HEADER
-========================================================= */
-
-#defaulterModal .modal-header {
-    position: relative;
-
-    display: flex;
-    align-items: center;
-
-    padding: 20px 24px;
-
-    background: linear-gradient(
-        135deg,
-        #fff5f5,
-        #ffffff
     );
-
-    border-bottom: 1px solid #f1f1f1;
-}
-
-#defaulterModal .modal-title {
-    margin: 0;
-
-    padding-right: 35px;
-
-    font-size: 21px;
-    font-weight: 700;
-
-    color: #1f2937;
-
-    line-height: 1.3;
-}
-
-/* RED ICON BEFORE TITLE */
-#defaulterModal .modal-title::before {
-    content: "⚠";
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 38px;
-    height: 38px;
-
-    margin-right: 11px;
-
-    border-radius: 10px;
-
-    background: #fee2e2;
-    color: #dc2626;
-
-    font-size: 19px;
-
-    vertical-align: middle;
-}
-
-
-/* =========================================================
-   CLOSE BUTTON
-========================================================= */
-
-#defaulterModal .close {
-    position: absolute;
-
-    top: 17px;
-    right: 18px;
-
-    width: 34px;
-    height: 34px;
-
-    padding: 0;
-
-    border: none;
-    border-radius: 50%;
-
-    background: #f3f4f6;
-
-    color: #6b7280;
-
-    font-size: 22px;
-    line-height: 32px;
-
-    opacity: 1;
-
-    cursor: pointer;
-
-    transition: all 0.2s ease;
-}
-
-#defaulterModal .close:hover {
-    background: #fee2e2;
-    color: #dc2626;
-
-    transform: rotate(90deg);
-}
-
-
-/* =========================================================
-   MODAL BODY
-========================================================= */
-
-#defaulterModal .modal-body {
-    padding: 24px;
-}
-
-
-/* FORM GROUP */
-#defaulterModal .form-group {
-    margin-bottom: 20px;
-}
-
-#defaulterModal .form-group:last-child {
-    margin-bottom: 0;
-}
-
-
-/* LABEL */
-#defaulterModal label {
-    display: block;
-
-    margin-bottom: 8px;
-
-    font-size: 14px;
-    font-weight: 600;
-
-    color: #374151;
-}
-
-
-/* INPUT + TEXTAREA */
-#defaulterModal .form-control {
-    width: 100%;
-
-    box-sizing: border-box;
-
-    padding: 12px 14px;
-
-    border: 1px solid #d1d5db;
-    border-radius: 9px;
-
-    background: #ffffff;
-
-    color: #1f2937;
-
-    font-size: 14px;
-
-    outline: none;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        background 0.2s ease;
-}
-
-#defaulterModal .form-control:focus {
-    border-color: #ef4444;
-
-    box-shadow:
-        0 0 0 3px rgba(239, 68, 68, 0.12);
-}
-
-
-/* CLIENT NAME READONLY */
-#defaulterModal #modal-client-name {
-    background: #f8fafc;
-    color: #4b5563;
-    font-weight: 600;
-}
-
-
-/* TEXTAREA */
-#defaulterModal textarea.form-control {
-    min-height: 110px;
-
-    resize: vertical;
-
-    line-height: 1.5;
-}
-
-
-/* =========================================================
-   MODAL FOOTER
-========================================================= */
-
-#defaulterModal .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-
-    gap: 10px;
-
-    padding: 17px 24px;
-
-    background: #fafafa;
-
-    border-top: 1px solid #eeeeee;
-}
-
-
-/* =========================================================
-   SUBMIT BUTTON
-========================================================= */
-
-#defaulterModal .btn-danger {
-    min-width: 125px;
-
-    padding: 10px 18px;
-
-    border: none;
-    border-radius: 8px;
-
-    background: #dc2626;
-    color: #ffffff;
-
-    font-size: 14px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    box-shadow:
-        0 4px 10px rgba(220, 38, 38, 0.20);
-
-    transition: all 0.2s ease;
-}
-
-#defaulterModal .btn-danger:hover {
-    background: #b91c1c;
-
-    transform: translateY(-1px);
-
-    box-shadow:
-        0 6px 14px rgba(220, 38, 38, 0.25);
-}
-
-
-/* =========================================================
-   CANCEL BUTTON
-========================================================= */
-
-#defaulterModal .btn-secondary {
-    min-width: 90px;
-
-    padding: 10px 18px;
-
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-
-    background: #ffffff;
-    color: #4b5563;
-
-    font-size: 14px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition: all 0.2s ease;
-}
-
-#defaulterModal .btn-secondary:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 600px) {
-
-    #defaulterModal {
-        padding: 15px;
-    }
-
-    #defaulterModal .modal-dialog {
-        max-width: 100%;
-    }
-
-    #defaulterModal .modal-header {
-        padding: 17px 18px;
-    }
-
-    #defaulterModal .modal-title {
-        font-size: 18px;
-    }
-
-    #defaulterModal .modal-title::before {
-        width: 34px;
-        height: 34px;
-
-        font-size: 17px;
-    }
-
-    #defaulterModal .modal-body {
-        padding: 20px 18px;
-    }
-
-    #defaulterModal .modal-footer {
-        padding: 15px 18px;
-    }
-
-}
-
-</style>
-
-<!-- =========================================================
-     EXISTING JS
-========================================================= -->
-
-<script src="js/bootstrap.js"></script>
-<script src="js/jquery.dcjqaccordion.2.7.js"></script>
-<script src="js/scripts.js"></script>
-<script src="js/jquery.slimscroll.js"></script>
-<script src="js/jquery.nicescroll.js"></script>
-<script src="js/jquery.scrollTo.js"></script>
-
-
-<script>
-
-/* =========================================================
-   RECORD COUNT
-========================================================= */
-
-function calculateRecordCount() {
-
-    let count = 0;
-
-    document
-        .querySelectorAll(
-            '#payments-table tbody tr'
-        )
-        .forEach(function(row) {
-
-            if (
-                row.style.display !== 'none'
-                &&
-                !row.querySelector(
-                    '.view-client-no-data'
-                )
-            ) {
-
-                count++;
-
-            }
-
-        });
-
-
-    document.getElementById(
-        'record-count'
-    ).textContent = count;
-
-}
-
-
-/* =========================================================
-   TOTAL DUE
-========================================================= */
-
-function calculateTotalDue() {
-
-    let totalDue = 0;
-
-
-    document
-        .querySelectorAll(
-            '#payments-table tbody tr'
-        )
-        .forEach(function(row) {
-
-
-            if (
-                row.style.display !== 'none'
-                &&
-                !row.querySelector(
-                    '.view-client-no-data'
-                )
-            ) {
-
-
-                const dueCell =
-                    row.querySelector(
-                        '.view-client-due-amount'
-                    );
-
-
-                if (!dueCell) {
-                    return;
-                }
-
-
-                const dueAmount =
-                    parseFloat(
-                        dueCell.textContent
-                            .replace(/,/g, '')
-                            .replace(/₹/g, '')
-                            .trim()
-                    ) || 0;
-
-
-                totalDue += dueAmount;
-
-            }
-
-        });
-
-
-    document.getElementById(
-        'total-due'
-    ).textContent =
-        totalDue.toFixed(2);
-
-}
-
-
-/* =========================================================
-   SEARCH
-========================================================= */
-
-function searchPayments() {
-    const input = document.getElementById("txt_searchall");
-    const query = input.value.toLowerCase().trim();
-
-    const rows = document.querySelectorAll("tbody tr");
-
-    rows.forEach(row => {
-
-        const name = row.querySelector(".view-client-name")?.textContent.toLowerCase() || "";
-        const branch = row.querySelector(".view-client-branch")?.textContent.toLowerCase() || "";
-        const phone = row.querySelector(".view-client-phone")?.textContent.toLowerCase() || "";
-        const service = row.querySelector(".view-client-service")?.textContent.toLowerCase() || "";
-
-        // Due Date
-        const dueDateElement = row.querySelector(".due-date");
-
-        const dueDate = dueDateElement?.textContent.toLowerCase().trim() || "";
-        const dueDateData = dueDateElement?.getAttribute("data-due-date")?.toLowerCase() || "";
-
-        const match =
-            name.includes(query) ||
-            branch.includes(query) ||
-            phone.includes(query) ||
-            service.includes(query) ||
-            dueDate.includes(query) ||
-            dueDateData.includes(query);
-
-        row.style.display = match ? "" : "none";
-    });
-
-    calculateTotalDue();
-    calculateRecordCount();
-}
-
-/* =========================================================
-   SEARCH EVENT
-========================================================= */
-
-const searchInput =
-    document.getElementById(
-        'txt_searchall'
-    );
-
-
-if (searchInput) {
-
-    searchInput.addEventListener(
-        'input',
-        searchPayments
-    );
-
-}
-
-
-/* =========================================================
-   ACTION BUTTON TOGGLE
-========================================================= */
-
-document.querySelectorAll('.toggle-action-btn').forEach(function (btn) {
-
-    btn.addEventListener('click', function (e) {
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const actionDiv =
-            this.parentElement.querySelector(
-                '.view-client-action-buttons'
-            );
-
-        const isOpen =
-            actionDiv.classList.contains('show');
-
-        /* Close all other action menus */
-        document.querySelectorAll(
-            '.view-client-action-buttons'
-        ).forEach(function (menu) {
-
-            menu.classList.remove('show');
-
-        });
-
-        document.querySelectorAll(
-            '.toggle-action-btn'
-        ).forEach(function (button) {
-
-            button.classList.remove('active');
-
-        });
-
-
-        /* Open clicked menu */
-        if (!isOpen) {
-
-            actionDiv.classList.add('show');
-
-            this.classList.add('active');
-
-        }
-
-    });
-
-});
-
-
-/* =========================================================
-   CLOSE ACTION MENU WHEN CLICK OUTSIDE
-========================================================= */
-
-document.addEventListener('click', function (e) {
-
-    if (
-        !e.target.closest('.view-client-action')
-    ) {
-
-        document.querySelectorAll(
-            '.view-client-action-buttons'
-        ).forEach(function (menu) {
-
-            menu.classList.remove('show');
-
-        });
-
-        document.querySelectorAll(
-            '.toggle-action-btn'
-        ).forEach(function (button) {
-
-            button.classList.remove('active');
-
-        });
-
-    }
-
-});
-
-/* =========================================================
-   DEFAULTER MODAL
-========================================================= */
-/* =========================================================
-   DEFAULTER MODAL
-========================================================= */
-
-document
-    .querySelectorAll('.open-defaulter-modal')
-    .forEach(function(button) {
-
-        button.addEventListener('click', function(e) {
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            const clientId =
-                this.getAttribute('data-clientid');
-
-            const name =
-                this.getAttribute('data-name');
-
-            document.getElementById(
-                'modal-client-id'
-            ).value = clientId;
-
-            document.getElementById(
-                'modal-client-name'
-            ).value = name;
-
-            document.getElementById(
-                'defaulterModal'
-            ).classList.add('show');
-
-        });
-
-    });
-
-
-/* =========================================================
-   CLOSE DEFAULTER MODAL
-========================================================= */
-
-document
-    .querySelectorAll(
-        '#defaulterModal [data-dismiss="modal"]'
-    )
-    .forEach(function(button) {
-
-        button.addEventListener('click', function() {
-
-            document.getElementById(
-                'defaulterModal'
-            ).classList.remove('show');
-
-        });
-
-    });
-
-
-/* =========================================================
-   CLOSE MODAL WHEN CLICKING OUTSIDE
-========================================================= */
-
-document
-    .getElementById('defaulterModal')
-    .addEventListener('click', function(e) {
-
-        if (e.target === this) {
-
-            this.classList.remove('show');
-
-        }
-
-    });
-
-
-/* =========================================================
-   DUE DATE HIGHLIGHT
-========================================================= */
-
-function highlightDueDates() {
-
-
-    const now =
-        new Date();
-
-
-    const today =
-        new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
-        );
-
-
-    document
-        .querySelectorAll(
-            '.due-date'
-        )
-        .forEach(function(span) {
-
-
-            const dueDateValue =
-                span.getAttribute(
-                    'data-due-date'
-                );
-
-
-            if (!dueDateValue) {
-                return;
-            }
-
-
-            const parts =
-                dueDateValue.split('-');
-
-
-            if (
-                parts.length !== 3
-            ) {
-                return;
-            }
-            const dueDate =
-                new Date(
-                    parseInt(parts[0]),
-                    parseInt(parts[1]) - 1,
-                    parseInt(parts[2])
-                );
-            if (
-                dueDate <= today
-            ) {
-                span.classList.add(
-                    'highlight-today'
-                );
-            }
-        });
-}
-/* =========================================================
-   BOTTOM SCROLLBAR SYNC
-========================================================= */
-document.addEventListener(
-    'DOMContentLoaded',
-    function() {
-        const bottomScroll =
-            document.getElementById(
-                'viewClientBottomScroll'
-            );
-        const bottomInner =
-            document.getElementById(
-                'viewClientBottomScrollInner'
-            );
-        const tableWrapper =
-            document.querySelector(
-                '.view-clients-table-wrapper'
-            );
-        if (
-            !bottomScroll
-            ||
-            !bottomInner
-            ||
-            !tableWrapper
-        ) {
-            return;
-        }
-        function updateScrollWidth() {
-            bottomInner.style.width =
-                tableWrapper.scrollWidth
-                + 'px';
-
-        }
-        updateScrollWidth();
-        window.addEventListener(
-            'resize',
-            updateScrollWidth
-        );
-        bottomScroll.addEventListener(
-            'scroll',
-            function() {
-                tableWrapper.scrollLeft =
-                    bottomScroll.scrollLeft;
-            }
-        );
-        tableWrapper.addEventListener(
-            'scroll',
-            function() {
-                bottomScroll.scrollLeft =
-                    tableWrapper.scrollLeft;
-            }
-        );
-    }
-);
-/* =========================================================
-   PAGE LOAD
-========================================================= */
-window.addEventListener(
-    'load',
-    function() {
-        calculateTotalDue();
-        calculateRecordCount();
-        highlightDueDates();
-    }
-);
-</script>
-</body>
-</html>"
+};
+export default DuePayment;

@@ -29,6 +29,8 @@ import com.shulventures.consultancymanagement.dto.agreement.CandidateInterviewDe
 import com.shulventures.consultancymanagement.dto.payment.CandidatePaymentDetailsResponse;
 import com.shulventures.consultancymanagement.service.CandidatePaymentService;
 
+import com.shulventures.consultancymanagement.dto.payment.UpdatePaymentBaseAmountRequest;
+import com.shulventures.consultancymanagement.service.PlacementPaymentAmountService;
 
 @RestController
 @RequestMapping("/api")
@@ -37,6 +39,7 @@ public class AgreementController {
 
     private final AgreementService agreementService;
     private final CandidatePaymentService candidatePaymentService;
+    private final PlacementPaymentAmountService placementPaymentAmountService;
 
     @PostMapping("/students/{studentId}/agreement")
     @PreAuthorize(
@@ -155,5 +158,31 @@ public class AgreementController {
             @PathVariable Long id
     ) {
         return candidatePaymentService.getCandidatePayments(id);
+    }
+
+
+    @PutMapping("/agreements/{id}/payments/{paymentId}/base-amount")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'CANDIDATES_VIEW') "
+                    + "and @permissionService.hasPage(authentication, 'ACCOUNTS', 'PAYMENTS_DUE')"
+    )
+    public void updateCandidatePaymentBaseAmount(
+            @PathVariable Long id,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody UpdatePaymentBaseAmountRequest request
+    ) {
+        try {
+            placementPaymentAmountService.updateCandidateBaseAmount(
+                    id,
+                    paymentId,
+                    request.baseAmount()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    exception.getMessage()
+            );
+        }
     }
 }

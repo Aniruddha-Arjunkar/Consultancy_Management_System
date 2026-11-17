@@ -12,7 +12,7 @@ const formatPercent = (value) =>
         ? "—"
         : `${value}%`;
 
-        const formatCurrency = (value) =>
+const formatCurrency = (value) =>
     `₹${Number(value || 0).toLocaleString("en-IN", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -23,22 +23,22 @@ const ViewCandidateDetail = () => {
     const navigate = useNavigate();
 
     const location = useLocation();
-const { user } = useAuth();
+    const { user } = useAuth();
 
-const [paymentData, setPaymentData] = useState(null);
-const [paymentsLoading, setPaymentsLoading] = useState(true);
-const [paymentError, setPaymentError] = useState("");
+    const [paymentData, setPaymentData] = useState(null);
+    const [paymentsLoading, setPaymentsLoading] = useState(true);
+    const [paymentError, setPaymentError] = useState("");
 
-const grants = (user?.accessModules || "")
-    .split(",")
-    .map((item) => item.trim().toUpperCase())
-    .filter(Boolean);
+    const grants = (user?.accessModules || "")
+        .split(",")
+        .map((item) => item.trim().toUpperCase())
+        .filter(Boolean);
 
-const canUpdatePayments =
-    user?.role?.trim().toUpperCase() === "SUPER_ADMIN" ||
-    grants.includes("ALL") ||
-    grants.includes("ACCOUNTS") ||
-    grants.includes("ACCOUNTS:PAYMENTS_DUE");
+    const canUpdatePayments =
+        user?.role?.trim().toUpperCase() === "SUPER_ADMIN" ||
+        grants.includes("ALL") ||
+        grants.includes("ACCOUNTS") ||
+        grants.includes("ACCOUNTS:PAYMENTS_DUE");
 
 
     const [candidate, setCandidate] = useState(null);
@@ -49,6 +49,11 @@ const canUpdatePayments =
     const [interviews, setInterviews] = useState([]);
     const [interviewsLoading, setInterviewsLoading] = useState(true);
     const [interviewError, setInterviewError] = useState("");
+
+    const [editingPayment, setEditingPayment] = useState(null);
+    const [editBaseAmount, setEditBaseAmount] = useState("");
+    const [savingBaseAmount, setSavingBaseAmount] = useState(false);
+    const [baseAmountError, setBaseAmountError] = useState("");
 
     useEffect(() => {
         let active = true;
@@ -113,38 +118,110 @@ const canUpdatePayments =
     }, [candidateId]);
 
     useEffect(() => {
-    let active = true;
+        let active = true;
 
-    const loadPayments = async () => {
-        setPaymentsLoading(true);
-        setPaymentError("");
+        const loadPayments = async () => {
+            setPaymentsLoading(true);
+            setPaymentError("");
+
+            try {
+                const data =
+                    await agreementService.getCandidatePayments(candidateId);
+
+                if (active) {
+                    setPaymentData(data);
+                }
+            } catch (loadError) {
+                if (active) {
+                    setPaymentError(
+                        loadError.message || "Could not load payment details."
+                    );
+                }
+            } finally {
+                if (active) {
+                    setPaymentsLoading(false);
+                }
+            }
+        };
+
+        loadPayments();
+
+        return () => {
+            active = false;
+        };
+    }, [candidateId]);
+
+    const openBaseAmountModal = (payment) => {
+        if (
+            !payment.baseAmountEditable ||
+            paymentData?.candidateStatus === "DEFAULTER"
+        ) {
+            return;
+        }
+
+        setEditingPayment(payment);
+        setEditBaseAmount(String(payment.baseAmount ?? ""));
+        setBaseAmountError("");
+    };
+
+    const closeBaseAmountModal = () => {
+        if (savingBaseAmount) return;
+
+        setEditingPayment(null);
+        setEditBaseAmount("");
+        setBaseAmountError("");
+    };
+
+    const saveBaseAmount = async (event) => {
+        event.preventDefault();
+
+        if (!editingPayment || savingBaseAmount) return;
+
+        const newBaseAmount = Number(editBaseAmount);
+
+        if (!Number.isFinite(newBaseAmount) || newBaseAmount < 0) {
+            setBaseAmountError("Enter a valid base amount of zero or more.");
+            return;
+        }
+
+        const newGstAmount = editingPayment.gstEnabled
+            ? Math.round((newBaseAmount * 0.18 + Number.EPSILON) * 100) / 100
+            : 0;
+
+        const newTotalAmount = newBaseAmount + newGstAmount;
+        const paidAmount = Number(editingPayment.paidAmount || 0);
+
+        if (newTotalAmount < paidAmount) {
+            setBaseAmountError(
+                `New total amount (${formatCurrency(newTotalAmount)}) cannot be less than the amount already paid (${formatCurrency(paidAmount)}).`
+            );
+            return;
+        }
+
+        setSavingBaseAmount(true);
+        setBaseAmountError("");
 
         try {
-            const data =
+            await agreementService.updateCandidatePaymentBaseAmount(
+                candidateId,
+                editingPayment.paymentId,
+                newBaseAmount
+            );
+
+            const refreshedData =
                 await agreementService.getCandidatePayments(candidateId);
 
-            if (active) {
-                setPaymentData(data);
-            }
-        } catch (loadError) {
-            if (active) {
-                setPaymentError(
-                    loadError.message || "Could not load payment details."
-                );
-            }
+            setPaymentData(refreshedData);
+            setEditingPayment(null);
+            setEditBaseAmount("");
+        } catch (saveError) {
+            setBaseAmountError(
+                saveError.message || "Could not update the base amount."
+            );
         } finally {
-            if (active) {
-                setPaymentsLoading(false);
-            }
+            setSavingBaseAmount(false);
         }
     };
-
-    loadPayments();
-
-    return () => {
-        active = false;
-    };
-}, [candidateId]);
 
     if (loading) {
         return (
@@ -255,6 +332,19 @@ const canUpdatePayments =
             setDeleting(false);
         }
     };
+
+
+    const previewBaseAmount = Number(editBaseAmount);
+    const previewGstAmount =
+        editingPayment?.gstEnabled && Number.isFinite(previewBaseAmount)
+            ? Math.round(
+                (previewBaseAmount * 0.18 + Number.EPSILON) * 100
+            ) / 100
+            : 0;
+
+    const previewTotalAmount =
+        (Number.isFinite(previewBaseAmount) ? previewBaseAmount : 0) +
+        previewGstAmount;
     return (
         <section id="main-content">
             <section className="wrapper">
@@ -447,105 +537,222 @@ const canUpdatePayments =
                             )}
                         </section>
 
-                       <section className="candidate-detail-section">
-    <h2>💳 Payment Details</h2>
+                        <section className="candidate-detail-section">
+                            <h2>💳 Payment Details</h2>
 
-    {paymentsLoading ? (
-        <p className="candidate-detail-empty">Loading payment details...</p>
-    ) : paymentError ? (
-        <p className="candidate-detail-empty" role="alert">
-            {paymentError}
-        </p>
-    ) : (
-        <>
-            <p className="candidate-payment-summary">
-                Candidate Status:{" "}
-                <strong
-                    className={
-                        paymentData?.candidateStatus === "DEFAULTER"
-                            ? "candidate-payment-defaulter"
-                            : "candidate-payment-active"
-                    }
-                >
-                    {paymentData?.candidateStatus || "ACTIVE"}
-                </strong>
-            </p>
+                            {paymentsLoading ? (
+                                <p className="candidate-detail-empty">Loading payment details...</p>
+                            ) : paymentError ? (
+                                <p className="candidate-detail-empty" role="alert">
+                                    {paymentError}
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="candidate-payment-summary">
+                                        Candidate Status:{" "}
+                                        <strong
+                                            className={
+                                                paymentData?.candidateStatus === "DEFAULTER"
+                                                    ? "candidate-payment-defaulter"
+                                                    : "candidate-payment-active"
+                                            }
+                                        >
+                                            {paymentData?.candidateStatus || "ACTIVE"}
+                                        </strong>
+                                    </p>
 
-            {paymentData?.payments?.length > 0 ? (
-                <>
-                    <div className="view-clients-table-wrapper">
-                        <table className="view-clients-table candidate-detail-table">
-                            <thead>
-                                <tr>
-                                    <th>Total Amount</th>
-                                    <th>Paid Amount</th>
-                                    <th>Payment Date</th>
-                                    <th>Gateway</th>
-                                    <th>Payment Status</th>
-                                    <th>Candidate Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paymentData.payments.map((payment) => {
-                                    const isDefaulter = paymentData.candidateStatus === "DEFAULTER";
+                                    {paymentData?.payments?.length > 0 ? (
+                                        <>
+                                            <div className="view-clients-table-wrapper">
+                                                <table className="view-clients-table candidate-detail-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Total Amount</th>
+                                                            <th>Paid Amount</th>
+                                                            <th>Payment Date</th>
+                                                            <th>Gateway</th>
+                                                            <th>Payment Status</th>
+                                                            <th>Candidate Status</th>
+                                                            <th>Edit Base Amount</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {paymentData.payments.map((payment) => {
+                                                            const isDefaulter = paymentData.candidateStatus === "DEFAULTER";
 
-                                    return (
-                                        <tr key={payment.paymentId}>
-                                            <td>{formatCurrency(payment.totalAmount)}</td>
-                                            <td>{formatCurrency(payment.paidAmount)}</td>
-                                            <td>{display(payment.paymentDate)}</td>
-                                            <td>{display(payment.paymentGateway)}</td>
-                                            <td>{payment.paymentStatus}</td>
-                                            <td>{paymentData.candidateStatus}</td>
-                                            <td>
-                                                {canUpdatePayments ? (
-                                                    <button
-                                                        className="view-candidate-detail-payment-update-btn"
-                                                        type="button"
-                                                        disabled={isDefaulter}
-                                                        title={
-                                                            isDefaulter
-                                                                ? "Payments cannot be updated while this candidate is a defaulter."
-                                                                : "Update payment"
-                                                        }
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/accounts/due-payment/update/${payment.paymentId}`,
-                                                                {
-                                                                    state: {
-                                                                        returnTo: location.pathname,
-                                                                    },
-                                                                }
-                                                            )
-                                                        }
-                                                    >
-                                                        Update Payment
-                                                    </button>
-                                                ) : (
-                                                    <span>Accounts payment access required</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                            return (
+                                                                <tr key={payment.paymentId}>
+                                                                    <td>{formatCurrency(payment.totalAmount)}</td>
+                                                                    <td>{formatCurrency(payment.paidAmount)}</td>
+                                                                    <td>{display(payment.paymentDate)}</td>
+                                                                    <td>{display(payment.paymentGateway)}</td>
+                                                                    <td>{payment.paymentStatus}</td>
+                                                                    <td>{paymentData.candidateStatus}</td>
+                                                                    <td>{canUpdatePayments && payment.baseAmountEditable ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="candidate-payment-edit-amount-btn"
+                                                                            disabled={paymentData.candidateStatus === "DEFAULTER"}
+                                                                            title={
+                                                                                paymentData.candidateStatus === "DEFAULTER"
+                                                                                    ? "A defaulter's payment amount cannot be edited."
+                                                                                    : "Edit base amount"
+                                                                            }
+                                                                            onClick={() => openBaseAmountModal(payment)}
+                                                                        >
+                                                                            Edit Amount
+                                                                        </button>
+                                                                    ) : (
+                                                                        "—"
+                                                                    )}
+                                                                    </td>
+                                                                    <td>
+                                                                        {canUpdatePayments ? (
+                                                                            <button
+                                                                                className="view-candidate-detail-payment-update-btn"
+                                                                                type="button"
+                                                                                disabled={isDefaulter}
+                                                                                title={
+                                                                                    isDefaulter
+                                                                                        ? "Payments cannot be updated while this candidate is a defaulter."
+                                                                                        : "Update payment"
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/accounts/due-payment/update/${payment.paymentId}`,
+                                                                                        {
+                                                                                            state: {
+                                                                                                returnTo: location.pathname,
+                                                                                            },
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Update Payment
+                                                                            </button>
+                                                                        ) : (
+                                                                            <span>Accounts payment access required</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
 
-                    <p className="candidate-payment-total">
-                        <strong>Total Paid Amount:</strong>{" "}
-                        {formatCurrency(paymentData.totalPaidAmount)}
-                    </p>
-                </>
-            ) : (
-                <p className="candidate-detail-empty">
-                    No candidate payment details available.
-                </p>
-            )}
-        </>
-    )}
-</section>
+                                            <p className="candidate-payment-total">
+                                                <strong>Total Paid Amount:</strong>{" "}
+                                                {formatCurrency(paymentData.totalPaidAmount)}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="candidate-detail-empty">
+                                            No candidate payment details available.
+                                        </p>
+                                    )}
+                                </>
+                            )}
+                        </section>
+
+                        {editingPayment && (
+                            <div
+                                className="candidate-base-modal-backdrop"
+                                onClick={(event) => {
+                                    if (
+                                        event.target === event.currentTarget &&
+                                        !savingBaseAmount
+                                    ) {
+                                        closeBaseAmountModal();
+                                    }
+                                }}
+                            >
+                                <section
+                                    className="candidate-base-modal"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="candidate-base-modal-title"
+                                >
+                                    <h2 id="candidate-base-modal-title">Edit Base Amount</h2>
+
+                                    <div className="candidate-base-amount-summary">
+                                        <p>
+                                            <strong>Current Base Amount:</strong>{" "}
+                                            {formatCurrency(editingPayment.baseAmount)}
+                                        </p>
+
+                                        {editingPayment.gstEnabled && (
+                                            <p>
+                                                <strong>Current GST Amount:</strong>{" "}
+                                                {formatCurrency(editingPayment.gstAmount)}
+                                            </p>
+                                        )}
+
+                                        <p>
+                                            <strong>Current Total Amount:</strong>{" "}
+                                            {formatCurrency(editingPayment.totalAmount)}
+                                        </p>
+                                    </div>
+
+                                    <form onSubmit={saveBaseAmount}>
+                                        <label htmlFor="candidate-new-base-amount">
+                                            New Base Amount (without GST)
+                                        </label>
+                                        <input
+                                            id="candidate-new-base-amount"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={editBaseAmount}
+                                            onChange={(event) => setEditBaseAmount(event.target.value)}
+                                            required
+                                        />
+
+                                        <p className="candidate-base-amount-note">
+                                            Total amount will be calculated after adding GST.
+                                        </p>
+
+                                        {editingPayment.gstEnabled ? (
+                                            <div className="candidate-base-amount-preview">
+                                                <p>
+                                                    <strong>Calculated GST (18%):</strong>{" "}
+                                                    {formatCurrency(previewGstAmount)}
+                                                </p>
+                                                <p>
+                                                    <strong>New Total Amount:</strong>{" "}
+                                                    {formatCurrency(previewTotalAmount)}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="candidate-base-amount-preview">
+                                                GST is not enabled for this payment. Total amount will
+                                                equal the base amount: {formatCurrency(previewTotalAmount)}
+                                            </p>
+                                        )}
+
+                                        {baseAmountError && (
+                                            <p className="candidate-base-amount-error" role="alert">
+                                                {baseAmountError}
+                                            </p>
+                                        )}
+
+                                        <div className="candidate-base-modal-actions">
+                                            <button
+                                                type="button"
+                                                onClick={closeBaseAmountModal}
+                                                disabled={savingBaseAmount}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button type="submit" disabled={savingBaseAmount}>
+                                                {savingBaseAmount ? "Saving..." : "Save Amount"}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </section>
+                            </div>
+                        )}
 
                         {candidate.status !== "Blacklisted" && (
                             <div className="candidate-detail-schedule">

@@ -1,0 +1,133 @@
+package com.shulventures.consultancymanagement.service;
+
+
+import com.shulventures.consultancymanagement.entity.Agreement;
+import com.shulventures.consultancymanagement.entity.ConsultancyPayment;
+import com.shulventures.consultancymanagement.entity.InterviewPlacement;
+import com.shulventures.consultancymanagement.repository.AgreementRepository;
+import com.shulventures.consultancymanagement.repository.ConsultancyPaymentRepository;
+import com.shulventures.consultancymanagement.repository.InterviewPlacementRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+@Service
+@RequiredArgsConstructor
+public class PlacementPaymentAmountService {
+
+    private static final BigDecimal GST_RATE = new BigDecimal("0.18");
+
+    private final AgreementRepository agreementRepository;
+    private final ConsultancyPaymentRepository paymentRepository;
+    private final InterviewPlacementRepository placementRepository;
+
+    @Transactional
+    public void updateCandidateBaseAmount(
+            Long candidateId,
+            Long paymentId,
+            BigDecimal requestedBaseAmount
+    ) {
+        if (!agreementRepository.existsById(candidateId)) {
+            throw new IllegalArgumentException("Candidate not found.");
+        }
+
+        ConsultancyPayment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Payment not found.")
+                );
+
+        if (!String.valueOf(candidateId).equals(
+                payment.getClientId() == null ? null : payment.getClientId().trim()
+        )) {
+            throw new IllegalArgumentException(
+                    "This payment does not belong to the candidate."
+            );
+        }
+
+        if (!"Candidate Pay".equalsIgnoreCase(payment.getPaymentType())) {
+            throw new IllegalArgumentException(
+                    "Only Candidate Pay amounts can be edited from this page."
+            );
+        }
+
+        if (payment.getInterviewId() == null) {
+            throw new IllegalArgumentException(
+                    "This payment is not linked to a placement."
+            );
+        }
+
+        InterviewPlacement placement = placementRepository
+                .findById(payment.getInterviewId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Placement not found.")
+                );
+
+        if (!candidateId.equals(placement.getCandidateId())) {
+            throw new IllegalArgumentException(
+                    "This placement does not belong to the candidate."
+            );
+        }
+
+        if ("defaulted".equalsIgnoreCase(payment.getStatus())) {
+            throw new IllegalArgumentException(
+                    "A defaulted payment amount cannot be changed."
+            );
+        }
+
+        BigDecimal newBaseAmount =
+                requestedBaseAmount.setScale(2, RoundingMode.HALF_UP);
+
+        // A non-null placement GST amount means GST was enabled for this payer.
+        boolean gstEnabled = placement.getCandidateGstAmount() != null;
+
+        BigDecimal newGstAmount = gstEnabled
+                ? newBaseAmount.multiply(GST_RATE)
+                .setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal newTotalAmount = newBaseAmount
+                .add(newGstAmount)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal paidAmount = zeroIfNull(payment.getPaidAmount());
+        if (newTotalAmount.compareTo(paidAmount) < 0) {
+            throw new IllegalArgumentException(
+                    "The new total amount cannot be less than the amount already paid."
+            );
+        }
+
+        BigDecimal tdsAmount = zeroIfNull(payment.getTdsAmount());
+        if (tdsAmount.compareTo(newGstAmount) > 0) {
+            throw new IllegalArgumentException(
+                    "The existing TDS amount cannot exceed the recalculated GST amount."
+            );
+        }
+
+        // Preserve the current project rule: unpaid TDS reduces the due amount.
+        BigDecimal tdsCredit = Boolean.TRUE.equals(payment.getTdsPaid())
+                ? BigDecimal.ZERO
+                : tdsAmount;
+
+        BigDecimal newDueAmount = newTotalAmount
+                .subtract(paidAmount)
+                .subtract(tdsCredit)
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        placement.setCandidatePayAmount(newBaseAmount);
+        placement.setCandidateGstAmount(gstEnabled ? newGstAmount : null);
+
+        payment.setTotalAmount(newTotalAmount);
+        payment.setDueAmount(newDueAmount);
+
+        placementRepository.save(placement);
+        paymentRepository.save(payment);
+    }
+
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+}

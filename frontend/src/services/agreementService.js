@@ -142,6 +142,27 @@ const getCandidatePayments = async (candidateId) => {
     return response.json();
 };
 
+
+const updateCandidatePaymentBaseAmount = async (
+    candidateId,
+    paymentId,
+    baseAmount
+) => {
+    const response = await fetch(
+        `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/payments/${encodeURIComponent(paymentId)}/base-amount`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ baseAmount }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+};
+
 const getCandidateResumeUrl = (candidateId) =>
     `${API_BASE_URL}/agreements/${encodeURIComponent(candidateId)}/resume`;
 export default {
@@ -153,5 +174,6 @@ export default {
     blacklistCandidate,
     deleteCandidate,
     getCandidateInterviews,
-    getCandidatePayments
+    getCandidatePayments,
+    updateCandidatePaymentBaseAmount
 };
