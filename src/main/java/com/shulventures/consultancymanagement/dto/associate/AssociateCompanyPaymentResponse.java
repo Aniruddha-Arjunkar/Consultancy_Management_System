@@ -5,10 +5,12 @@ import java.time.LocalDate;
 
 public record AssociateCompanyPaymentResponse(
         Long interviewId,
+        Long paymentId,
         Long candidateId,
         String candidateName,
         BigDecimal baseAmount,
         BigDecimal gstAmount,
+        boolean gstEnabled,
         BigDecimal totalAmount,
         BigDecimal paidAmount,
         BigDecimal tdsAmount,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../../../context/AuthContext";
 import { Link, useParams, useNavigate } from "react-router";
 import API_BASE_URL from "../../../../services/api";
 import associateCompanyService from "../../../../services/associateCompanyService";
@@ -115,6 +116,24 @@ const ViewAssociateDetails = () => {
     const [showAllCandidates, setShowAllCandidates] = useState({});
 
     const navigate = useNavigate();
+
+    const { user } = useAuth();
+
+    const [editingPayment, setEditingPayment] = useState(null);
+    const [editBaseAmount, setEditBaseAmount] = useState("");
+    const [savingBaseAmount, setSavingBaseAmount] = useState(false);
+    const [baseAmountError, setBaseAmountError] = useState("");
+
+    const grants = (user?.accessModules || "")
+        .split(",")
+        .map((item) => item.trim().toUpperCase())
+        .filter(Boolean);
+
+    const canEditPaymentAmounts =
+        user?.role?.trim().toUpperCase() === "SUPER_ADMIN" ||
+        grants.includes("ALL") ||
+        grants.includes("ACCOUNTS") ||
+        grants.includes("ACCOUNTS:PAYMENTS_DUE");
 
     useEffect(() => {
         let current = true;
@@ -290,6 +309,99 @@ const ViewAssociateDetails = () => {
         (payment) => payment.category === activePaymentCategory
     );
 
+    const previewBaseAmount = Number(editBaseAmount);
+
+    const previewGstAmount =
+        editingPayment?.gstEnabled && Number.isFinite(previewBaseAmount)
+            ? Math.round(
+                (previewBaseAmount * 0.18 + Number.EPSILON) * 100
+            ) / 100
+            : 0;
+
+    const previewTotalAmount =
+        (Number.isFinite(previewBaseAmount) ? previewBaseAmount : 0) +
+        previewGstAmount;
+
+    const openBaseAmountModal = (payment) => {
+        if (!payment.paymentId || payment.category === "defaulted") {
+            return;
+        }
+
+        setEditingPayment(payment);
+        setEditBaseAmount(String(payment.baseAmount ?? ""));
+        setBaseAmountError("");
+    };
+
+    const closeBaseAmountModal = () => {
+        if (savingBaseAmount) return;
+
+        setEditingPayment(null);
+        setEditBaseAmount("");
+        setBaseAmountError("");
+    };
+
+    const saveBaseAmount = async (event) => {
+        event.preventDefault();
+
+        if (!editingPayment || savingBaseAmount) return;
+
+        const newBaseAmount = Number(editBaseAmount);
+
+        if (!Number.isFinite(newBaseAmount) || newBaseAmount < 0) {
+            setBaseAmountError("Enter a valid base amount of zero or more.");
+            return;
+        }
+
+        const newGstAmount = editingPayment.gstEnabled
+            ? Math.round((newBaseAmount * 0.18 + Number.EPSILON) * 100) / 100
+            : 0;
+
+        const newTotalAmount = newBaseAmount + newGstAmount;
+        const paidAmount = Number(editingPayment.paidAmount || 0);
+
+        if (newTotalAmount < paidAmount) {
+            setBaseAmountError(
+                `New total (${formatCurrency(newTotalAmount)}) cannot be less than paid amount (${formatCurrency(paidAmount)}).`
+            );
+            return;
+        }
+
+        if (Number(editingPayment.tdsAmount || 0) > newGstAmount) {
+            setBaseAmountError(
+                "The new GST amount cannot be less than the existing TDS amount."
+            );
+            return;
+        }
+
+        setSavingBaseAmount(true);
+        setBaseAmountError("");
+
+        try {
+            await associateCompanyService.updateAssociateCompanyPaymentBaseAmount(
+                associateId,
+                editingPayment.paymentId,
+                newBaseAmount
+            );
+
+            const refreshedPayments =
+                await associateCompanyService.getAssociateCompanyPaymentDetails(
+                    associateId
+                );
+
+            setPaymentRecords(
+                Array.isArray(refreshedPayments) ? refreshedPayments : []
+            );
+            setEditingPayment(null);
+            setEditBaseAmount("");
+        } catch (saveError) {
+            setBaseAmountError(
+                saveError.message || "Could not update the base amount."
+            );
+        } finally {
+            setSavingBaseAmount(false);
+        }
+    };
+
     return (
         <section id="main-content">
             <div className="associate-details-page">
@@ -454,24 +566,25 @@ const ViewAssociateDetails = () => {
                                     <th>Balance Amount</th>
                                     <th>Due Date</th>
                                     <th>Status</th>
+                                    <th>Edit Base Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paymentLoading ? (
                                     <tr>
-                                        <td colSpan="9" className="associate-empty-cell">
+                                        <td colSpan="10" className="associate-empty-cell">
                                             Loading payment details…
                                         </td>
                                     </tr>
                                 ) : paymentError ? (
                                     <tr>
-                                        <td colSpan="9" className="associate-empty-cell">
+                                        <td colSpan="10" className="associate-empty-cell">
                                             {paymentError}
                                         </td>
                                     </tr>
                                 ) : visiblePayments.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" className="associate-empty-cell">
+                                        <td colSpan="10" className="associate-empty-cell">
                                             No {categoryLabels[activePaymentCategory].toLowerCase()} records.
                                         </td>
                                     </tr>
@@ -498,6 +611,25 @@ const ViewAssociateDetails = () => {
                                                     {categoryLabels[payment.category]}
                                                 </span>
                                             </td>
+                                            <td>
+                                                {canEditPaymentAmounts && payment.paymentId ? (
+                                                    <button
+                                                        type="button"
+                                                        className="associate-payment-edit-amount-btn"
+                                                        disabled={payment.category === "defaulted"}
+                                                        title={
+                                                            payment.category === "defaulted"
+                                                                ? "A defaulted payment amount cannot be changed."
+                                                                : "Edit base amount"
+                                                        }
+                                                        onClick={() => openBaseAmountModal(payment)}
+                                                    >
+                                                        Edit Amount
+                                                    </button>
+                                                ) : (
+                                                    "—"
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -505,6 +637,104 @@ const ViewAssociateDetails = () => {
                         </table>
                     </div>
                 </section>
+
+                {editingPayment && (
+                    <div
+                        className="associate-base-modal-backdrop"
+                        onClick={(event) => {
+                            if (
+                                event.target === event.currentTarget &&
+                                !savingBaseAmount
+                            ) {
+                                closeBaseAmountModal();
+                            }
+                        }}
+                    >
+                        <section
+                            className="associate-base-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="associate-base-modal-title"
+                        >
+                            <h2 id="associate-base-modal-title">Edit Base Amount</h2>
+
+                            <div className="associate-base-amount-summary">
+                                <p>
+                                    <strong>Current Base Amount:</strong>{" "}
+                                    {formatCurrency(editingPayment.baseAmount)}
+                                </p>
+
+                                {editingPayment.gstEnabled && (
+                                    <p>
+                                        <strong>Current GST Amount:</strong>{" "}
+                                        {formatCurrency(editingPayment.gstAmount)}
+                                    </p>
+                                )}
+
+                                <p>
+                                    <strong>Current Total Amount:</strong>{" "}
+                                    {formatCurrency(editingPayment.totalAmount)}
+                                </p>
+                            </div>
+
+                            <form onSubmit={saveBaseAmount}>
+                                <label htmlFor="associate-new-base-amount">
+                                    New Base Amount (without GST)
+                                </label>
+                                <input
+                                    id="associate-new-base-amount"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={editBaseAmount}
+                                    onChange={(event) => setEditBaseAmount(event.target.value)}
+                                    required
+                                />
+
+                                <p className="associate-base-amount-note">
+                                    Total amount will be calculated after adding GST.
+                                </p>
+
+                                {editingPayment.gstEnabled ? (
+                                    <div className="associate-base-amount-preview">
+                                        <p>
+                                            <strong>Calculated GST (18%):</strong>{" "}
+                                            {formatCurrency(previewGstAmount)}
+                                        </p>
+                                        <p>
+                                            <strong>New Total Amount:</strong>{" "}
+                                            {formatCurrency(previewTotalAmount)}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="associate-base-amount-preview">
+                                        GST is not enabled. Total amount will equal the base
+                                        amount: {formatCurrency(previewTotalAmount)}
+                                    </p>
+                                )}
+
+                                {baseAmountError && (
+                                    <p className="associate-base-amount-error" role="alert">
+                                        {baseAmountError}
+                                    </p>
+                                )}
+
+                                <div className="associate-base-modal-actions">
+                                    <button
+                                        type="button"
+                                        onClick={closeBaseAmountModal}
+                                        disabled={savingBaseAmount}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button type="submit" disabled={savingBaseAmount}>
+                                        {savingBaseAmount ? "Saving..." : "Save Amount"}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+                    </div>
+                )}
 
                 <section className="associate-candidate-controls">
                     {candidateSections.map((section) => (

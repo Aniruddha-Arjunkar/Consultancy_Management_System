@@ -111,11 +111,34 @@ const getAssociateCompanyCandidateDetails = async (associateId) => {
     return response.json();
 };
 
+
+
+const updateAssociateCompanyPaymentBaseAmount = async (
+    associateId,
+    paymentId,
+    baseAmount
+) => {
+    const response = await fetch(
+        `${API_BASE_URL}/associate-companies/${encodeURIComponent(associateId)}/payment-details/${encodeURIComponent(paymentId)}/base-amount`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ baseAmount }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await readError(response));
+    }
+};
+
 export default {
     createAssociateCompany,
     getAssociateCompanies,
     getAssociateCompanyById,
     updateAssociateCompany,
     getAssociateCompanyPaymentDetails,
-    getAssociateCompanyCandidateDetails
+    getAssociateCompanyCandidateDetails,
+    updateAssociateCompanyPaymentBaseAmount
 };

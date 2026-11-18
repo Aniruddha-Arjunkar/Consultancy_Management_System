@@ -136,8 +136,7 @@ public class AssociateCompanyPaymentService {
                             paidAmount
                     );
 
-                    Agreement candidate =
-                            candidates.get(placement.getCandidateId());
+                    Agreement candidate = candidates.get(placement.getCandidateId());
 
                     String candidateName = firstNonBlank(
                             placement.getCandidateName(),
@@ -145,12 +144,16 @@ public class AssociateCompanyPaymentService {
                             "Unknown Candidate"
                     );
 
+                    boolean gstEnabled = placement.getCompanyGstAmount() != null;
+
                     return new AssociateCompanyPaymentResponse(
                             placement.getInterviewId(),
+                            payment == null ? null : payment.getId(),
                             placement.getCandidateId(),
                             candidateName,
                             baseAmount,
                             gstAmount,
+                            gstEnabled,
                             totalAmount,
                             paidAmount,
                             tdsAmount,

@@ -262,7 +262,6 @@ const ViewEmployeeDetail = () => {
                                     const currentMonth = `${today.getFullYear()}-${String(
                                         today.getMonth() + 1
                                     ).padStart(2, "0")}`;
-
                                     navigate(
                                         `/attendance/view-employee-attendance/${employeeId}?month=${currentMonth}`
                                     );

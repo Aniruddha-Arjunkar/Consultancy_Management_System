@@ -11,8 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -22,11 +20,14 @@ import java.nio.file.Path;
 import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyResponse;
 import java.util.List;
 import java.util.Map;
-
 import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyPaymentResponse;
 import com.shulventures.consultancymanagement.service.AssociateCompanyPaymentService;
 import com.shulventures.consultancymanagement.dto.associate.AssociateCompanyCandidateResponse;
 import com.shulventures.consultancymanagement.service.AssociateCompanyCandidateService;
+
+import com.shulventures.consultancymanagement.dto.payment.UpdatePaymentBaseAmountRequest;
+import com.shulventures.consultancymanagement.service.PlacementPaymentAmountService;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/associate-companies")
@@ -36,6 +37,7 @@ public class AssociateCompanyController {
     private final AssociateCompanyService associateCompanyService;
     private final AssociateCompanyPaymentService paymentService;
     private final AssociateCompanyCandidateService candidateService;
+    private final PlacementPaymentAmountService placementPaymentAmountService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -129,5 +131,30 @@ public class AssociateCompanyController {
             @PathVariable Long id
     ) {
         return candidateService.getCandidateDetails(id);
+    }
+
+    @PutMapping("/{id}/payment-details/{paymentId}/base-amount")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(
+            "@permissionService.hasPage(authentication, 'CONSULTANCY', 'ASSOCIATE_COMPANY_VIEW') "
+                    + "and @permissionService.hasPage(authentication, 'ACCOUNTS', 'PAYMENTS_DUE')"
+    )
+    public void updateCompanyPaymentBaseAmount(
+            @PathVariable Long id,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody UpdatePaymentBaseAmountRequest request
+    ) {
+        try {
+            placementPaymentAmountService.updateCompanyBaseAmount(
+                    id,
+                    paymentId,
+                    request.baseAmount()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    exception.getMessage()
+            );
+        }
     }
 }

@@ -10,6 +10,7 @@ const getCurrentMonth = () => {
     ).padStart(2, "0")}`;
 };
 
+
 const formatCurrency = (value) =>
     new Intl.NumberFormat("en-IN", {
         minimumFractionDigits: 2,

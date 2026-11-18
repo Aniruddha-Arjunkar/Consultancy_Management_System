@@ -466,7 +466,13 @@ java.lang.IllegalArgumentException: The new total amount cannot be less than the
 
 
 
-    
+    Edit Base amount is working perfectly now in candidate datail page . Now we also have to implement edit amount 
+    button in View Associate page > Associate company detail (ViewAssociateDetail.jsx) > Payment detail section . Dont make any change by 
+    yourself.
+
+
+
+
                         <label htmlFor="defaulter-note">Reason</label>
                         <textarea
                             id="defaulter-note"
@@ -507,3 +513,29 @@ java.lang.IllegalArgumentException: The new total amount cannot be less than the
     );
 };
 export default DuePayment;
+
+
+got error in viewAssociateDeatils.jsx browser console says "Uncaught ReferenceError: previewGstAmount is not defined
+    at ViewAssociateDetails (ViewAssociateDetail.jsx:689:61)
+
+react-dom_client.js?v=65c4ccf9:5451 An error occurred in the <ViewAssociateDetails> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries."
+after clicking edit amount button.
+
+
+we have implemted Edit Base amount in the View Associate company page > view associate deatils > payment detail 
+section , but we make a serious calculation mistake in recalculating due amount , we didn't consider TDS (tax deduction
+for sourse) . As shown in screenshot paid amount = 2500 , balance Amount = 4580 total is 7080 which whould be fine 
+as it doesn't have TDS = 100 which will also paid by company. So total amount company have to is 7180 which is calculation 
+error as company agreed to pay 7080 (total amount). So lets solve this calculation error properly and carefully . 
+dont make any changes by yourself    
+
+The changes you suggest For Due payment recalculations i didint do any of that chnages because i got confused . 
+So Lets first discuss issue in detail , What is happening in our project is the as user update payment from Due
+payment page and Add TDS Amount we directlly deducting from the due payment (only for campany pay) even it is 
+unpaid (tbl_placement.tds_paid=0). And we have seperate sub-module in Acount module to manage TDS. So first thing to 
+do is deduct TDS from the Due Amount if the TDS is paid (tbl_placement.tds_paid=1) . And then we will also solve 
+recalculation issue of Due payment in Associate detail page > Payment Section . So Analyze Every thing Carefully and 
+properly and then we implement it .
