@@ -16,6 +16,8 @@ public record DuePaymentResponse(
         BigDecimal totalAmount,
         BigDecimal paidAmount,
         BigDecimal dueAmount,
+        BigDecimal tdsAmount,
+        Boolean tdsPaid,
         LocalDate dueDate
 ) {
 }

@@ -82,8 +82,10 @@ public class DuePaymentService {
             if (payment.getInterviewId() == null) continue;
 
             String paymentType = payment.getPaymentType();
-            boolean companyPay = "Company Pay".equals(paymentType);
-            boolean candidatePay = "Candidate Pay".equals(paymentType);
+            boolean companyPay = paymentType != null
+                    && "Company Pay".equalsIgnoreCase(paymentType.trim());
+            boolean candidatePay = paymentType != null
+                    && "Candidate Pay".equalsIgnoreCase(paymentType.trim());
 
             // This page lists consultancy placement payments only.
             if (!companyPay && !candidatePay) continue;
@@ -120,13 +122,15 @@ public class DuePaymentService {
 
             BigDecimal totalAmount = zeroIfNull(payment.getTotalAmount());
             BigDecimal paidAmount = zeroIfNull(payment.getPaidAmount());
-            BigDecimal tdsAmount = zeroIfNull(payment.getTdsAmount());
 
-            // Matches the senior page's TDS rule.
-            BigDecimal tdsCredit =
-                    Boolean.FALSE.equals(payment.getTdsPaid())
-                            ? tdsAmount
-                            : BigDecimal.ZERO;
+            BigDecimal tdsAmount = companyPay
+                    ? zeroIfNull(payment.getTdsAmount())
+                    : BigDecimal.ZERO;
+
+            boolean tdsPaid = Boolean.TRUE.equals(payment.getTdsPaid());
+
+            // TDS reduces Company Pay cash due regardless of remittance status.
+            BigDecimal tdsCredit = companyPay ? tdsAmount : BigDecimal.ZERO;
 
             BigDecimal dueAmount = totalAmount
                     .subtract(paidAmount)
@@ -134,8 +138,12 @@ public class DuePaymentService {
                     .max(BigDecimal.ZERO)
                     .setScale(2, RoundingMode.HALF_UP);
 
-            // Fully paid records disappear from this page.
-            if (dueAmount.signum() <= 0) continue;
+            boolean tdsPending = companyPay
+                    && tdsAmount.signum() > 0
+                    && !tdsPaid;
+
+            // Keep a zero-cash-due row only while Company Pay TDS is unpaid.
+            if (dueAmount.signum() <= 0 && !tdsPending) continue;
 
             duePayments.add(new DuePaymentResponse(
                     payment.getId(),
@@ -150,6 +158,8 @@ public class DuePaymentService {
                     totalAmount,
                     paidAmount,
                     dueAmount,
+                    tdsAmount,
+                    companyPay ? tdsPaid : null,
                     payment.getDueDate()
             ));
         }

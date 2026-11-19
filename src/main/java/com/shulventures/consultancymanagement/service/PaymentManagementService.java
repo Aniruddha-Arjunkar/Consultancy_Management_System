@@ -53,11 +53,44 @@ public class PaymentManagementService {
             );
         }
 
-        BigDecimal tds = request.tdsAmount()
-                .setScale(2, RoundingMode.HALF_UP);
-        boolean tdsPaid = Boolean.TRUE.equals(request.tdsPaid());
+        boolean companyPay = payment.getPaymentType() != null
+                && "Company Pay".equalsIgnoreCase(payment.getPaymentType().trim());
 
-        BigDecimal tdsCredit = tdsPaid ? BigDecimal.ZERO : tds;
+        BigDecimal requestedTds = request.tdsAmount()
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal previousTds = zeroIfNull(payment.getTdsAmount());
+
+        if (!companyPay && requestedTds.signum() > 0) {
+            throw new IllegalArgumentException(
+                    "TDS can only be applied to Company Pay."
+            );
+        }
+
+        if (!companyPay && previousTds.signum() > 0) {
+            throw new IllegalArgumentException(
+                    "This Candidate Pay record has an existing TDS amount. Review the legacy TDS record before updating it."
+            );
+        }
+
+        BigDecimal tds = companyPay
+                ? requestedTds
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        // Keep remittance status controlled by the TDS module.
+        boolean tdsPaid = companyPay
+                && tds.signum() > 0
+                && Boolean.TRUE.equals(payment.getTdsPaid());
+
+        if (companyPay
+                && Boolean.TRUE.equals(payment.getTdsPaid())
+                && tds.compareTo(previousTds) != 0) {
+            throw new IllegalArgumentException(
+                    "TDS amount cannot be changed after it has been marked paid."
+            );
+        }
+
+        BigDecimal tdsCredit = companyPay ? tds : BigDecimal.ZERO;
+
         BigDecimal currentDue = total
                 .subtract(previousPaid)
                 .subtract(tdsCredit)
@@ -147,10 +180,10 @@ public class PaymentManagementService {
         BigDecimal paid = zeroIfNull(payment.getPaidAmount());
         BigDecimal tds = zeroIfNull(payment.getTdsAmount());
 
-        BigDecimal tdsCredit =
-                Boolean.TRUE.equals(payment.getTdsPaid())
-                        ? BigDecimal.ZERO
-                        : tds;
+        boolean companyPay = payment.getPaymentType() != null
+                && "Company Pay".equalsIgnoreCase(payment.getPaymentType().trim());
+
+        BigDecimal tdsCredit = companyPay ? tds : BigDecimal.ZERO;
 
         BigDecimal due = total.subtract(paid)
                 .subtract(tdsCredit)
@@ -208,8 +241,14 @@ public class PaymentManagementService {
 
 
     private BigDecimal getMaxTdsAmount(ConsultancyPayment payment) {
+        boolean companyPay = payment.getPaymentType() != null
+                && "Company Pay".equalsIgnoreCase(payment.getPaymentType().trim());
+        if (!companyPay) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
         if (payment.getInterviewId() == null) {
-            return BigDecimal.ZERO.setScale(2);
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
         InterviewPlacement placement = placementRepository
@@ -218,16 +257,7 @@ public class PaymentManagementService {
                         new IllegalArgumentException("Placement not found.")
                 );
 
-        BigDecimal gstAmount;
-
-        if ("Company Pay".equals(payment.getPaymentType())) {
-            gstAmount = placement.getCompanyGstAmount();
-        } else if ("Candidate Pay".equals(payment.getPaymentType())) {
-            gstAmount = placement.getCandidateGstAmount();
-        } else {
-            gstAmount = BigDecimal.ZERO;
-        }
-
-        return zeroIfNull(gstAmount).setScale(2, RoundingMode.HALF_UP);
+        return zeroIfNull(placement.getCompanyGstAmount())
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

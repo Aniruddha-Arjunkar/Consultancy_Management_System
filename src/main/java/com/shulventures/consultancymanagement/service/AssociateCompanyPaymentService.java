@@ -117,12 +117,10 @@ public class AssociateCompanyPaymentService {
                     Boolean tdsPaid = payment != null
                             && Boolean.TRUE.equals(payment.getTdsPaid());
 
-                    // Match the existing backend and senior page:
-                    // unpaid TDS reduces the displayed balance.
-                    BigDecimal tdsCredit =
-                            Boolean.TRUE.equals(tdsPaid)
-                                    ? BigDecimal.ZERO
-                                    : tdsAmount;
+                    // Company Pay TDS reduces cash balance regardless of remittance status.
+                    BigDecimal tdsCredit = payment == null
+                            ? BigDecimal.ZERO
+                            : tdsAmount;
 
                     BigDecimal balanceAmount = totalAmount
                             .subtract(paidAmount)
@@ -179,13 +177,33 @@ public class AssociateCompanyPaymentService {
         }
 
         // Match the senior page: payment category is based on cash paid.
+//        if (totalAmount.signum() > 0
+//                && paidAmount.compareTo(totalAmount) >= 0) {
+//            return "paid";
+//        }
+//
+//        if (paidAmount.signum() > 0
+//                && paidAmount.compareTo(totalAmount) < 0) {
+//            return "partial";
+//        }
+//
+//        return "unpaid";
+
+        //Check whether TDS status first
+        BigDecimal paidTdsAmount =
+                payment != null && Boolean.TRUE.equals(payment.getTdsPaid())
+                        ? zeroIfNull(payment.getTdsAmount())
+                        : BigDecimal.ZERO;
+
+        BigDecimal settledAmount = paidAmount.add(paidTdsAmount);
+
         if (totalAmount.signum() > 0
-                && paidAmount.compareTo(totalAmount) >= 0) {
+                && settledAmount.compareTo(totalAmount) >= 0) {
             return "paid";
         }
 
-        if (paidAmount.signum() > 0
-                && paidAmount.compareTo(totalAmount) < 0) {
+        if (settledAmount.signum() > 0
+                && settledAmount.compareTo(totalAmount) < 0) {
             return "partial";
         }
 

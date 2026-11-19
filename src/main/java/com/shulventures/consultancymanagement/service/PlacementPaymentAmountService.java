@@ -109,14 +109,8 @@ public class PlacementPaymentAmountService {
             );
         }
 
-        // Preserve the current project rule: unpaid TDS reduces the due amount.
-        BigDecimal tdsCredit = Boolean.TRUE.equals(payment.getTdsPaid())
-                ? BigDecimal.ZERO
-                : tdsAmount;
-
         BigDecimal newDueAmount = newTotalAmount
                 .subtract(paidAmount)
-                .subtract(tdsCredit)
                 .max(BigDecimal.ZERO)
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -221,14 +215,16 @@ public class PlacementPaymentAmountService {
             );
         }
 
-        // Keep the project's existing rule: unpaid TDS reduces the displayed due.
-        BigDecimal tdsCredit = Boolean.TRUE.equals(payment.getTdsPaid())
-                ? BigDecimal.ZERO
-                : tdsAmount;
+        BigDecimal settledAmount = paidAmount.add(tdsAmount);
+        if (newTotalAmount.compareTo(settledAmount) < 0) {
+            throw new IllegalArgumentException(
+                    "The new total amount cannot be less than the paid amount plus TDS."
+            );
+        }
 
         BigDecimal newDueAmount = newTotalAmount
                 .subtract(paidAmount)
-                .subtract(tdsCredit)
+                .subtract(tdsAmount)
                 .max(BigDecimal.ZERO)
                 .setScale(2, RoundingMode.HALF_UP);
 

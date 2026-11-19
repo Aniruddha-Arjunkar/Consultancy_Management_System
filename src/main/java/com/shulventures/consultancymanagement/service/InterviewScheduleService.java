@@ -345,11 +345,20 @@ public class InterviewScheduleService {
         payment.setTotalAmount(total);
         payment.setDueDate(dueDate);
         if (payment.getPaidAmount() == null) payment.setPaidAmount(BigDecimal.ZERO);
-        payment.setDueAmount(total.subtract(payment.getPaidAmount())
-                .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
         if (payment.getStatus() == null) payment.setStatus("active");
         if (payment.getTdsAmount() == null) payment.setTdsAmount(BigDecimal.ZERO);
         if (payment.getTdsPaid() == null) payment.setTdsPaid(false);
+
+        boolean companyPay = paymentType != null
+                && "Company Pay".equalsIgnoreCase(paymentType.trim());
+        BigDecimal tdsCredit = companyPay
+                ? payment.getTdsAmount()
+                : BigDecimal.ZERO;
+        payment.setDueAmount(total
+                .subtract(payment.getPaidAmount())
+                .subtract(tdsCredit)
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP));
         paymentRepository.save(payment);
     }
 

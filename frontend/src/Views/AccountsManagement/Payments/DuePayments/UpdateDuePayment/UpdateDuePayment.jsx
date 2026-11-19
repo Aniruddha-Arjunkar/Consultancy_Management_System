@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams , useLocation } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import paymentService from "../../../../../services/paymentService";
 import "./UpdateDuePayment.css";
 
@@ -9,7 +9,6 @@ const emptyForm = {
     paymentAmount: "",
     applyTds: false,
     tdsAmount: "0",
-    tdsPaid: false,
     paymentDate: new Date().toISOString().slice(0, 10),
     dueDate: "",
     paymentGateway: "",
@@ -36,6 +35,17 @@ const UpdateDuePayment = () => {
     const location = useLocation();
     const returnTo = location.state?.returnTo || "/accounts/due-payment";
 
+    const isCompanyPay = payment?.paymentType?.trim().toLowerCase() === "company pay";
+    const previewTdsAmount = isCompanyPay && form.applyTds
+        ? Number(form.tdsAmount || 0)
+        : 0;
+    const previewDue = Math.max(
+        Number(payment?.totalAmount || 0)
+            - Number(payment?.paidAmount || 0)
+            - previewTdsAmount,
+        0
+    );
+
     useEffect(() => {
         let active = true;
 
@@ -51,9 +61,10 @@ const UpdateDuePayment = () => {
                 setForm({
                     // Each visit records a new installment, so don't prefill a cumulative amount.
                     paymentAmount: "",
-                    applyTds: Number(data.tdsAmount || 0) > 0,
+                    applyTds:
+                        data.paymentType?.trim().toLowerCase() === "company pay" &&
+                        Number(data.tdsAmount || 0) > 0,
                     tdsAmount: data.tdsAmount ?? "0.00",
-                    tdsPaid: Boolean(data.tdsPaid),
 
                     // Use today's date for this installment instead of the previous installment's date.
                     paymentDate: new Date().toISOString().slice(0, 10),
@@ -105,8 +116,9 @@ const UpdateDuePayment = () => {
         }
 
         const paymentAmount = Number(form.paymentAmount);
-        const currentDue = Number(payment.dueAmount || 0);
+        const currentDue = previewDue;
         const previousPaid = Number(payment.paidAmount || 0);
+        const tdsAmount = previewTdsAmount;
 
         if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
             setError("Enter a payment amount greater than zero.");
@@ -118,7 +130,6 @@ const UpdateDuePayment = () => {
             return;
         }
 
-        const tdsAmount = form.applyTds ? Number(form.tdsAmount || 0) : 0;
         const maxTdsAmount = Number(payment.maxTdsAmount || 0);
 
         if (!Number.isFinite(tdsAmount) || tdsAmount < 0) {
@@ -158,10 +169,10 @@ const UpdateDuePayment = () => {
                 paymentDate: form.paymentDate,
                 dueDate: form.dueDate || null,
                 paymentGateway: gateway,
-                tdsAmount: form.applyTds
+                tdsAmount: isCompanyPay && form.applyTds
                     ? Number(form.tdsAmount || 0)
                     : 0,
-                tdsPaid: form.applyTds && form.tdsPaid,
+                tdsPaid: Boolean(payment.tdsPaid),
             });
             window.alert("Payment installment recorded successfully.");
             navigate(returnTo, { replace: true });
@@ -189,7 +200,7 @@ const UpdateDuePayment = () => {
                     <p role="alert">{error}</p>
                     <button
                         type="button"
-                       onClick={() => navigate(returnTo)}
+                        onClick={() => navigate(returnTo)}
                     >
                         Back to Due Payments
                     </button>
@@ -225,7 +236,7 @@ const UpdateDuePayment = () => {
                                 <label>Due Amount</label>
                                 <input
                                     type="text"
-                                    value={`₹${formatAmount(payment.dueAmount)}`}
+                                    value={`₹${formatAmount(previewDue)}`}
                                     readOnly
                                 />
                             </div>
@@ -236,7 +247,7 @@ const UpdateDuePayment = () => {
                                     type="number"
                                     name="paymentAmount"
                                     min="0.01"
-                                    max={payment.dueAmount}
+                                    max={previewDue}
                                     step="0.01"
                                     value={form.paymentAmount}
                                     onChange={updateField}
@@ -245,19 +256,22 @@ const UpdateDuePayment = () => {
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        name="applyTds"
-                                        checked={form.applyTds}
-                                        onChange={updateField}
-                                    />
-                                    Apply TDS
-                                </label>
-                            </div>
+                            {isCompanyPay && (
+                                <div className="form-group">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            name="applyTds"
+                                            checked={form.applyTds}
+                                            onChange={updateField}
+                                            disabled={Boolean(payment.tdsPaid)}
+                                        />
+                                        Apply TDS
+                                    </label>
+                                </div>
+                            )}
 
-                            {form.applyTds && (
+                            {isCompanyPay && form.applyTds && (
                                 <>
                                     <div className="form-group">
                                         <label>TDS Amount</label>
@@ -269,26 +283,15 @@ const UpdateDuePayment = () => {
                                             step="0.01"
                                             value={form.tdsAmount}
                                             onChange={updateField}
+                                            readOnly={Boolean(payment.tdsPaid)}
                                         />
                                         <small>
-                                            Maximum TDS allowed: ₹{formatAmount(payment.maxTdsAmount)}
+                                            {payment.tdsPaid
+                                                ? "TDS is marked paid. Manage its remittance in the TDS module."
+                                                : `Maximum TDS allowed: ₹${formatAmount(payment.maxTdsAmount)}`}
                                         </small>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                name="tdsPaid"
-                                                checked={form.tdsPaid}
-                                                onChange={updateField}
-                                                disabled={
-                                                    Number(form.tdsAmount) <= 0
-                                                }
-                                            />
-                                            Mark TDS Paid
-                                        </label>
-                                    </div>
                                 </>
                             )}
 

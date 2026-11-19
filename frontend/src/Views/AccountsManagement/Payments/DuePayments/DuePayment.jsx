@@ -183,6 +183,7 @@ const DuePayment = () => {
                                                 <th>Phone No</th>
                                                 <th>Total Amount</th>
                                                 <th>Paid Amount</th>
+                                                <th>TDS Amount</th>
                                                 <th>Due Amount</th>
                                                 <th>Due Date</th>
                                                 <th>Action</th>
@@ -217,6 +218,12 @@ const DuePayment = () => {
                                                             <td className="view-client-paid-amount">
                                                                 ₹{formatAmount(payment.paidAmount)}
                                                             </td>
+                                                            <td>
+                                                                {payment.paymentType?.trim().toLowerCase() === "company pay" &&
+                                                                    Number(payment.tdsAmount || 0) > 0
+                                                                    ? `₹${formatAmount(payment.tdsAmount)} (${payment.tdsPaid ? "Paid" : "Unpaid"})`
+                                                                    : "—"}
+                                                            </td>
                                                             <td className="view-client-due-amount" style={{ fontWeight: "600" }}>
                                                                 ₹{formatAmount(payment.dueAmount)}
                                                             </td>
@@ -225,6 +232,12 @@ const DuePayment = () => {
                                                             </td>
                                                             <td className="view-client-action">
                                                                 <button
+                                                                    disabled={Number(payment.dueAmount || 0) <= 0}
+                                                                    title={
+                                                                        Number(payment.dueAmount || 0) <= 0
+                                                                            ? "No cash due. Manage any pending TDS in the TDS module."
+                                                                            : undefined
+                                                                    }
                                                                     type="button"
                                                                     className="view-client-action-btn"
                                                                     onClick={() =>
@@ -289,7 +302,7 @@ const DuePayment = () => {
 
                                 <section id="total-due-amount">
                                     <h4>
-                                        Total Due Amount (INR):{" "}
+                                        Total Cash Due (INR):{" "}
                                         <span id="total-due">
                                             {formatAmount(totalDuePaise / 100)}
                                         </span>

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.shulventures.consultancymanagement.dto.payment.TdsPaidResponse;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +118,12 @@ public class TdsService {
         }
 
         payment.setTdsPaid(true);
+        BigDecimal dueAmount = zeroIfNull(payment.getTotalAmount())
+                .subtract(zeroIfNull(payment.getPaidAmount()))
+                .subtract(zeroIfNull(payment.getTdsAmount()))
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        payment.setDueAmount(dueAmount);
         paymentRepository.save(payment);
     }
 
@@ -127,6 +134,10 @@ public class TdsService {
             }
         }
         return "";
+    }
+
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
 

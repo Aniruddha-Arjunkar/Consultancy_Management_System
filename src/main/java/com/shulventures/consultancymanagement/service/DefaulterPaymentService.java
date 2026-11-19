@@ -97,14 +97,13 @@ public class DefaulterPaymentService {
                     BigDecimal tdsAmount =
                             zeroIfNull(payment.getTdsAmount());
 
-                    BigDecimal unpaidTds =
-                            Boolean.FALSE.equals(payment.getTdsPaid())
-                                    ? tdsAmount
-                                    : BigDecimal.ZERO;
+                    BigDecimal tdsCredit = companyPay
+                            ? tdsAmount
+                            : BigDecimal.ZERO;
 
                     BigDecimal dueAmount = totalAmount
                             .subtract(paidAmount)
-                            .subtract(unpaidTds)
+                            .subtract(tdsCredit)
                             .max(BigDecimal.ZERO)
                             .setScale(2, RoundingMode.HALF_UP);
 

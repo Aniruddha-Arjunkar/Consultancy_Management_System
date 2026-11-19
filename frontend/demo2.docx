@@ -539,3 +539,27 @@ unpaid (tbl_placement.tds_paid=0). And we have seperate sub-module in Acount mod
 do is deduct TDS from the Due Amount if the TDS is paid (tbl_placement.tds_paid=1) . And then we will also solve 
 recalculation issue of Due payment in Associate detail page > Payment Section . So Analyze Every thing Carefully and 
 properly and then we implement it .
+
+
+
+okey i like to solve this issue in another way , if we didn't deduct tds from due amount initilly (when user enter TDS 
+and it still unpaid) it could be possible that at the time of update payment user can enter full due amount , So it 
+will mark as fully paid but TDS is still unpaid in the record , this will cause issue .But if we are deducting the 
+the TDS from the due amount (unpaid) how will user will know it . So what we will do is Add one Column in Due payment 
+table showing TDS Amount and its status like Amount(paid or unpaid) example 1000(unpaid) where payment type is 
+company pay and have TDS amount , continuing our project current deduct TDS from the due amount as user enter TDS 
+amount. And we have make one more change in due payment page , Curenting we are disappering record as due amount is 
+became zero (if i am not wrong ?) , we should also check whether tds is paid or not (for company pay only) . Means 
+record should only disappering as it follows both 2 condition zero due payment and TDS paid. Is is a good method ?
+does it cause issue to any existing funtionanlity ? Anayze Everything properly and then we start implementing it  
+
+
+
+
+
+now TDS and payment related every thing is working fine now last thing is to do in Associate company detail (
+ViewAssociateDetails.jsx) > payment detail Section. what we are currently doing is comparing total amount and 
+paid amount  Equality to make mark payment as paid (AssociateCompanyPaymentService.getCategory() ---> " if (totalAmount.signum() > 0
+                && paidAmount.compareTo(totalAmount) >= 0) {
+            return "paid";
+        }"). Itshould now be Total Amount == Paid Amount + TDS (paid) amount mark as a paid. 
