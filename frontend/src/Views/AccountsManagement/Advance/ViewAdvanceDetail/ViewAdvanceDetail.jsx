@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import advanceService from "../../../../services/advanceService";
 import "./ViewAdvanceDetail.css";
 
@@ -28,14 +28,40 @@ const formatMonth = (month) => {
 };
 
 const ViewAdvanceDetail = () => {
+//     const { employeeId } = useParams();
+//     const navigate = useNavigate();
+
+//     const [month, setMonth] = useState(getCurrentMonth());
+//     const [appliedMonth, setAppliedMonth] = useState(getCurrentMonth());
+//     const [details, setDetails] = useState(null);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState("");
+
+
+// const location = useLocation();
+// const [searchParams] = useSearchParams();
+
+// const initialMonth = searchParams.get("month") || getCurrentMonth();
+// const returnTo = location.state?.returnTo || "/accounts/view-advance";
+
+// const [month, setMonth] = useState(initialMonth);
+// const [appliedMonth, setAppliedMonth] = useState(initialMonth);
+
+
     const { employeeId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
 
-    const [month, setMonth] = useState(getCurrentMonth());
-    const [appliedMonth, setAppliedMonth] = useState(getCurrentMonth());
+    const initialMonth = searchParams.get("month") || getCurrentMonth();
+    const returnTo = location.state?.returnTo || "/accounts/view-advance";
+
+    const [month, setMonth] = useState(initialMonth);
+    const [appliedMonth, setAppliedMonth] = useState(initialMonth);
     const [details, setDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
 
     useEffect(() => {
         let active = true;
@@ -133,9 +159,7 @@ const ViewAdvanceDetail = () => {
                             <button
                                 type="button"
                                 className="view-client-back-btn"
-                                onClick={() =>
-                                    navigate("/accounts/view-advance")
-                                }
+                                onClick={() => navigate(returnTo)}
                             >
                                 ← Back
                             </button>

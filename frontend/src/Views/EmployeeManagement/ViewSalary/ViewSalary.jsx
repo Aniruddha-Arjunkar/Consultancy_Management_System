@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router";
 import salaryService from "../../../services/salaryService";
 import "./ViewSalary.css";
 
@@ -109,12 +109,12 @@ const SalaryTable = ({ record, history }) => {
 
     const baseEarnings = isSalary
         ? (Number(record.basic) || 0) +
-          (Number(record.hra) || 0) +
-          (Number(record.conveyance) || 0) +
-          (Number(record.foodAllowance) || 0)
+        (Number(record.hra) || 0) +
+        (Number(record.conveyance) || 0) +
+        (Number(record.foodAllowance) || 0)
         : isPerDay
-          ? ratePerDay * Number(history.attendanceDays || 0)
-          : 0;
+            ? ratePerDay * Number(history.attendanceDays || 0)
+            : 0;
 
     const totalEarnings = isStipend
         ? Number(record.amount) || 0
@@ -124,8 +124,8 @@ const SalaryTable = ({ record, history }) => {
     const netSalary = isStipend
         ? Number(record.amount) || 0
         : isAdvance
-          ? advance
-          : totalEarnings - totalDeductions;
+            ? advance
+            : totalEarnings - totalDeductions;
 
     if (isAdvance) {
         return (
@@ -277,6 +277,8 @@ const ViewSalary = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+     const navigate = useNavigate();
+
     useEffect(() => {
         let current = true;
 
@@ -352,9 +354,15 @@ const ViewSalary = () => {
                         <button
                             type="button"
                             className="view-advance-button"
-                            disabled
-                            title="Available when the Accounts module is implemented"
-                        >
+                            onClick={() =>
+                                navigate(
+                                    `/accounts/view-advance/${employeeId}?month=${encodeURIComponent(month)}`,
+                                    {
+                                        state: {
+                                            returnTo: `/employee/view-salary/${employeeId}?month=${encodeURIComponent(month)}`,
+                                        },
+                                    }
+                                )}>
                             💰 View Advance
                         </button>
                     </div>

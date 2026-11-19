@@ -563,3 +563,67 @@ paid amount  Equality to make mark payment as paid (AssociateCompanyPaymentServi
                 && paidAmount.compareTo(totalAmount) >= 0) {
             return "paid";
         }"). Itshould now be Total Amount == Paid Amount + TDS (paid) amount mark as a paid. 
+
+
+
+Now last small thing we forgot to implement in Employee Management module , in Employee detail page (ViewEmployeeDetail.
+jsx) > view Salary Button > View Salary Page (ViewSalary.jsx) we have "View Advance" button which is still palce holder 
+. We have already implemented view Advance of indicvidual employee of specific month page in Acount module > Advance  
+submodule > view Advance page > View Advance page (viewAdvance.jsx) > View Advance Detail page (ViewAdnavceDetail.jsx).
+So instead of crearting new page lets connect view advance button to the existing View advance detail page . Dont make 
+any changes by yourself .
+
+
+i have make all chnage and got error "Transform failed with 4 errors:
+
+[PARSE_ERROR] Identifier `month` has already been declared
+    ╭─[ src/Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx:34:12 ]
+    │
+ 34 │     const [month, setMonth] = useState(getCurrentMonth());
+    │            ──┬──  
+    │              ╰──── `month` has already been declared here
+    │ 
+ 47 │ const [month, setMonth] = useState(initialMonth);
+    │        ──┬──  
+    │          ╰──── It can not be redeclared here
+────╯
+
+[PARSE_ERROR] Identifier `setMonth` has already been declared
+    ╭─[ src/Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx:34:19 ]
+    │
+ 34 │     const [month, setMonth] = useState(getCurrentMonth());
+    │                   ────┬───  
+    │                       ╰───── `setMonth` has already been declared here
+    │ 
+ 47 │ const [month, setMonth] = useState(initialMonth);
+    │               ────┬───  
+    │                   ╰───── It can not be redeclared here
+────╯
+
+[PARSE_ERROR] Identifier `appliedMonth` has already been declared
+    ╭─[ src/Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx:35:12 ]
+    │
+ 35 │     const [appliedMonth, setAppliedMonth] = useState(getCurrentMonth());
+    │            ──────┬─────  
+    │                  ╰─────── `appliedMonth` has already been declared here
+    │ 
+ 48 │ const [appliedMonth, setAppliedMonth] = useState(initialMonth);
+    │        ──────┬─────  
+    │              ╰─────── It can not be redeclared here
+────╯
+
+[PARSE_ERROR] Identifier `setAppliedMonth` has already been declared
+    ╭─[ src/Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx:35:26 ]
+    │
+ 35 │     const [appliedMonth, setAppliedMonth] = useState(getCurrentMonth());
+    │                          ───────┬───────  
+    │                                 ╰───────── `setAppliedMonth` has already been declared here
+    │ 
+ 48 │ const [appliedMonth, setAppliedMonth] = useState(initialMonth);
+    │                      ───────┬───────  
+    │                             ╰───────── It can not be redeclared here
+────╯
+D:/Shul Ventures/Projects/consultancy-management/frontend/src/Views/AccountsManagement/Advance/ViewAdvanceDetail/ViewAdvanceDetail.jsx"
+dont make any changes by yourself.
+
+okey now the button os working perfectlly 

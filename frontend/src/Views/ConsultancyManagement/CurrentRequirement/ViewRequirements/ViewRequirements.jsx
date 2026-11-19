@@ -208,7 +208,7 @@ const ViewRequirements = () => {
                                                 <th>Skills Required</th>
                                                 <th>Open Date</th>
                                                 <th>Close Date</th>
-                                                <th>Select Candidate</th>
+                                                {/* <th>Select Candidate</th> */}
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -249,10 +249,10 @@ const ViewRequirements = () => {
                                                                 {requirement.closeDate ||
                                                                     "—"}
                                                             </td>
-                                                            <td>
+                                                            {/* <td>
                                                                 {requirement.selectCandidate ??
                                                                     0}
-                                                            </td>
+                                                            </td> */}
 
                                                             <td className="requirement-actions">
                                                                 <div className="requirement-action-buttons">
